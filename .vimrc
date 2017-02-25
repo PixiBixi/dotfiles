@@ -89,7 +89,7 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 
 "nGinx Syntax
-au BufRead,BufNewFile /mnt/docker/nginx*,/usr/local/nginx/conf/* if &ft == '' | setfiletype nginx | endif
+au BufRead,BufNewFile /etc/nginx/* if &ft == '' | setfiletype nginx | endif
 
 "Disable auto PHPMD/PHPCS
 let g:phpqa_messdetector_autorun = 0
