@@ -42,7 +42,11 @@ filetype plugin indent on
 
 "Color
 syntax on
-colorscheme monokai
+try
+    colorscheme monokai
+catch /^Vim\%((\a\+)\)\=:E185/
+    " deal with it
+endtry
 let g:airline_theme='molokai'
 hi NonText ctermbg=none
 
