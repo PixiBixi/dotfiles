@@ -21,6 +21,9 @@ fi
 echo "Install Vundle"
 git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 
+mkdir ~/.vim/syntax
+curl https://raw.githubusercontent.com/evanmiller/nginx-vim-syntax/master/syntax/nginx.vim > ~/.vim/syntax/nginx.vim
+
 echo "Install vimrc"
 git clone https://github.com/PixiBixi/dotfiles
 cp dotfiles/.vimrc $HOME/
