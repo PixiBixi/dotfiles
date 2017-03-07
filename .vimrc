@@ -37,6 +37,8 @@ Plugin 'tpope/vim-surround'
 Plugin 'ervandew/supertab'
 Plugin 'ipoddubny/asterisk-vim'
 Plugin 'Rykka/riv.vim'
+Plugin 'SirVer/ultisnips'
+Plugin 'honza/vim-snippets'
 
 call vundle#end()
 filetype plugin indent on
@@ -109,3 +111,8 @@ let g:phpqa_codesniffer_autorun = 0
 "Vim Airline
 let g:airline_powerline_fonts = 1
 let g:airline_section_x = '%{strftime("%m/%d %H:%M")}% '
+
+"UltiSnips
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<c-b>"
+let g:UltiSnipsJumpBackwardTrigger="<c-z>"
