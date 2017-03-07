@@ -10,6 +10,7 @@ set encoding=utf-8
 set fileformat=unix
 set fileformats=unix,dos
 set nowrap
+set noswapfile
 
 "Plugins
 filetype off
@@ -39,6 +40,16 @@ Plugin 'Rykka/riv.vim'
 
 call vundle#end()
 filetype plugin indent on
+
+"Undo Dir
+if !isdirectory($HOME."/.vim")
+    call mkdir($HOME."/.vim", "", 0770)
+endif
+if !isdirectory($HOME."/.vim/undo-dir")
+    call mkdir($HOME."/.vim/undo-dir", "", 0700)
+endif
+set undodir=~/.vim/undo-dir
+set undofile
 
 "Color
 syntax on
