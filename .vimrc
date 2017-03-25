@@ -39,6 +39,7 @@ Plugin 'ipoddubny/asterisk-vim'
 Plugin 'Rykka/riv.vim'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
+Plugin 'alvan/vim-closetag'
 
 call vundle#end()
 filetype plugin indent on
