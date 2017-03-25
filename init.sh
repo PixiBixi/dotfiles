@@ -3,7 +3,7 @@ PLATFORM=$(uname)
 
 if [[ $PLATFORM == "Linux" ]]; then
 	echo "Install vim & git"
-	apt install vim git-core
+	apt-get install vim git-core
 else
 	# If brew is already installed
 	if [[ $(brew &> /dev/null || echo $?) == 1 ]]; then
