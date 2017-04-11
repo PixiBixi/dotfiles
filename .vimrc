@@ -71,6 +71,7 @@ set laststatus=2
 nmap <S-t> :tabnew <CR>
 nmap <S-Left> :tabprev <CR>
 nmap <S-Right> :tabnext <CR>
+nmap <C-f> /
 
 nmap <silent> <C-S-Left> :bprevious<CR>
 nmap <silent> <C-S-Right> :bnext<CR>
