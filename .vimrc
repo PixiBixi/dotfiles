@@ -22,7 +22,6 @@ Plugin 'gmarik/Vundle.vim'
 Plugin 'tpope/vim-fugitive'
 Plugin 'sickill/vim-monokai'
 Plugin 'kien/ctrlp.vim'
-Plugin 'octol/vim-cpp-enhanced-highlight'
 Plugin 'jiangmiao/auto-pairs'
 Plugin 'fatih/vim-go'
 Plugin 'bling/vim-airline'
@@ -40,6 +39,8 @@ Plugin 'Rykka/riv.vim'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
 Plugin 'alvan/vim-closetag'
+Plugin 'momota/cisco.vim'
+Plugin 'PProvost/vim-ps1'
 
 call vundle#end()
 filetype plugin indent on
@@ -81,10 +82,9 @@ nmap <silent> <A-Down> :wincmd j<CR>
 nmap <silent> <A-Left> :wincmd h<CR>
 nmap <silent> <A-Right> :wincmd l<CR>
 
-"C/C++ compiling
-set makeprg=ninja
-au FileType cpp nmap <C-b> :make<CR>
-au FileType c nmap <C-b> :make<CR>
+nmap <C-f> /
+nmap <C-w> :wq <CR>
+nmap <C-q> :q! <CR>
 
 "CtrlP
 let g:ctrlp_working_path_mode = 'ra'
@@ -103,6 +103,9 @@ let g:go_highlight_structs = 1
 let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 
+" JS Shortcuts
+au FileType javascript nmap <C-u> :UnMinify<CR>
+
 "nGinx Syntax
 au BufRead,BufNewFile /etc/nginx/* if &ft == '' | setfiletype nginx | endif
 
@@ -118,3 +121,14 @@ let g:airline_section_x = '%{strftime("%m/%d %H:%M")}% '
 let g:UltiSnipsExpandTrigger="<tab>"
 let g:UltiSnipsJumpForwardTrigger="<c-b>"
 let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+
+" Functions
+command! UnMinify call UnMinify()
+function! UnMinify()
+    %s/{\ze[^\r\n]/{\r/g
+    %s/){/) {/g
+    %s/};\?\ze[^\r\n]/\0\r/g
+    %s/;\ze[^\r\n]/;\r/g
+    %s/[^\s]\zs[=&|]\+\ze[^\s]/ \0 /g
+    normal ggVG=
+endfunction
