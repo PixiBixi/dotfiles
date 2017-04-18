@@ -90,8 +90,6 @@ nmap <silent> <A-Left> :wincmd h<CR>
 nmap <silent> <A-Right> :wincmd l<CR>
 
 nmap <C-f> /
-nmap <C-w> :wq <CR>
-nmap <C-q> :q! <CR>
 
 "CtrlP
 let g:ctrlp_working_path_mode = 'ra'
