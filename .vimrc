@@ -12,6 +12,10 @@ set fileformats=unix,dos
 set nowrap
 set noswapfile
 
+" Use incremental search and highlight as we go.
+set hlsearch
+set incsearch
+
 "Plugins
 filetype off
 set rtp+=~/.vim/bundle/Vundle.vim
