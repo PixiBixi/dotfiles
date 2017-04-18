@@ -12,6 +12,9 @@ set fileformats=unix,dos
 set nowrap
 set noswapfile
 
+" Utile pour NerdCommenter
+let mapleader = ","
+
 " Use incremental search and highlight as we go.
 set hlsearch
 set incsearch
@@ -40,11 +43,11 @@ Plugin 'tpope/vim-surround'
 Plugin 'ervandew/supertab'
 Plugin 'ipoddubny/asterisk-vim'
 Plugin 'Rykka/riv.vim'
-Plugin 'SirVer/ultisnips'
-Plugin 'honza/vim-snippets'
 Plugin 'alvan/vim-closetag'
 Plugin 'momota/cisco.vim'
 Plugin 'PProvost/vim-ps1'
+Plugin 'scrooloose/nerdcommenter'
+Plugin 'sumpygump/php-documentor-vim'
 
 call vundle#end()
 filetype plugin indent on
@@ -94,6 +97,11 @@ nmap <C-q> :q! <CR>
 let g:ctrlp_working_path_mode = 'ra'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*/build,*/bin
 
+"PHP Shortcuts
+au BufRead,BufNewFile *.php inoremap <buffer> <C-M> :call PhpDoc()<CR>
+au BufRead,BufNewFile *.php nnoremap <buffer> <C-M> :call PhpDoc()<CR>
+au BufRead,BufNewFile *.php vnoremap <buffer> <C-M> :call PhpDocRange()<CR>
+
 "Go
 au FileType go nmap <C-i> <Plug>(go-install)
 au FileType go nmap <C-r> <Plug>(go-run)
@@ -121,10 +129,6 @@ let g:phpqa_codesniffer_autorun = 0
 let g:airline_powerline_fonts = 1
 let g:airline_section_x = '%{strftime("%m/%d %H:%M")}% '
 
-"UltiSnips
-let g:UltiSnipsExpandTrigger="<tab>"
-let g:UltiSnipsJumpForwardTrigger="<c-b>"
-let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 
 " Functions
 command! UnMinify call UnMinify()
