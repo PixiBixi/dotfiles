@@ -48,6 +48,9 @@ Plugin 'momota/cisco.vim'
 Plugin 'PProvost/vim-ps1'
 Plugin 'scrooloose/nerdcommenter'
 Plugin 'sumpygump/php-documentor-vim'
+Plugin 'nikvdp/ejs-syntax'
+Plugin 'mhinz/vim-rfc'
+Plugin 'vim-scripts/rfc-syntax', { 'for': 'rfc' } " optional syntax highlighting for RFC files
 
 call vundle#end()
 filetype plugin indent on
