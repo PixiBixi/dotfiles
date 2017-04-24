@@ -122,6 +122,9 @@ au FileType javascript nmap <C-u> :UnMinify<CR>
 "nGinx Syntax
 au BufRead,BufNewFile /etc/nginx/* if &ft == '' | setfiletype nginx | endif
 
+" Conf files syntax
+autocmd BufNewFile,BufRead *.conf   setf dosini
+
 "Disable auto PHPMD/PHPCS
 let g:phpqa_messdetector_autorun = 0
 let g:phpqa_codesniffer_autorun = 0
