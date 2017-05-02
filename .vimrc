@@ -9,7 +9,6 @@ set expandtab
 set encoding=utf-8
 set fileformat=unix
 set fileformats=unix,dos
-set nowrap
 set noswapfile
 
 " Utile pour NerdCommenter
