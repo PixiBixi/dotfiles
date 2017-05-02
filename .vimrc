@@ -144,3 +144,19 @@ function! UnMinify()
     %s/[^\s]\zs[=&|]\+\ze[^\s]/ \0 /g
     normal ggVG=
 endfunction
+
+" .NFO specific
+au BufReadPre *.nfo call SetFileEncodings('cp437')|set ambiwidth=single
+au BufReadPost *.nfo call RestoreFileEncodings()
+
+
+" Common code for encodings
+function! SetFileEncodings(encodings)
+  let b:myfileencodingsbak=&fileencodings
+  let &fileencodings=a:encodings
+endfunction
+
+function! RestoreFileEncodings()
+  let &fileencodings=b:myfileencodingsbak
+  unlet b:myfileencodingsbak
+endfunction
