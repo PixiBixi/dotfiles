@@ -159,3 +159,7 @@ function! RestoreFileEncodings()
   let &fileencodings=b:myfileencodingsbak
   unlet b:myfileencodingsbak
 endfunction
+
+" YAML
+autocmd Filetype yaml setlocal tabstop=2 softtabstop=2 shiftwidth=2
+
