@@ -163,3 +163,7 @@ endfunction
 " YAML
 autocmd Filetype yaml setlocal tabstop=2 softtabstop=2 shiftwidth=2
 
+" Keep selection during indentation
+" with the > and < keys
+vnoremap > ><CR>gv
+vnoremap < <<CR>gv 
