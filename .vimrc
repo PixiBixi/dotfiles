@@ -144,6 +144,14 @@ function! UnMinify()
     normal ggVG=
 endfunction
 
+" Pretty JSON (Require python)
+command! PrettyJson call PrettyJson()
+function! PrettyJson()
+    if has('python')
+        execute "%!python -m json.tool"
+    endif
+endfunction
+
 " .NFO specific
 au BufReadPre *.nfo call SetFileEncodings('cp437')|set ambiwidth=single
 au BufReadPost *.nfo call RestoreFileEncodings()
