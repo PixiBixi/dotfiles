@@ -147,9 +147,7 @@ endfunction
 " Pretty JSON (Require python)
 command! PrettyJson call PrettyJson()
 function! PrettyJson()
-    if has('python')
-        execute "%!python -m json.tool"
-    endif
+    execute "%!python -m json.tool"
 endfunction
 
 " .NFO specific
