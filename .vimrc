@@ -35,7 +35,8 @@ Plugin 'vim-airline/vim-airline-themes'
 Plugin 'mattn/emmet-vim'
 Plugin 'othree/html5.vim'
 Plugin 'pangloss/vim-javascript'
-Plugin 'kristijanhusak/vim-hybrid-material'
+" Another beautiful theme
+"Plugin 'kristijanhusak/vim-hybrid-material'
 Plugin 'joonty/vim-phpqa'
 Plugin 'airblade/vim-gitgutter'
 Plugin 'tpope/vim-surround'
@@ -44,11 +45,13 @@ Plugin 'ipoddubny/asterisk-vim'
 Plugin 'Rykka/riv.vim'
 Plugin 'alvan/vim-closetag'
 Plugin 'momota/cisco.vim'
-Plugin 'PProvost/vim-ps1'
+Plugin 'PProvost/vim-ps1', {'for': 'ps1' } "PowerShell Plugin
 Plugin 'scrooloose/nerdcommenter'
 Plugin 'sumpygump/php-documentor-vim'
 Plugin 'nikvdp/ejs-syntax'
 Plugin 'mhinz/vim-rfc'
+Plugin 'chr4/nginx.vim'
+Plugin 'chr4/sslsecure.vim'
 Plugin 'vim-scripts/rfc-syntax', { 'for': 'rfc' } " optional syntax highlighting for RFC files
 
 call vundle#end()
@@ -144,6 +147,12 @@ function! UnMinify()
     normal ggVG=
 endfunction
 
+" Pretty JSON (Require python)
+command! PrettyJson call PrettyJson()
+function! PrettyJson()
+    execute "%!python -m json.tool"
+endfunction
+
 " .NFO specific
 au BufReadPre *.nfo call SetFileEncodings('cp437')|set ambiwidth=single
 au BufReadPost *.nfo call RestoreFileEncodings()
@@ -163,3 +172,10 @@ endfunction
 " YAML
 autocmd Filetype yaml setlocal tabstop=2 softtabstop=2 shiftwidth=2
 
+" XML
+au FileType xml setlocal equalprg=xmllint\ --format\ --recover\ -\ 2>/dev/null
+
+" Keep selection during indentation
+" with the > and < keys
+vnoremap > ><CR>gv
+vnoremap < <<CR>gv 
