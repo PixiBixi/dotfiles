@@ -49,10 +49,11 @@ brew install git
 brew install vim
 brew install git-quick-stats
 brew install visual-studio-code
+brew install httpie
 
 brew cask install gns3
 brew cask install wireshark-chmodbpf
-brew cask install httpie
+brew cask install royal-tsx
 
 
 # Google Slavery
