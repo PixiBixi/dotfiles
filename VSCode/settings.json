@@ -1,0 +1,37 @@
+{
+    "workbench.iconTheme": "material-icon-theme",
+    "vsicons.presets.jsonOfficial": true,
+    "terminal.external.osxExec": "iTerm.app",
+    "terminal.explorerKind": "external",
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
+    "files.autoSave": "onWindowChange",
+    "editor.snippetSuggestions": "top",
+    "editor.tabCompletion": true,
+    "editor.rulers": [
+        80
+    ],
+    "editor.wordWrap": "on",
+    "editor.renderWhitespace": "all",
+    "terminal.integrated.fontFamily": "Meslo LG M DZ for Powerline",
+    "terminal.integrated.fontSize": 12,
+    "terminal.integrated.cursorBlinking": true,
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/jspm_packages": true,
+        "**/bower_components": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true
+    },
+    "editor.renderIndentGuides": false,
+    "html.format.wrapLineLength": 0,
+    "html.suggest.angular1": false,
+    "html.suggest.ionic": false,
+    "php-docblocker.returnGap": true,
+    "php-docblocker.author": {
+        "name": "Bixi",
+        "email": "bxt@mondedie.fr"
+    },
+    "php.executablePath": "/usr/local/Cellar/php@7.1/7.1.16/bin/php"
+}
