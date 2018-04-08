@@ -3,9 +3,11 @@ PKief.material-icon-theme
 PeterJausovec.vscode-docker
 andyyaldoo.vscode-json
 christian-kohler.path-intellisense
+cssho.vscode-svgviewer
 fallenwood.vimL
 felixfbecker.php-intellisense
 formulahendry.auto-close-tag
+formulahendry.auto-rename-tag
 formulahendry.code-runner
 hangxingliu.vscode-nginx-conf-hint
 humao.rest-client
@@ -19,6 +21,7 @@ neilbrayfield.php-docblocker
 phproberto.vscode-php-getters-setters
 richie5um2.vscode-sort-json
 robertohuertasm.vscode-icons
+rubbersheep.gi
 shanoor.vscode-nginx
 spywhere.guides
 thekalinga.bootstrap4-vscode

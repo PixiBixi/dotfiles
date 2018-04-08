@@ -12,6 +12,13 @@
     "editor.snippetSuggestions": "top",
     "editor.tabCompletion": true,
     "editor.wordWrap": "on",
+    "editor.quickSuggestionsDelay": 0,
+    "editor.formatOnPaste": true,
+    "emmet.includeLanguages": {
+        "blade.php": "html",
+        "vue": "html"
+    },
+    "diffEditor.ignoreTrimWhitespace": false,
     "files.autoSave": "onWindowChange",
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
@@ -41,5 +48,5 @@
     "terminal.integrated.fontSize": 12,
     "vsicons.presets.jsonOfficial": true,
     "workbench.iconTheme": "material-icon-theme",
-    "zenMode.fullScreen": false
+    "zenMode.fullScreen": false,
 }
