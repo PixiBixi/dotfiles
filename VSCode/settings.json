@@ -1,37 +1,45 @@
 {
-    "workbench.iconTheme": "material-icon-theme",
-    "vsicons.presets.jsonOfficial": true,
-    "terminal.external.osxExec": "iTerm.app",
-    "terminal.explorerKind": "external",
+    "disableLigatures.mode": "Cursor",
+    "editor.fontFamily": "Fira Code",
+    "editor.fontLigatures": true,
     "editor.formatOnPaste": true,
     "editor.formatOnSave": true,
-    "files.autoSave": "onWindowChange",
-    "editor.snippetSuggestions": "top",
-    "editor.tabCompletion": true,
+    "editor.renderIndentGuides": false,
+    "editor.renderWhitespace": "all",
     "editor.rulers": [
         80
     ],
+    "editor.snippetSuggestions": "top",
+    "editor.tabCompletion": true,
     "editor.wordWrap": "on",
-    "editor.renderWhitespace": "all",
-    "terminal.integrated.fontFamily": "Meslo LG M DZ for Powerline",
-    "terminal.integrated.fontSize": 12,
-    "terminal.integrated.cursorBlinking": true,
-    "search.exclude": {
-        "**/node_modules": true,
-        "**/jspm_packages": true,
-        "**/bower_components": true,
-        "**/.git/objects/**": true,
-        "**/.git/subtree-cache/**": true,
-        "**/node_modules/**": true
-    },
-    "editor.renderIndentGuides": false,
+    "files.autoSave": "onWindowChange",
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "git.enableSmartCommit": true,
     "html.format.wrapLineLength": 0,
     "html.suggest.angular1": false,
     "html.suggest.ionic": false,
-    "php-docblocker.returnGap": true,
     "php-docblocker.author": {
-        "name": "Bixi",
-        "email": "bxt@mondedie.fr"
+        "email": "bxt@mondedie.fr",
+        "name": "Bixi"
     },
-    "php.executablePath": "/usr/local/Cellar/php@7.1/7.1.16/bin/php"
+    "php-docblocker.returnGap": true,
+    "php.executablePath": "/usr/local/Cellar/php@7.1/7.1.16/bin/php",
+    "php.suggest.basic": false,
+    "search.exclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/bower_components": true,
+        "**/jspm_packages": true,
+        "**/node_modules": true,
+        "**/node_modules/**": true
+    },
+    "terminal.explorerKind": "external",
+    "terminal.external.osxExec": "iTerm.app",
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.fontFamily": "Meslo LG M DZ for Powerline",
+    "terminal.integrated.fontSize": 12,
+    "vsicons.presets.jsonOfficial": true,
+    "workbench.iconTheme": "material-icon-theme",
+    "zenMode.fullScreen": false
 }

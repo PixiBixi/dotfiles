@@ -1,3 +1,4 @@
+CoenraadS.disableligatures
 PKief.material-icon-theme
 PeterJausovec.vscode-docker
 andyyaldoo.vscode-json
@@ -5,6 +6,7 @@ christian-kohler.path-intellisense
 fallenwood.vimL
 felixfbecker.php-intellisense
 formulahendry.auto-close-tag
+formulahendry.code-runner
 hangxingliu.vscode-nginx-conf-hint
 humao.rest-client
 junstyle.php-cs-fixer
@@ -19,6 +21,7 @@ richie5um2.vscode-sort-json
 robertohuertasm.vscode-icons
 shanoor.vscode-nginx
 spywhere.guides
+thekalinga.bootstrap4-vscode
 wayou.vscode-todo-highlight
 wengerk.highlight-bad-chars
 ziyasal.vscode-open-in-github
