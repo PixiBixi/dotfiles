@@ -1,9 +1,11 @@
 {
+    "diffEditor.ignoreTrimWhitespace": false,
     "disableLigatures.mode": "Cursor",
     "editor.fontFamily": "Fira Code",
     "editor.fontLigatures": true,
     "editor.formatOnPaste": true,
     "editor.formatOnSave": true,
+    "editor.quickSuggestionsDelay": 0,
     "editor.renderIndentGuides": false,
     "editor.renderWhitespace": "all",
     "editor.rulers": [
@@ -12,13 +14,10 @@
     "editor.snippetSuggestions": "top",
     "editor.tabCompletion": true,
     "editor.wordWrap": "on",
-    "editor.quickSuggestionsDelay": 0,
-    "editor.formatOnPaste": true,
     "emmet.includeLanguages": {
         "blade.php": "html",
         "vue": "html"
     },
-    "diffEditor.ignoreTrimWhitespace": false,
     "files.autoSave": "onWindowChange",
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
@@ -46,7 +45,7 @@
     "terminal.integrated.cursorBlinking": true,
     "terminal.integrated.fontFamily": "Meslo LG M DZ for Powerline",
     "terminal.integrated.fontSize": 12,
-    "vsicons.presets.jsonOfficial": true,
+    "todohighlight.isEnable": true,
     "workbench.iconTheme": "material-icon-theme",
-    "zenMode.fullScreen": false,
+    "zenMode.fullScreen": false
 }

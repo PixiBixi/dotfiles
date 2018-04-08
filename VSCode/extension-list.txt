@@ -2,6 +2,7 @@ CoenraadS.disableligatures
 PKief.material-icon-theme
 PeterJausovec.vscode-docker
 andyyaldoo.vscode-json
+bajdzis.vscode-database
 christian-kohler.path-intellisense
 cssho.vscode-svgviewer
 fallenwood.vimL
@@ -14,17 +15,13 @@ humao.rest-client
 junstyle.php-cs-fixer
 mohsen1.prettify-json
 mrmlnc.vscode-apache
-ms-mssql.mssql
 ms-vscode.cpptools
 ms-vscode.PowerShell
 neilbrayfield.php-docblocker
 phproberto.vscode-php-getters-setters
 richie5um2.vscode-sort-json
-robertohuertasm.vscode-icons
 rubbersheep.gi
 shanoor.vscode-nginx
-spywhere.guides
 thekalinga.bootstrap4-vscode
 wayou.vscode-todo-highlight
-wengerk.highlight-bad-chars
 ziyasal.vscode-open-in-github
