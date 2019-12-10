@@ -24,35 +24,29 @@ set rtp+=~/.vim/bundle/Vundle.vim
 let path='~/.vim/bundle'
 call vundle#begin(path)
 
-Plugin 'gmarik/Vundle.vim'
-Plugin 'tpope/vim-fugitive'
-Plugin 'sickill/vim-monokai'
-Plugin 'kien/ctrlp.vim'
-Plugin 'jiangmiao/auto-pairs'
-Plugin 'fatih/vim-go'
-Plugin 'bling/vim-airline'
-Plugin 'vim-airline/vim-airline-themes'
-Plugin 'mattn/emmet-vim'
-Plugin 'othree/html5.vim'
-Plugin 'pangloss/vim-javascript'
-" Another beautiful theme
-"Plugin 'kristijanhusak/vim-hybrid-material'
-Plugin 'joonty/vim-phpqa'
 Plugin 'airblade/vim-gitgutter'
-Plugin 'tpope/vim-surround'
-Plugin 'ervandew/supertab'
-Plugin 'ipoddubny/asterisk-vim'
-Plugin 'Rykka/riv.vim'
 Plugin 'alvan/vim-closetag'
-Plugin 'momota/cisco.vim'
-Plugin 'PProvost/vim-ps1', {'for': 'ps1' } "PowerShell Plugin
-Plugin 'scrooloose/nerdcommenter'
-Plugin 'sumpygump/php-documentor-vim'
-Plugin 'nikvdp/ejs-syntax'
-Plugin 'mhinz/vim-rfc'
+Plugin 'bling/vim-airline'
 Plugin 'chr4/nginx.vim'
 Plugin 'chr4/sslsecure.vim'
-Plugin 'vim-scripts/rfc-syntax', { 'for': 'rfc' } " optional syntax highlighting for RFC files
+Plugin 'ervandew/supertab'
+Plugin 'gmarik/vundle.vim'
+Plugin 'ipoddubny/asterisk-vim'
+Plugin 'jiangmiao/auto-pairs'
+Plugin 'kien/ctrlp.vim'
+Plugin 'mattn/emmet-vim'
+Plugin 'mhinz/vim-rfc'
+Plugin 'momota/cisco.vim'
+Plugin 'nikvdp/ejs-syntax'
+Plugin 'othree/html5.vim'
+Plugin 'pangloss/vim-javascript'
+Plugin 'pprovost/vim-ps1', {'for': 'ps1' } "PowerShell Plugin
+Plugin 'rykka/riv.vim'
+Plugin 'scrooloose/nerdcommenter'
+Plugin 'sickill/vim-monokai'
+Plugin 'tpope/vim-fugitive'
+Plugin 'tpope/vim-surround'
+Plugin 'vim-airline/vim-airline-themes'
 
 call vundle#end()
 filetype plugin indent on
@@ -100,18 +94,6 @@ nmap <C-f> /
 let g:ctrlp_working_path_mode = 'ra'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*/build,*/bin
 
-"PHP Shortcuts
-au BufRead,BufNewFile *.php inoremap <buffer> <C-M> :call PhpDoc()<CR>
-au BufRead,BufNewFile *.php nnoremap <buffer> <C-M> :call PhpDoc()<CR>
-au BufRead,BufNewFile *.php vnoremap <buffer> <C-M> :call PhpDocRange()<CR>
-
-"Go
-au FileType go nmap <C-i> <Plug>(go-install)
-au FileType go nmap <C-r> <Plug>(go-run)
-au FileType go nmap <C-b> <Plug>(go-build)
-au FileType go nmap <C-t> <Plug>(go-test)
-au FileType go nmap <C-c> <Plug>(go-coverage)
-
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
 let g:go_highlight_structs = 1
@@ -126,10 +108,6 @@ au BufRead,BufNewFile /etc/nginx/* if &ft == '' | setfiletype nginx | endif
 
 " Conf files syntax
 autocmd BufNewFile,BufRead *.conf   setf dosini
-
-"Disable auto PHPMD/PHPCS
-let g:phpqa_messdetector_autorun = 0
-let g:phpqa_codesniffer_autorun = 0
 
 "Vim Airline
 let g:airline_powerline_fonts = 1
@@ -179,3 +157,6 @@ au FileType xml setlocal equalprg=xmllint\ --format\ --recover\ -\ 2>/dev/null
 " with the > and < keys
 vnoremap > ><CR>gv
 vnoremap < <<CR>gv 
+
+" Toggle True/False
+let g:switch_mapping = "-"
