@@ -31,7 +31,6 @@ Plugin 'chr4/nginx.vim'
 Plugin 'chr4/sslsecure.vim'
 Plugin 'ervandew/supertab'
 Plugin 'gmarik/vundle.vim'
-Plugin 'ipoddubny/asterisk-vim'
 Plugin 'jiangmiao/auto-pairs'
 Plugin 'kien/ctrlp.vim'
 Plugin 'mattn/emmet-vim'
@@ -42,7 +41,6 @@ Plugin 'othree/html5.vim'
 Plugin 'pangloss/vim-javascript'
 Plugin 'pprovost/vim-ps1', {'for': 'ps1' } "PowerShell Plugin
 Plugin 'rykka/riv.vim'
-Plugin 'scrooloose/nerdcommenter'
 Plugin 'sickill/vim-monokai'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-surround'
@@ -94,17 +92,8 @@ nmap <C-f> /
 let g:ctrlp_working_path_mode = 'ra'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*/build,*/bin
 
-let g:go_highlight_functions = 1
-let g:go_highlight_methods = 1
-let g:go_highlight_structs = 1
-let g:go_highlight_operators = 1
-let g:go_highlight_build_constraints = 1
-
 " JS Shortcuts
 au FileType javascript nmap <C-u> :UnMinify<CR>
-
-"nGinx Syntax
-au BufRead,BufNewFile /etc/nginx/* if &ft == '' | setfiletype nginx | endif
 
 " Conf files syntax
 autocmd BufNewFile,BufRead *.conf   setf dosini
@@ -112,7 +101,6 @@ autocmd BufNewFile,BufRead *.conf   setf dosini
 "Vim Airline
 let g:airline_powerline_fonts = 1
 let g:airline_section_x = '%{strftime("%m/%d %H:%M")}% '
-
 
 " Functions
 command! UnMinify call UnMinify()
