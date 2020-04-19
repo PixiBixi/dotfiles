@@ -148,3 +148,7 @@ vnoremap < <<CR>gv
 
 " Toggle True/False
 let g:switch_mapping = "-"
+
+" Fix scrolling for tmux
+set ttymouse=xterm2
+set mouse=a
