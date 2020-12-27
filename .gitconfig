@@ -1,0 +1,30 @@
+[user]
+	name = PixiBixi
+	email = my@email.fr
+[core]
+	pager = diff-so-fancy | less --tabs=4 -RFX
+[pull]
+	rebase = true
+
+[alias]
+    a = add
+    aa = add --all
+    br = branch
+    b = branch
+    c = commit
+    cl = clone
+    cm = commit -m
+    co = checkout
+    cod = checkout dev-jd
+    com = checkout master
+    cot = checkout test
+    d = diff
+    h = !giturl -o 
+    l = log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+    mm = merge master
+    pl = pull
+    ps = push
+    s = show
+    st = status --short
+    up = pull --rebase
+
