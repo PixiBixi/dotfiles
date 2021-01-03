@@ -18,6 +18,9 @@ let mapleader = ","
 set hlsearch
 set incsearch
 
+" Dont split word
+set linebreak
+
 "Plugins
 filetype off
 set rtp+=~/.vim/bundle/Vundle.vim
