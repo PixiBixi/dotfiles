@@ -37,17 +37,14 @@ Plugin 'gmarik/vundle.vim'
 Plugin 'jiangmiao/auto-pairs'
 Plugin 'kien/ctrlp.vim'
 Plugin 'mattn/emmet-vim'
-Plugin 'mhinz/vim-rfc'
 Plugin 'momota/cisco.vim'
 Plugin 'nikvdp/ejs-syntax'
-Plugin 'othree/html5.vim'
-Plugin 'pangloss/vim-javascript'
-Plugin 'pprovost/vim-ps1', {'for': 'ps1' } "PowerShell Plugin
 Plugin 'rykka/riv.vim'
 Plugin 'sickill/vim-monokai'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-surround'
 Plugin 'vim-airline/vim-airline-themes'
+Plugin 'hashivim/vim-terraform'
 
 call vundle#end()
 filetype plugin indent on
@@ -154,4 +151,9 @@ let g:switch_mapping = "-"
 
 " Fix scrolling for tmux
 set ttymouse=xterm2
-set mouse=a
+set mouse=
+
+" Show tabs
+set invlist
+set list listchars=tab:❘⠀,trail:·,extends:»,precedes:«,nbsp:×
+
