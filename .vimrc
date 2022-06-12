@@ -98,6 +98,9 @@ au FileType javascript nmap <C-u> :UnMinify<CR>
 " Conf files syntax
 autocmd BufNewFile,BufRead *.conf   setf dosini
 
+" Auto-remove useless whitespace
+autocmd BufWritePre * :%s/\s\+$//e
+
 "Vim Airline
 let g:airline_powerline_fonts = 1
 let g:airline_section_x = '%{strftime("%m/%d %H:%M")}% '
