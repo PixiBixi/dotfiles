@@ -27,6 +27,7 @@ set rtp+=~/.vim/bundle/Vundle.vim
 let path='~/.vim/bundle'
 call vundle#begin(path)
 
+Plugin 'VundleVim/Vundle.vim'
 Plugin 'airblade/vim-gitgutter'
 Plugin 'alvan/vim-closetag'
 Plugin 'bling/vim-airline'
@@ -38,13 +39,14 @@ Plugin 'jiangmiao/auto-pairs'
 Plugin 'kien/ctrlp.vim'
 Plugin 'mattn/emmet-vim'
 Plugin 'momota/cisco.vim'
-Plugin 'nikvdp/ejs-syntax'
 Plugin 'rykka/riv.vim'
 Plugin 'sickill/vim-monokai'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-surround'
 Plugin 'vim-airline/vim-airline-themes'
 Plugin 'hashivim/vim-terraform'
+Plugin 'habamax/vim-asciidoctor'
+Plugin 'mustache/vim-mustache-handlebars'
 
 call vundle#end()
 filetype plugin indent on
@@ -98,8 +100,9 @@ au FileType javascript nmap <C-u> :UnMinify<CR>
 " Conf files syntax
 autocmd BufNewFile,BufRead *.conf   setf dosini
 
-" Auto-remove useless whitespace
+" Remove useless whitespace
 autocmd BufWritePre * :%s/\s\+$//e
+
 
 "Vim Airline
 let g:airline_powerline_fonts = 1
@@ -143,6 +146,7 @@ autocmd Filetype yaml setlocal tabstop=2 softtabstop=2 shiftwidth=2
 
 " XML
 au FileType xml setlocal equalprg=xmllint\ --format\ --recover\ -\ 2>/dev/null
+au Filetype xml setlocal tabstop=2 softtabstop=2 shiftwidth=2
 
 " Keep selection during indentation
 " with the > and < keys
@@ -156,7 +160,8 @@ let g:switch_mapping = "-"
 set ttymouse=xterm2
 set mouse=
 
+au BufRead,BufNewFile haproxy* set ft=haproxy
+
 " Show tabs
 set invlist
 set list listchars=tab:❘⠀,trail:·,extends:»,precedes:«,nbsp:×
-
