@@ -9,22 +9,24 @@
 [alias]
     a = add
     aa = add --all
-    br = branch
     b = branch
+    br = branch
     c = commit
     cl = clone
     cm = commit -m
+    cma = commit --amend
     co = checkout
     cod = checkout dev-jd
     com = checkout master
     cot = checkout test
     d = diff
-    h = !giturl -o 
+    dc = diff --cached
+    h = !giturl -o
     l = log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
     mm = merge master
     pl = pull
     ps = push
+    psf = push --force
     s = show
     st = status --short
     up = pull --rebase
-
