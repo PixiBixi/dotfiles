@@ -47,6 +47,7 @@ Plugin 'vim-airline/vim-airline-themes'
 Plugin 'hashivim/vim-terraform'
 Plugin 'habamax/vim-asciidoctor'
 Plugin 'mustache/vim-mustache-handlebars'
+Plugin 'Joorem/vim-haproxy'
 
 call vundle#end()
 filetype plugin indent on
@@ -151,7 +152,7 @@ au Filetype xml setlocal tabstop=2 softtabstop=2 shiftwidth=2
 " Keep selection during indentation
 " with the > and < keys
 vnoremap > ><CR>gv
-vnoremap < <<CR>gv 
+vnoremap < <<CR>gv
 
 " Toggle True/False
 let g:switch_mapping = "-"
