@@ -30,3 +30,7 @@
     s = show
     st = status --short
     up = pull --rebase
+
+[push]
+    autoSetupRemote = true
+
