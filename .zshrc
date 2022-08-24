@@ -115,6 +115,10 @@ alias ip='ip -c'
 alias mtr='mtr -z'
 alias s='ssh'
 
+alias k='kubectl'
+source <(kubectl completion zsh)
+complete -o default -F __start_kubectl k
+
 # Good old MacOS commands
 alias pbcopy='xclip -selection clipboard'
 alias pbpaste='xclip -selection clipboard -o'
