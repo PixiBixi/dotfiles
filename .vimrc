@@ -27,6 +27,7 @@ set rtp+=~/.vim/bundle/Vundle.vim
 let path='~/.vim/bundle'
 call vundle#begin(path)
 
+Plugin 'Joorem/vim-haproxy'
 Plugin 'VundleVim/Vundle.vim'
 Plugin 'airblade/vim-gitgutter'
 Plugin 'alvan/vim-closetag'
@@ -35,19 +36,16 @@ Plugin 'chr4/nginx.vim'
 Plugin 'chr4/sslsecure.vim'
 Plugin 'ervandew/supertab'
 Plugin 'gmarik/vundle.vim'
+Plugin 'habamax/vim-asciidoctor'
+Plugin 'hashivim/vim-terraform'
 Plugin 'jiangmiao/auto-pairs'
 Plugin 'kien/ctrlp.vim'
 Plugin 'mattn/emmet-vim'
-Plugin 'momota/cisco.vim'
-Plugin 'rykka/riv.vim'
+Plugin 'mustache/vim-mustache-handlebars'
 Plugin 'sickill/vim-monokai'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-surround'
 Plugin 'vim-airline/vim-airline-themes'
-Plugin 'hashivim/vim-terraform'
-Plugin 'habamax/vim-asciidoctor'
-Plugin 'mustache/vim-mustache-handlebars'
-Plugin 'Joorem/vim-haproxy'
 
 call vundle#end()
 filetype plugin indent on
