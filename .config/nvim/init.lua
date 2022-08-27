@@ -22,7 +22,7 @@ endif
 if !isdirectory($HOME."/.config/nvim/undo-dir")
     call mkdir($HOME."/.config/nvim/undo-dir", "", 0700)
 endif
-set undodir=~/.config/nvim/undo-dir 
+set undodir=~/.config/nvim/undo-dir
 set undofile
 ]]
 
@@ -43,7 +43,7 @@ vim.cmd [[packadd packer.nvim]]
 require('packer').startup(function(use)
   use 'wbthomason/packer.nvim' -- Package manager
   use 'tpope/vim-fugitive' -- Git commands in nvim
-	use 'Raimondi/delimitMate' -- Add auto quote & co
+	use 'Raimondi/delimitMate'
 
 
   -- UI to select things (files, grep results, open buffers...)
@@ -83,7 +83,6 @@ require('packer').startup(function(use)
 	use 'lewis6991/impatient.nvim'
 
 end)
-
 ---------------------------------------------------------------------> Global config
 local opt = vim.opt
 vim.o.breakindent = true
@@ -94,10 +93,10 @@ opt.autoindent = true
 opt.hlsearch = true
 opt.number = true
 opt.cursorline = true
-opt.laststatus = 2
-opt.tabstop = 2
-opt.softtabstop = 2
-opt.shiftwidth = 2
+opt.laststatus = 4
+opt.tabstop = 4
+opt.softtabstop = 4
+opt.shiftwidth = 4
 opt.ruler = true
 opt.syntax = "on"
 opt.smartcase = true
