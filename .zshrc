@@ -77,6 +77,7 @@ zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
 plugins=(git ssh-agent terraform zsh-kubectl-prompt)
 
 source $ZSH/oh-my-zsh.sh
+[ -f ~/.zsh_functions ] && . ~/.zsh_functions
 
 # User configuration
 
