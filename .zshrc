@@ -111,6 +111,7 @@ alias logs='cd /var/log'
 alias f="find"
 alias cat='bat'
 alias tf="terraform"
+alias ping="ping -c4"
 alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
 alias ip='ip -c'
 alias mtr='mtr -z'
