@@ -74,7 +74,7 @@ zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git ssh-agent terraform zsh-kubectl-prompt)
+plugins=(ssh-agent terraform zsh-kubectl-prompt)
 
 source $ZSH/oh-my-zsh.sh
 [ -f ~/.zsh_functions ] && . ~/.zsh_functions
@@ -116,6 +116,7 @@ alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pw
 alias ip='ip -c'
 alias mtr='mtr -z'
 alias s='ssh'
+alias g='git'
 
 alias k='kubectl'
 source <(kubectl completion zsh)
