@@ -135,3 +135,7 @@ TMOUT=1
 TRAPALRM() {
     zle reset-prompt
 }
+
+# Remap alt-arrow for MacOS (iTerm2)
+bindkey "\e\e[D" backward-word
+bindkey "\e\e[C" forward-word
