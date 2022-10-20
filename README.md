@@ -11,9 +11,6 @@ If you want to use RFC plugin, you must to compile your vim with ruby support, a
 
 ```
 gem install nokogiri
-```
-
-```
 curl https://raw.githubusercontent.com/PixiBixi/dotfiles/master/init.sh | bash
 ```
 
@@ -25,11 +22,19 @@ In order to user `ControlMaster`, we need to create `~/.ssh/private` folder
 mkdir ~/.ssh/private
 ```
 
-### MacOS Specific
+### Git
+
+`git h` uses an external software, lets install it
+
+```
+gem install giturl
+```
+
+## MacOS Specific
 
 Few things only for MacOS
 
-#### iTerm 2
+### iTerm 2
 
   * [Theme](https://github.com/sindresorhus/iterm2-snazzy) for iTerm 2
   * Use **Natural Key Mapping**
