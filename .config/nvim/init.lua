@@ -49,7 +49,7 @@ require('packer').startup(function(use)
   -- UI to select things (files, grep results, open buffers...)
   use { 'nvim-telescope/telescope.nvim', requires = { 'nvim-lua/plenary.nvim' } }
   use {'nvim-telescope/telescope-fzf-native.nvim', run = 'make' }
-	use({ "iamcco/markdown-preview.nvim", run = "cd app && npm install", setup = function() vim.g.mkdp_filetypes = { "markdown" } end, ft = { "markdown" }, })
+  use({ "iamcco/markdown-preview.nvim", run = "cd app && npm install", setup = function() vim.g.mkdp_filetypes = { "markdown" } end, ft = { "markdown" }, })
 
 	use {
 		'kyazdani42/nvim-tree.lua',
@@ -82,6 +82,9 @@ require('packer').startup(function(use)
 
 	use 'lewis6991/impatient.nvim'
 
+  use {'neoclide/coc.nvim', branch = 'release'}
+  use 'pearofducks/ansible-vim'
+
 end)
 ---------------------------------------------------------------------> Global config
 local opt = vim.opt
@@ -109,7 +112,6 @@ opt.fileencoding = 'utf-8'
 vim.cmd[[au BufRead,BufNewFile haproxy* set ft=haproxy]]
 
 -- old
-vim.opt.clipboard:prepend {"unnamedplus"}
 vim.o.termguicolors = true
 
 -- Lua
