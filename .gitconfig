@@ -9,6 +9,7 @@
 [alias]
     a = add
     aa = add --all
+	ap = add -p
     b = branch
     br = branch
     c = commit
