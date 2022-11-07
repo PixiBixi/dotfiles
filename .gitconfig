@@ -2,9 +2,16 @@
 	name = PixiBixi
 	email = my@email.fr
 [core]
-	pager = diff-so-fancy | less --tabs=4 -RFX
+	pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
 [pull]
 	rebase = true
+
+[merge]
+    conflictstyle = diff3
 
 [alias]
     a = add
@@ -34,4 +41,5 @@
 
 [push]
     autoSetupRemote = true
+
 
