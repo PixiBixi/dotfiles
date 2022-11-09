@@ -24,9 +24,7 @@
     cm = commit -m
     cma = commit --amend
     co = checkout
-    cod = checkout dev-jd
     com = checkout master
-    cot = checkout test
     d = diff
     dc = diff --cached
     h = !giturl -o
@@ -37,6 +35,7 @@
     psf = push --force
 	psci = push -o ci.skip
     s = show
+    smu = submodule update --init --recursive --remote
     st = status --short
     up = pull --rebase
 
