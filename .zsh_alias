@@ -1,0 +1,21 @@
+# ZSH Alias
+alias httpc='http -hF'
+alias df='dfc'
+alias logs='cd /var/log'
+alias f="find"
+alias cat='bat'
+alias tf="terraform"
+alias ping="ping -c4"
+alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
+alias pullparallel=" find . -type d -name .git|sed "s/.git//g"|xargs -P30 -I % git -C % pull"
+alias ip='ip -c'
+alias mtr='mtr -z'
+alias s='ssh'
+alias g='git'
+alias os='openstack'
+
+alias k='kubectl'
+source <(kubectl completion zsh)
+complete -o default -F __start_kubectl k
+
+

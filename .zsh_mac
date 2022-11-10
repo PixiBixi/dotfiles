@@ -1,0 +1,6 @@
+# Alias for Mac only
+alias sed="gsed"
+
+# Remap alt-arrow for MacOS (iTerm2)
+bindkey "\e\e[D" backward-word
+bindkey "\e\e[C" forward-word

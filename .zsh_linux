@@ -1,0 +1,7 @@
+# Things specific to Linux
+
+# Good old MacOS commands
+alias pbcopy='xclip -selection clipboard'
+alias pbpaste='xclip -selection clipboard -o'
+alias open="xdg-open"
+
