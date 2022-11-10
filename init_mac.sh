@@ -1,4 +1,5 @@
 #!/bin/sh
+#TODO: Rewrite it 100%
 
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 xcode-select --install
