@@ -74,7 +74,7 @@ zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(ssh-agent terraform zsh-kubectl-prompt)
+plugins=(ssh-agent terraform zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 [ -f ~/.zsh_functions ] && . ~/.zsh_functions
@@ -105,27 +105,14 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-alias httpc='http -hF'
-alias df='dfc'
-alias logs='cd /var/log'
-alias f="find"
-alias cat='bat'
-alias tf="terraform"
-alias ping="ping -c4"
-alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
-alias ip='ip -c'
-alias mtr='mtr -z'
-alias s='ssh'
-alias g='git'
+# Source all alias
+[[ -f ~/.zsh_alias ]] && . ~/.zsh_alias
 
-alias k='kubectl'
-source <(kubectl completion zsh)
-complete -o default -F __start_kubectl k
+# Source things for MacOS
+[[ $(uname) == "Darwin" ]] && . ~/.zsh_mac
 
-# Good old MacOS commands
-alias pbcopy='xclip -selection clipboard'
-alias pbpaste='xclip -selection clipboard -o'
-alias open="xdg-open"
+# Source things for Linux
+[[ $(uname) == "Darwin" ]] && . ~/.zsh_linux
 
 # Add TF Workspace
 RPROMPT='$(tf_prompt_info) [%D{%L:%M:%S}] '$RPROMPT
@@ -135,7 +122,3 @@ TMOUT=1
 TRAPALRM() {
     zle reset-prompt
 }
-
-# Remap alt-arrow for MacOS (iTerm2)
-bindkey "\e\e[D" backward-word
-bindkey "\e\e[C" forward-word
