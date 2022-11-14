@@ -42,4 +42,5 @@
 [push]
     autoSetupRemote = true
 
-
+[help]
+	autocorrect = 1
