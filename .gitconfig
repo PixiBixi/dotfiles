@@ -35,7 +35,8 @@
     psf = push --force
 	psci = push -o ci.skip
     s = show
-    smu = submodule update --init --recursive --remote
+	sm = submodule
+    smu = !git submodule status | awk '{print $2}' | xargs -P10 -n1 git submodule update --init --remote
     st = status --short
     up = pull --rebase
 
