@@ -60,7 +60,7 @@ require('packer').startup(function(use)
 			'kyazdani42/nvim-web-devicons', -- optional, for file icon
 		},
 		config = function() require'nvim-tree'.setup {} end
-	}	
+	}
 	use 'navarasu/onedark.nvim' -- Theme inspired by Atom
 	use 'nvim-lualine/lualine.nvim' -- Fancier statusline
 	-- Add indentation guides even on blank lines
@@ -114,6 +114,7 @@ opt.fileencoding = 'utf-8'
 
 -- custom syntax files
 vim.cmd[[au BufRead,BufNewFile haproxy* set ft=haproxy]]
+vim.cmd[[set clipboard+=unnamedplus]]
 
 -- old
 vim.o.termguicolors = true
