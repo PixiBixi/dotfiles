@@ -28,6 +28,20 @@ gem install nokogiri
 curl https://raw.githubusercontent.com/PixiBixi/dotfiles/master/init.sh | bash
 ```
 
+### npm
+
+A npmfile has been created to simplify re-installation of package. To re-install packages, that's simple:
+
+```
+xargs npm install --global < ~/npmfile
+```
+
+Also, if you want to export packages :
+
+```
+npm list --global --parseable --depth=0 | sed '1d' | awk '{gsub(/\/.*\//,"",$1); print}' > ~/npmfile
+
+
 ### ssh
 
 In order to user `ControlMaster`, we need to create `~/.ssh/private` folder
