@@ -40,6 +40,22 @@ Also, if you want to export packages :
 
 ```
 npm list --global --parseable --depth=0 | sed '1d' | awk '{gsub(/\/.*\//,"",$1); print}' > ~/npmfile
+```
+
+### gem
+
+A gemfile has been created to simplify re-installation of package. To re-install packages, that's simple:
+
+```
+cat ~/gemlist | xargs -L 1 gem install --no-ri --no-rdoc
+```
+
+Also, if you want to export packages :
+
+```
+gem list | tail -n+1 | sed 's/(/--version /' | sed 's/)//' > ~/gemlist
+```
+
 
 
 ### ssh
