@@ -8,10 +8,10 @@ end
 
 -- Autocommand that reloads neovim whenever you save the plugins.lua file
 vim.cmd [[
-	augroup packer_user_config
-	autocmd!
-	autocmd BufWritePost plugins.lua source <afile> | PackerSync
-	augroup end
+    augroup packer_user_config
+    autocmd!
+    autocmd BufWritePost plugins.lua source <afile> | PackerSync
+    augroup end
 ]]
 
 -- Setup undo dir
@@ -267,7 +267,7 @@ end
 
 -- nvim-cmp supports additional completion capabilities
 local capabilities = vim.lsp.protocol.make_client_capabilities()
-capabilities = require('cmp_nvim_lsp').update_capabilities(capabilities)
+capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 
 local servers = { 'ansiblels', 'dockerls', 'bashls', 'pyright' }
 for _, lsp in pairs(servers) do
