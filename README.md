@@ -87,3 +87,5 @@ Few things only for MacOS
 	* Keys
 	* Key Mapping
 	* Presets > Use _Natural Text Editing_
+
+-> Raycast config file is present, locked by password
