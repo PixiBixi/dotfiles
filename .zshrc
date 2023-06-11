@@ -123,3 +123,15 @@ TMOUT=1
 TRAPALRM() {
     zle reset-prompt
 }
+
+# Auto extend alias on space push
+globalias() {
+   zle _expand_alias
+   zle expand-word
+   zle self-insert
+}
+zle -N globalias
+
+# space expands all aliases, including global
+bindkey -M emacs " " globalias
+bindkey -M viins " " globalias
