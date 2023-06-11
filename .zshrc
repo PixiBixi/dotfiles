@@ -66,8 +66,6 @@ zstyle ':omz:update' mode auto      # update automatically without asking
 # ZSH_CUSTOM=/path/to/new-custom-folder
 #
 
-# Important lines to put before plugins
-zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
 
 # Which plugins would you like to load?
 # Standard plugins can be found in $ZSH/plugins/
@@ -75,6 +73,9 @@ zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(ssh-agent terraform zsh-syntax-highlighting)
+
+# Load differents keys
+zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
 
 source $ZSH/oh-my-zsh.sh
 [ -f ~/.zsh_functions ] && . ~/.zsh_functions
