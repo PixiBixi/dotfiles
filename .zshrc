@@ -72,7 +72,7 @@ zstyle ':omz:update' mode auto      # update automatically without asking
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(ssh-agent terraform zsh-syntax-highlighting)
+plugins=(ssh-agent terraform zsh-syntax-highlighting timer)
 
 # Load differents keys
 zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
@@ -123,6 +123,8 @@ TMOUT=1
 TRAPALRM() {
     zle reset-prompt
 }
+
+TIMER_FORMAT='[%d]'; TIMER_PRECISION=2
 
 # Auto extend alias on space push
 globalias() {
