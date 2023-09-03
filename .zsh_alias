@@ -18,6 +18,5 @@ alias s='ssh'
 alias sed="gsed"
 alias tf="terraform"
 
-source <(kubectl completion zsh)
 complete -o default -F __start_kubectl k
 
