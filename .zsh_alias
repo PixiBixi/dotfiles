@@ -20,3 +20,6 @@ alias tf="terraform"
 
 complete -o default -F __start_kubectl k
 
+alias kubectl=kubecolor
+compdef kubecolor=kubectl
+compdef k=kubectl
