@@ -11,7 +11,6 @@ alias k='kubectl'
 alias logs='cd /var/log'
 alias mtr='mtr -z'
 alias os='openstack'
-alias ping="ping -c4"
 alias pullparallel="find . -type d -name .git| sed s/\\.git$//g|xargs -P30 -I % git -C % pull"
 alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
 alias s='ssh'
