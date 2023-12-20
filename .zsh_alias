@@ -1,5 +1,5 @@
 # ZSH Alias
-alias cat='bat'
+alias cat='bat --style=plain'
 alias csshx="tmux-xpanes --ssh"
 alias df='dfc'
 alias dig='dog'
