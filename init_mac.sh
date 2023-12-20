@@ -19,3 +19,6 @@ printf " ✅\n"
 printf "Install Brew applications"
 curl -osL https://raw.githubusercontent.com/PixiBixi/dotfiles/master/Brewfile > ~/Brewfile
 brew bundle install
+
+echo "🔵  Setting up fzf"
+[ -f /opt/homebrew/opt/fzf/install ] && /opt/homebrew/opt/fzf/install --all
