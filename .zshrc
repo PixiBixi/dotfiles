@@ -116,14 +116,6 @@ source $ZSH/oh-my-zsh.sh
 [[ $(uname) == "Linux" ]] && . ~/.zsh_linux
 
 # Add TF Workspace
-RPROMPT='$(tf_prompt_info) [%D{%L:%M:%S}] '$RPROMPT
-
-TMOUT=1
-
-TRAPALRM() {
-    zle reset-prompt
-}
+RPROMPT='$(kube_ps1)'
 
 TIMER_FORMAT='[%d]'; TIMER_PRECISION=2
-PROMPT='$(kube_ps1)'$PROMPT
-
