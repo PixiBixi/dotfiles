@@ -11,6 +11,9 @@ PATH_DIRS=(
 )
 export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 
+export EDITOR=nvim
+
+
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
