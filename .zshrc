@@ -113,7 +113,7 @@ source $ZSH/oh-my-zsh.sh
 [[ $(uname) == "Darwin" ]] && . ~/.zsh_mac
 
 # Source things for Linux
-[[ $(uname) == "Darwin" ]] && . ~/.zsh_linux
+[[ $(uname) == "Linux" ]] && . ~/.zsh_linux
 
 # Add TF Workspace
 RPROMPT='$(tf_prompt_info) [%D{%L:%M:%S}] '$RPROMPT
