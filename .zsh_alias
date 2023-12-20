@@ -6,7 +6,6 @@ alias dig='dog'
 alias f="fd"
 alias g='git'
 alias httpc='http -hF'
-alias ip='ip -c'
 alias k='kubectl'
 alias logs='cd /var/log'
 alias mtr='mtr -z'
