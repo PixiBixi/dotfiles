@@ -1,5 +1,15 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
+PATH_DIRS=(
+    /opt/homebrew/bin
+    /opt/homebrew/sbin
+    /Applications/Wireshark.app/Contents/MacOS
+    /Library/TeX/texbin
+    /Users/jeremy/.krew/bin
+    /Users/jeremy/.nvm/versions/node/v18.0.0/bin
+    /opt/homebrew/opt/openssl@1.1/bin
+)
+export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
