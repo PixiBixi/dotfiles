@@ -22,3 +22,10 @@ brew bundle install
 
 echo "🔵  Setting up fzf"
 [ -f /opt/homebrew/opt/fzf/install ] && /opt/homebrew/opt/fzf/install --all
+
+
+echo "🔵  Setting up kubeswitch"
+[ ! -d ~/.kube ] && cp -r .kube ~/.kube || cp .kube/switch-config.yaml .kube/
+
+echo "Don't forget to split your kubeconfig file into several. You can use konfig to corneliusweig/konfig to split it"
+printf " ✅\n"
