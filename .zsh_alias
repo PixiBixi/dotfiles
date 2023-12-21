@@ -1,20 +1,29 @@
-# ZSH Alias
-alias cat='bat --style=plain'
+# Make life easier <3
 alias csshx="tmux-xpanes --ssh"
-alias df='dfc'
-alias dig='dog'
-alias f="fd"
-alias g='git'
 alias httpc='http -hF'
-alias k='kubectl'
-alias logs='cd /var/log'
 alias mtr='mtr -z'
-alias os='openstack'
 alias pullparallel="find . -type d -name .git| sed s/\\.git$//g|xargs -P30 -I % git -C % pull"
 alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
-alias s='ssh'
-alias sed="gsed"
+
+
+# Shorten
 alias tf="terraform"
+alias os='openstack'
+alias k='kubectl'
+alias f="fd"
+alias g='git'
+alias s='ssh'
+
+# Software replacement
+alias vim="nvim"
+alias df='dfc'
+alias dig='dog'
+alias cat='bat --style=plain'
+
+# Kube alias
+alias kctx="switch"
+alias kubectx="switch"
+alias kubens="switch ns"
 
 complete -o default -F __start_kubectl k
 
