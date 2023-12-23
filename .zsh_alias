@@ -19,6 +19,7 @@ alias vim="nvim"
 alias df='dfc'
 alias dig='dog'
 alias cat='bat --style=plain'
+alias rm=rip
 
 # Kube alias
 alias kctx="switch"
