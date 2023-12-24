@@ -20,6 +20,7 @@ alias df='dfc'
 alias dig='dog'
 alias cat='bat --style=plain'
 alias rm=rip
+alias ls=lsd
 
 # Kube alias
 alias kctx="switch"
