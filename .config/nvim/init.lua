@@ -24,6 +24,7 @@ if !isdirectory($HOME."/.config/nvim/undo-dir")
 endif
 set undodir=~/.config/nvim/undo-dir
 set undofile
+set wrap linebreak
 ]]
 
 -- Use a protected call so we don't error out on first use

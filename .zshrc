@@ -3,8 +3,6 @@
 PATH_DIRS=(
     /opt/homebrew/bin
     /opt/homebrew/sbin
-    /Applications/Wireshark.app/Contents/MacOS
-    /Library/TeX/texbin
     /Users/jeremy/.krew/bin
     /Users/jeremy/.nvm/versions/node/v18.0.0/bin
     /opt/homebrew/opt/openssl@1.1/bin
