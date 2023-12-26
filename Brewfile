@@ -182,7 +182,7 @@ brew "wrk"
 brew "xml-coreutils"
 brew "xmlstarlet"
 brew "yaml-language-server"
-brew "yamllint", link: false
+brew "yamllint"
 brew "yarn"
 brew "yt-dlp"
 brew "yq"
