@@ -17,7 +17,7 @@ printf "Cloning zsh plugins..."
 printf " ✅\n"
 
 printf "Install Brew applications"
-curl -osL https://raw.githubusercontent.com/PixiBixi/dotfiles/master/Brewfile > ~/Brewfile
+curl -s https://raw.githubusercontent.com/PixiBixi/dotfiles/master/Brewfile > ~/Brewfile
 brew bundle install
 
 echo "🔵  Setting up fzf"
