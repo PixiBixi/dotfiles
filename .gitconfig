@@ -1,6 +1,3 @@
-[user]
-    name = PixiBixi
-    email = my@email.fr
 [core]
     pager = delta
 
@@ -49,3 +46,9 @@
 
 [tag]
     sort = v:refname
+
+[includeIf "gitdir:~/Documents/perso/git/"]
+    path = ~/.gitconfig_perso
+
+[includeIf "gitdir:~/Documents/work/git/"]
+    path = ~/.gitconfig_work
