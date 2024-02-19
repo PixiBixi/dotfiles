@@ -304,6 +304,9 @@ require'lspconfig'.terraformls.setup{
 	filetypes = { "tf", "tfvar", "terraform" }
 }
 
+
+require'lspconfig'.tflint.setup{}
+
 -- lsp installer
 local lsp_installer = require("nvim-lsp-installer")
 
