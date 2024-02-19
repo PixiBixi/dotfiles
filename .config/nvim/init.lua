@@ -15,9 +15,6 @@ vim.cmd [[
 ]]
 
 
-vim.cmd [[
-	autocmd BufWritePost,FileWritePost *.tf TerraformFmt
-]]
 
 -- Setup undo dir
 vim.cmd [[
@@ -31,6 +28,9 @@ set undodir=~/.config/nvim/undo-dir
 set undofile
 set wrap linebreak
 ]]
+
+vim.cmd([[let g:terraform_fmt_on_save=1]])
+vim.cmd([[let g:terraform_align=1]])
 
 -- Use a protected call so we don't error out on first use
 local status_ok, packer = pcall(require, "packer")
