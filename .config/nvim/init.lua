@@ -14,6 +14,11 @@ vim.cmd [[
     augroup end
 ]]
 
+
+vim.cmd [[
+	autocmd BufWritePost,FileWritePost *.tf TerraformFmt
+]]
+
 -- Setup undo dir
 vim.cmd [[
 if !isdirectory($HOME."/.vim")
