@@ -23,5 +23,5 @@ git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 
 echo "Install vimrc"
 git clone https://github.com/PixiBixi/dotfiles
-cp dotfiles/.vimrc $HOME/
+cp dotfiles/.vimrc "$HOME"/
 vim +PluginInstall +qall
