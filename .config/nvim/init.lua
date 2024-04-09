@@ -329,3 +329,8 @@ local status_ok, packer = pcall(require, "impatient")
 if not status_ok then
 	return
 end
+
+vim.api.nvim_create_autocmd({ "BufWritePre" }, {
+  pattern = { "*" },
+  command = [[%s/\s\+$//e]],
+})
