@@ -69,6 +69,7 @@ require('packer').startup(function(use)
 	}
 	use 'navarasu/onedark.nvim' -- Theme inspired by Atom
 	use 'nvim-lualine/lualine.nvim' -- Fancier statusline
+	--
 	-- Add indentation guides even on blank lines
 	use 'lukas-reineke/indent-blankline.nvim'
 	-- Add git related info in the signs columns and popups
@@ -180,11 +181,11 @@ require('lualine').setup {
 
 require('gitsigns').setup {
 	signs = {
-		add          = {hl = 'GitSignsAdd'   , text = '+', numhl='GitSignsAddNr'   , linehl='GitSignsAddLn'},
-		change       = {hl = 'GitSignsChange', text = '~', numhl='GitSignsChangeNr', linehl='GitSignsChangeLn'},
-		delete       = {hl = 'GitSignsDelete', text = '-', numhl='GitSignsDeleteNr', linehl='GitSignsDeleteLn'},
-		topdelete    = {hl = 'GitSignsDelete', text = '-', numhl='GitSignsDeleteNr', linehl='GitSignsDeleteLn'},
-		changedelete = {hl = 'GitSignsChange', text = '~', numhl='GitSignsChangeNr', linehl='GitSignsChangeLn'},
+		add          = {text = '+'},
+		change       = {text = '~'},
+		delete       = {text = '-'},
+		topdelete    = {text = '-'},
+		changedelete = {text = '~'},
 	},
 	current_line_blame = true -- Toggle with `:Gitsigns toggle_current_line_blame`
 }
@@ -330,6 +331,7 @@ if not status_ok then
 	return
 end
 
+require("ibl").setup()
 vim.api.nvim_create_autocmd({ "BufWritePre" }, {
   pattern = { "*" },
   command = [[%s/\s\+$//e]],
