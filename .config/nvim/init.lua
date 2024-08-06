@@ -95,7 +95,7 @@ require('packer').startup(function(use)
 	use {'neoclide/coc.nvim', branch = 'release'}
 	use 'pearofducks/ansible-vim'
 
-	use {'akinsho/bufferline.nvim', tag = "v3.*", requires = 'kyazdani42/nvim-web-devicons'}
+	use {'akinsho/bufferline.nvim', tag = "*", requires = 'kyazdani42/nvim-web-devicons'}
 
 end)
 ---------------------------------------------------------------------> Global config
@@ -118,6 +118,8 @@ opt.ignorecase = true
 opt.list = true
 opt.encoding = 'utf-8'
 opt.fileencoding = 'utf-8'
+
+require("ibl").setup()
 
 -- custom syntax files
 vim.cmd[[au BufRead,BufNewFile haproxy* set ft=haproxy]]
