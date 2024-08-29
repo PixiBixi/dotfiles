@@ -86,7 +86,7 @@ export SAVEHIST=$HISTSIZE
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(ssh-agent terraform zsh-syntax-highlighting timer kubectl kube-ps1)
+plugins=(ssh-agent terraform zsh-syntax-highlighting timer kubectl kube-ps1 aws helm battery)
 
 # Load differents keys
 zstyle :omz:plugins:ssh-agent identities ~/.ssh/{id_rsa,id_ed25519,gitlab,github.com}
