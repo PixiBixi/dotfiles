@@ -131,7 +131,7 @@ source $ZSH/oh-my-zsh.sh
 [[ $(uname) == "Linux" ]] && . ~/.zsh_linux
 
 # Add TF Workspace
-RPROMPT='$(kube_ps1)'
+RPROMPT='$(kube_ps1) $(battery_pct_prompt)'
 
 TIMER_FORMAT='[%d]'; TIMER_PRECISION=2
 
