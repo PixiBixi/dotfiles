@@ -136,6 +136,8 @@ RPROMPT='$(kube_ps1) $(battery_pct_prompt)'
 TIMER_FORMAT='[%d]'; TIMER_PRECISION=2
 
 # Ansible better output
-ANSIBLE_CHECK_MODE_MARKERS=True
-ANSIBLE_SHOW_TASK_PATH_ON_FAILURE=True
-ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
+export ANSIBLE_CHECK_MODE_MARKERS=True
+export ANSIBLE_SHOW_TASK_PATH_ON_FAILURE=True
+export ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
+
+source <(delta --generate-completion=zsh)
