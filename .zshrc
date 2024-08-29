@@ -89,7 +89,7 @@ export SAVEHIST=$HISTSIZE
 plugins=(ssh-agent terraform zsh-syntax-highlighting timer kubectl kube-ps1)
 
 # Load differents keys
-zstyle :omz:plugins:ssh-agent identities ~/.ssh/{github,id_rsa,id_ed25519}
+zstyle :omz:plugins:ssh-agent identities ~/.ssh/{id_rsa,id_ed25519,gitlab,github.com}
 
 source $ZSH/oh-my-zsh.sh
 [ -f ~/.zsh_functions ] && . ~/.zsh_functions
