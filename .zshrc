@@ -93,6 +93,7 @@ zstyle :omz:plugins:ssh-agent identities ~/.ssh/{id_rsa,id_ed25519,gitlab,github
 
 source $ZSH/oh-my-zsh.sh
 [ -f ~/.zsh_functions ] && . ~/.zsh_functions
+[ -f ~/.zsh_work ] && . ~/.zsh_work
 
 # User configuration
 
