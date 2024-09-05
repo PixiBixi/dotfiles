@@ -1,3 +1,5 @@
+-- Highly base on https://alexplescan.com/posts/2024/08/10/wezterm/
+
 -- Import the wezterm module
 local wezterm = require 'wezterm'
 -- Creates a config object which we will be adding our config to
