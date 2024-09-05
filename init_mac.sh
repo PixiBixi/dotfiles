@@ -27,6 +27,10 @@ echo "🔵  Setting up fzf"
 echo "🔵  Setting up kubeswitch"
 [ ! -d ~/.kube ] && cp -r .kube ~/.kube || cp .kube/switch-config.yaml .kube/
 
+
+echo "🔵  Setting up Wezterm"
+cp ./.wezterm.lua ~/.wezterm.lua
+
 echo "Don't forget to split your kubeconfig file into several. You can use konfig to corneliusweig/konfig to split it"
 printf " ✅\n"
 
