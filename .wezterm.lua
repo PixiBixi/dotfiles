@@ -86,5 +86,8 @@ config.keys = {
 config.tab_bar_at_bottom = true
 config.hide_tab_bar_if_only_one_tab = true
 
+-- Can't use ~ or | without it
+config.send_composed_key_when_left_alt_is_pressed = true
+
 -- Returns our config to be evaluated. We must always do this at the bottom of this file
 return config
