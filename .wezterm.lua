@@ -48,6 +48,11 @@ config.keys = {
 		key = "UpArrow",
 		action = wezterm.action.AdjustPaneSize { "Up", 5 }
 	},
+	{
+		key = 'z',
+		mods = "LEADER",
+		action = wezterm.action.TogglePaneZoomState,
+	},
 	-- Pane split
 	{
 		mods = "LEADER",
@@ -80,6 +85,10 @@ config.keys = {
 		mods = "LEADER",
 		action = wezterm.action.ActivatePaneDirection 'Down',
 	},
+	-- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
+	{key="LeftArrow", mods="OPT", action=wezterm.action{SendString="\x1bb"}},
+	-- Make Option-Right equivalent to Alt-f; forward-word
+	{key="RightArrow", mods="OPT", action=wezterm.action{SendString="\x1bf"}},
 
 }
 
