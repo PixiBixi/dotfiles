@@ -22,6 +22,22 @@ config.window_frame = {
 -- Leader as tmux default binding
 config.leader = { key = "b", mods = "CTRL", timeout_milliseconds = 1500 }
 
+local function movePane(key, direction)
+	return {
+		key = key,
+		mods = 'LEADER',
+		action = wezterm.action.ActivatePaneDirection(direction),
+	}
+end
+local function resizePane(key, direction)
+	return {
+		key = key,
+		mods = 'CMD',
+		action = wezterm.action.AdjustPaneSize { direction, 5 }
+	}
+end
+
+
 config.keys = {
 	-- Disable default behavior for Cmd+M on MacOS
 	{
@@ -29,27 +45,19 @@ config.keys = {
 		mods = 'CMD',
 		action = wezterm.action.DisableDefaultAssignment,
 	},
-	-- Pane resize, dont use tmux binding for that
-	{
-		mods = "CMD",
-		key = "LeftArrow",
-		action = wezterm.action.AdjustPaneSize { "Left", 5 }
-	},
-	{
-		mods = "CMD",
-		key = "RightArrow",
-		action = wezterm.action.AdjustPaneSize { "Right", 5 }
-	},
-	{
-		mods = "CMD",
-		key = "DownArrow",
-		action = wezterm.action.AdjustPaneSize { "Down", 5 }
-	},
-	{
-		mods = "CMD",
-		key = "UpArrow",
-		action = wezterm.action.AdjustPaneSize { "Up", 5 }
-	},
+
+	-- Pane resize
+	resizePane('LeftArrow','Left'),
+	resizePane('RightArrow','Right'),
+	resizePane('UpArrow','Up'),
+	resizePane('DownArrow','Down'),
+
+	-- Pane move
+	movePane('LeftArrow','Left'),
+	movePane('RightArrow','Right'),
+	movePane('UpArrow','Up'),
+	movePane('DownArrow','Down'),
+
 	{
 		key = 'z',
 		mods = "LEADER",
@@ -66,27 +74,7 @@ config.keys = {
 		key = '"',
 		action = wezterm.action.SplitVertical { domain = "CurrentPaneDomain" }
 	},
-	-- Pane move
-	{
-		key = 'LeftArrow',
-		mods = "LEADER",
-		action = wezterm.action.ActivatePaneDirection 'Left',
-	},
-	{
-		key = 'RightArrow',
-		mods = "LEADER",
-		action = wezterm.action.ActivatePaneDirection 'Right',
-	},
-	{
-		key = 'UpArrow',
-		mods = "LEADER",
-		action = wezterm.action.ActivatePaneDirection 'Up',
-	},
-	{
-		key = 'DownArrow',
-		mods = "LEADER",
-		action = wezterm.action.ActivatePaneDirection 'Down',
-	},
+
 	-- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
 	{key="LeftArrow", mods="OPT", action=wezterm.action{SendString="\x1bb"}},
 	-- Make Option-Right equivalent to Alt-f; forward-word
