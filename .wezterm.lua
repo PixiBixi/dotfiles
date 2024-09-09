@@ -20,7 +20,7 @@ config.window_frame = {
 }
 
 -- Leader as tmux default binding
-config.leader = { key = "b", mods = "CTRL", timeout_milliseconds = 1500 }
+config.leader = { key = "b", mods = "OPT", timeout_milliseconds = 1500 }
 
 local function movePane(key, direction)
 	return {
