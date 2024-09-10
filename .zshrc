@@ -1,15 +1,5 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
-PATH_DIRS=(
-    ${HOMEBREW_PREFIX}/bin
-    ${HOMEBREW_PREFIX}/opt/openssl@1.1/bin
-    ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
-    ${HOMEBREW_PREFIX}/sbin
-    ${HOME}/.krew/bin
-    ${HOME}/.nvm/versions/node/v18.0.0/bin
-    ${HOME}/go/bin
-)
-export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 
 export EDITOR=nvim
 
@@ -141,3 +131,16 @@ export ANSIBLE_SHOW_TASK_PATH_ON_FAILURE=True
 export ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
 
 source <(delta --generate-completion=zsh)
+
+# As we're using HOMEBREW variable, it must be at the end of file
+PATH_DIRS=(
+    ${HOMEBREW_PREFIX}/bin
+    ${HOMEBREW_PREFIX}/opt/openssl@1.1/bin
+    ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
+    ${HOMEBREW_PREFIX}/sbin
+    ${HOME}/.krew/bin
+    ${HOME}/.nvm/versions/node/v18.0.0/bin
+    ${HOME}/go/bin
+)
+export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
+
