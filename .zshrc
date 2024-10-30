@@ -1,6 +1,5 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
-
 export EDITOR=nvim
 
 # Path to your oh-my-zsh installation.
@@ -27,8 +26,8 @@ ZSH_THEME="robbyrussell"
 
 # Uncomment one of the following lines to change the auto-update behavior
 # zstyle ':omz:update' mode disabled  # disable automatic updates
-zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+# zstyle ':omz:update' mode auto      # update automatically without asking
+zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 
 # Uncomment the following line to change how often to auto-update (in days).
 # zstyle ':omz:update' frequency 13
@@ -49,7 +48,7 @@ zstyle ':omz:update' mode auto      # update automatically without asking
 # You can also set it to another string to have that shown instead of the default red dots.
 # e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
 # Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
+COMPLETION_WAITING_DOTS="true"
 
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
@@ -76,7 +75,7 @@ export SAVEHIST=$HISTSIZE
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(ssh-agent terraform zsh-syntax-highlighting timer kubectl kube-ps1 aws helm battery)
+plugins=(ssh-agent terraform zsh-syntax-highlighting timer kubectl kube-ps1 helm battery brew aws)
 
 # Load differents keys
 zstyle :omz:plugins:ssh-agent identities ~/.ssh/{id_rsa,id_ed25519,gitlab,github.com}
@@ -86,30 +85,6 @@ source $ZSH/oh-my-zsh.sh
 [ -f ~/.zsh_work ] && . ~/.zsh_work
 
 # User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # Source all alias
 [[ -f ~/.zsh_alias ]] && . ~/.zsh_alias
@@ -125,22 +100,33 @@ RPROMPT='$(kube_ps1) $(battery_pct_prompt)'
 
 TIMER_FORMAT='[%d]'; TIMER_PRECISION=2
 
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
 # Ansible better output
 export ANSIBLE_CHECK_MODE_MARKERS=True
 export ANSIBLE_SHOW_TASK_PATH_ON_FAILURE=True
 export ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
 
+ulimit -n 9999
+
+# Gcloud
+source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc"
+source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc"
+source <(kafkactl completion zsh)
+source <(argocd completion zsh)
 source <(delta --generate-completion=zsh)
 
-# As we're using HOMEBREW variable, it must be at the end of file
 PATH_DIRS=(
+    "/Users/jeremy/.local/bin"
+    ${HOMEBREW_PREFIX}/opt/coreutils/libexec/gnubin
     ${HOMEBREW_PREFIX}/bin
-    ${HOMEBREW_PREFIX}/opt/openssl@1.1/bin
-    ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
     ${HOMEBREW_PREFIX}/sbin
     ${HOME}/.krew/bin
     ${HOME}/.nvm/versions/node/v18.0.0/bin
+    ${HOMEBREW_PREFIX}/opt/openssl@1.1/bin
     ${HOME}/go/bin
+    ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
 )
 export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 
+export CLOUDSDK_CORE_PROJECT=infra-tooling-prod
