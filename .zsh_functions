@@ -33,6 +33,13 @@ kevents() {
 		| less -S
 }
 
+mergebranch() {
+	local BRANCH=$(git rev-parse --abbrev-ref HEAD)
+	glab mr approve $BRANCH
+	glab mr merge --rebase --remove-source-branch --yes $BRANCH
+}
+
 source <(switcher init zsh)
 source <(alias s=switch)
 source <(compdef _switcher switch)
+
