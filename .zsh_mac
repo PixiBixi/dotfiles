@@ -4,3 +4,5 @@ alias sed="gsed"
 # Remap alt-arrow for MacOS (iTerm2)
 bindkey "\e\e[D" backward-word
 bindkey "\e\e[C" forward-word
+
+alias icloud="cd ~/Library/Mobile\ Documents/com~apple~CloudDocs/"
