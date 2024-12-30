@@ -60,6 +60,8 @@ require('packer').startup(function(use)
 	use {'nvim-telescope/telescope-fzf-native.nvim', run = 'make' }
 	use({ "iamcco/markdown-preview.nvim", run = "cd app && npm install", setup = function() vim.g.mkdp_filetypes = { "markdown" } end, ft = { "markdown" }, })
 
+	use({'OXY2DEV/markview.nvim'})
+
 	use {
 		'kyazdani42/nvim-tree.lua',
 		requires = {
@@ -94,6 +96,7 @@ require('packer').startup(function(use)
 
 	use {'neoclide/coc.nvim', branch = 'release'}
 	use 'pearofducks/ansible-vim'
+	use 'towolf/vim-helm'
 
 	use {'akinsho/bufferline.nvim', tag = "*", requires = 'kyazdani42/nvim-web-devicons'}
 
