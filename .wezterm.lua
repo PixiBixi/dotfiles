@@ -11,7 +11,7 @@ local config = wezterm.config_builder()
 config.color_scheme = 'Tokyo Night'
 
 -- Slightly transparent and blurred background
-config.window_background_opacity = 0.8
+config.window_background_opacity = 0.85
 config.macos_window_background_blur = 30
 config.window_decorations = 'RESIZE' -- disable the title bar but enable the resizable border
 config.window_frame = {
