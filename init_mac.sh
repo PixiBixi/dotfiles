@@ -27,6 +27,9 @@ echo "🔵  Setting up fzf"
 echo "🔵  Setting up kubeswitch"
 [ ! -d ~/.kube ] && cp -r .kube ~/.kube || cp .kube/switch-config.yaml .kube/
 
+echo "🔵  Setting up krew plugins"
+kubectl krew install < ./Plugins_Krew
+
 
 echo "🔵  Setting up Wezterm"
 cp ./.wezterm.lua ~/.wezterm.lua
