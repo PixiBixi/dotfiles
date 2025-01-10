@@ -7,4 +7,5 @@ neat
 node-shell
 resource-capacity
 sniff
+tmux-exec
 view-secret
