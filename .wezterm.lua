@@ -71,6 +71,11 @@ config.keys = {
 	},
 	{
 		mods = "LEADER",
+		key = "w",
+		action = wezterm.action.CloseCurrentPane { confirm = true }
+	},
+	{
+		mods = "LEADER",
 		key = '"',
 		action = wezterm.action.SplitVertical { domain = "CurrentPaneDomain" }
 	},
