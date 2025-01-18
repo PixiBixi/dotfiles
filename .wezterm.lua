@@ -10,13 +10,23 @@ local config = wezterm.config_builder()
 -- Find them here: https://wezfurlong.org/wezterm/colorschemes/index.html
 config.color_scheme = 'Tokyo Night'
 
+-- Beautiful color for active tab
+config.colors = {
+    tab_bar = {
+        active_tab = {
+            fg_color = '#073642',
+            bg_color = '#2aa198',
+        }
+    }
+}
+
 -- Slightly transparent and blurred background
 config.window_background_opacity = 0.85
 config.macos_window_background_blur = 30
 config.window_decorations = 'RESIZE' -- disable the title bar but enable the resizable border
 config.window_frame = {
 	font = wezterm.font({ family = 'Berkeley Mono', weight = 'Bold' }),
-	font_size = 11,
+	font_size = 10,
 }
 
 -- Leader as tmux default binding
@@ -92,6 +102,14 @@ config.hide_tab_bar_if_only_one_tab = true
 
 -- Can't use ~ or | without it
 config.send_composed_key_when_left_alt_is_pressed = true
+
+-- Disable padding for tabs
+config.window_padding = {
+    left = 0,
+    right = 0,
+    top = 0,
+    bottom = 0,
+}
 
 -- Returns our config to be evaluated. We must always do this at the bottom of this file
 return config
