@@ -3,9 +3,12 @@ df-pv
 get-all
 klock
 krew
+modify-secret
 neat
 node-shell
 resource-capacity
 sniff
 tmux-exec
+tree
 view-secret
+view-utilization

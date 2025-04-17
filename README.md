@@ -74,6 +74,14 @@ mkdir ~/.ssh/private
 gem install giturl
 ```
 
+### Krew
+
+To dump krew plugins :
+```
+kubectl krew list > My_Output
+```
+
+
 ## MacOS Specific
 
 Few things only for MacOS
