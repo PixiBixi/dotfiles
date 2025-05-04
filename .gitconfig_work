@@ -1,3 +1,6 @@
 [user]
 	email = jdelgado@compagny.com
 	name = Jeremy Delgado
+
+[url "ssh://git@gitlab.com/compagny"]
+	insteadOf = https://gitlab.com/compagny
