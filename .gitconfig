@@ -1,5 +1,6 @@
 [core]
     pager = delta
+    ignorecase = false
 
 [interactive]
     diffFilter = delta --color-only
@@ -8,7 +9,7 @@
     rebase = true
 
 [merge]
-    conflictstyle = diff3
+    conflictstyle = zdiff3
 
 [alias]
     a = add
@@ -18,7 +19,7 @@
     br = branch
     c = commit
     cl = clone
-    cm = commit -m
+    cm = commit -S -m
     cma = commit --amend
     co = checkout
     com = checkout master
@@ -30,13 +31,18 @@
     nah = "!f(){ git reset --hard; git clean -df; if [ -d ".git/rebase-apply" ] || [ -d ".git/rebase-merge" ]; then git rebase --abort; fi; }; f"
     pl = pull
     ps = push
-    psf = push --force
+    psf = push --force-with-lease
     psci = push -o ci.skip
+    psmr = !git push && glab mr create --fill --remove-source-branch -y
     s = show
     sm = submodule
+    sh = stash
     smu = !git submodule status | awk '{print $2}' | xargs -P10 -n1 git submodule update --init --remote
     st = status --short
     up = pull --rebase
+
+[branch]
+  sort = -committerdate
 
 [push]
     autoSetupRemote = true
@@ -52,3 +58,8 @@
 
 [includeIf "gitdir:~/Documents/work/git/"]
     path = ~/.gitconfig_work
+
+[gpg]
+    format = ssh
+[user]
+    signingkey = /Users/jeremy/.ssh/signing_gitlab
