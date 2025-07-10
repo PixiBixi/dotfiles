@@ -42,7 +42,7 @@
     up = pull --rebase
 
 [branch]
-  sort = -committerdate
+    sort = -committerdate
 
 [push]
     autoSetupRemote = true
@@ -63,3 +63,9 @@
     format = ssh
 [user]
     signingkey = /Users/jeremy/.ssh/signing_gitlab
+
+[gpg "ssh"]
+    allowedSignersFile = /Users/jeremy/.config/git/allowed_signers
+
+[rebase]
+    autostash = true
