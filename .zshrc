@@ -1,3 +1,16 @@
+# Top of .zshrc
+DISABLE_AUTO_UPDATE="true"
+DISABLE_MAGIC_FUNCTIONS="true"
+DISABLE_COMPFIX="true"
+
+# Smarter completion initialization
+autoload -Uz compinit
+if [ "$(date +'%j')" != "$(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null)" ]; then
+    compinit
+else
+    compinit -C
+fi
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 export EDITOR=nvim
@@ -75,7 +88,7 @@ export SAVEHIST=$HISTSIZE
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(ssh-agent terraform zsh-syntax-highlighting timer kubectl kube-ps1 helm battery brew aws)
+plugins=(ssh-agent terraform timer kubectl kube-ps1 helm battery brew aws zsh-syntax-highlighting)
 
 # Load differents keys
 zstyle :omz:plugins:ssh-agent identities ~/.ssh/{id_rsa,id_ed25519,gitlab,github.com}
@@ -113,7 +126,6 @@ ulimit -n 9999
 source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc"
 source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc"
 source <(kafkactl completion zsh)
-source <(argocd completion zsh)
 source <(delta --generate-completion=zsh)
 
 PATH_DIRS=(
@@ -126,7 +138,7 @@ PATH_DIRS=(
     ${HOMEBREW_PREFIX}/opt/openssl@1.1/bin
     ${HOME}/go/bin
     ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
+    ${HOMEBREW_PREFIX}/opt/gnu-getopt/bin
 )
 export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
-
 export CLOUDSDK_CORE_PROJECT=infra-tooling-prod
