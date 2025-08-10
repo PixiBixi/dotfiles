@@ -47,7 +47,7 @@ npm list --global --parseable --depth=0 | sed '1d' | awk '{gsub(/\/.*\//,"",$1);
 A gemfile has been created to simplify re-installation of package. To re-install packages, that's simple:
 
 ```
-cat ~/gemlist | xargs -L 1 gem install --no-ri --no-rdoc
+cat ~/gemlist | xargs -L 1 gem install
 ```
 
 Also, if you want to export packages :
@@ -84,9 +84,10 @@ kubectl krew list > My_Output
 
 ## MacOS Specific
 
-Few things only for MacOS
 
 ### iTerm 2
+
+Few things only for MacOS (not use iTerm2 anymore but I keep the section)
 
   * [Theme](https://github.com/sindresorhus/iterm2-snazzy) for iTerm 2
   * Use **Natural Key Mapping**
