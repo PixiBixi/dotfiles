@@ -1,5 +1,6 @@
-ansible-language-server
+aws-cdk
+corepack
 dockerfile-language-server-nodejs
-giturl
+markdownlint
 npm
-pyright
+yaml-sort
