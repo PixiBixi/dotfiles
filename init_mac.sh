@@ -56,3 +56,7 @@ echo "Installation OK ✅\n"
 echo "🔵 Install Gem packages "
 cat ./gemlist | xargs -L 1 gem install
 echo "Installation OK ✅\n"
+
+echo "🔵 Install markdownlint config file"
+cp ./.markdownlint.json ~/
+echo "Installation OK ✅\n"
