@@ -163,7 +163,7 @@ brew "lnav"
 brew "lsd"
 brew "lsusb"
 brew "luajit"
-brew "markdownlint-cli"
+brew "markdownlint-cli2"
 brew "miller"
 brew "minikube"
 brew "mkdocs", link: false
