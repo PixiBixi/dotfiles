@@ -272,7 +272,7 @@ brew "fluxcd/tap/flux"
 brew "future-architect/tap/tftarget"
 brew "git-chglog/git-chglog/git-chglog"
 brew "hashicorp/tap/consul"
-brew "hashicorp/tap/terraform", link: false
+brew "hashicorp/tap/terraform"
 brew "hashicorp/tap/terraform-ls"
 brew "hashicorp/tap/vault"
 brew "leg100/tap/pug"
