@@ -97,7 +97,7 @@ plugins=(zsh-defer ssh-agent terraform kubectl kube-ps1 helm battery aws)
 zstyle :omz:plugins:ssh-agent lazy yes
 zstyle :omz:plugins:ssh-agent identities id_rsa id_ed25519 gitlab github.com
 
-source $ZSH/oh-my-zsh.sh
+source "$ZSH"/oh-my-zsh.sh
 
 # User configuration
 

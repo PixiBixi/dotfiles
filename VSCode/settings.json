@@ -8,9 +8,7 @@
     "editor.quickSuggestionsDelay": 0,
     "editor.renderIndentGuides": false,
     "editor.renderWhitespace": "all",
-    "editor.rulers": [
-        80
-    ],
+    "editor.rulers": [80],
     "editor.snippetSuggestions": "top",
     "editor.tabCompletion": true,
     "editor.wordWrap": "on",

@@ -42,4 +42,3 @@ mergebranch() {
 source <(switcher init zsh)
 source <(alias s=switch)
 source <(compdef _switcher switch)
-

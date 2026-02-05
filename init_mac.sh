@@ -9,7 +9,8 @@ readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m'
 
 # Script directory
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 
 # Logging functions
 log_info() {
@@ -53,7 +54,7 @@ check_prerequisites() {
 install_xcode_tools() {
     log_info "Checking Xcode Command Line Tools..."
 
-    if xcode-select -p &>/dev/null; then
+    if xcode-select -p &> /dev/null; then
         log_success "Xcode Command Line Tools already installed"
         return 0
     fi
@@ -69,7 +70,7 @@ install_xcode_tools() {
 install_homebrew() {
     log_info "Checking Homebrew installation..."
 
-    if command -v brew &>/dev/null; then
+    if command -v brew &> /dev/null; then
         log_success "Homebrew already installed"
         return 0
     fi
@@ -202,7 +203,7 @@ setup_kubeswitch() {
 install_krew_plugins() {
     log_info "Installing krew plugins..."
 
-    if ! command -v kubectl-krew &>/dev/null; then
+    if ! command -v kubectl-krew &> /dev/null; then
         log_warning "kubectl-krew not found, skipping plugin installation"
         return 0
     fi
@@ -235,7 +236,7 @@ setup_directories() {
 install_npm_packages() {
     log_info "Installing NPM packages..."
 
-    if ! command -v npm &>/dev/null; then
+    if ! command -v npm &> /dev/null; then
         log_warning "npm not found, skipping NPM packages"
         return 0
     fi
@@ -253,7 +254,7 @@ install_npm_packages() {
 install_gem_packages() {
     log_info "Installing Gem packages..."
 
-    if ! command -v gem &>/dev/null; then
+    if ! command -v gem &> /dev/null; then
         log_warning "gem not found, skipping Gem packages"
         return 0
     fi

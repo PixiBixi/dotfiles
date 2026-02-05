@@ -19,6 +19,7 @@ Le script est **idempotent** : vous pouvez le relancer sans risque.
 - Droits administrateur (pour Xcode Command Line Tools)
 
 Le script installe automatiquement:
+
 - Xcode Command Line Tools
 - Homebrew
 - oh-my-zsh + plugins
@@ -27,7 +28,7 @@ Le script installe automatiquement:
 
 ## Structure du Repository
 
-```
+```sh
 dotfiles/
 ├── init_mac.sh              # Script d'installation principal
 ├── Brewfile                 # Packages Homebrew (formulae, casks, mas)
@@ -46,17 +47,21 @@ dotfiles/
 ## Fonctionnalités du Script
 
 ### Gestion d'erreur robuste
+
 - Arrêt immédiat en cas d'échec (`set -euo pipefail`)
 - Messages d'erreur clairs avec couleurs
 - Trap pour cleanup automatique
 
 ### Idempotence
+
 Chaque composant vérifie s'il est déjà installé:
+
 - ✓ Skip si déjà présent
 - ⚠ Warning si fichier manquant (non bloquant)
 - ✗ Erreur seulement pour composants critiques
 
 ### Détection automatique
+
 - Support Intel (`/usr/local`) et Apple Silicon (`/opt/homebrew`)
 - Vérification macOS avant exécution
 - Détection des outils déjà installés
@@ -142,23 +147,28 @@ kubectl krew list > ./Plugins_Krew
 ## Composants Installés
 
 ### Shell & Terminal
+
 - **zsh** avec oh-my-zsh
 - Plugins: `zsh-autosuggestions`, `zsh-syntax-highlighting`
 - **Wezterm** comme émulateur de terminal
 
 ### Outils CLI Modernes
+
 Voir `Brewfile` pour la liste complète. Généralement:
+
 - `rg` (ripgrep), `fd`, `bat`, `exa`
 - `fzf` pour fuzzy finding
 - `jq`, `yq` pour manipulation JSON/YAML
 
 ### Kubernetes Tools
+
 - `kubectl` + krew
 - `kubectx`, `kubens`
 - `kubeswitch` pour gestion multi-cluster
 - Plugins krew selon `Plugins_Krew`
 
 ### Development Tools
+
 - Git avec configuration avancée
 - Node.js (via Homebrew)
 - Ruby (système macOS)
@@ -169,6 +179,7 @@ Voir `Brewfile` pour la liste complète. Généralement:
 ### Le script échoue sur Xcode
 
 Si l'installation Xcode Command Line Tools nécessite une interaction:
+
 1. Le script s'arrête proprement
 2. Terminez l'installation dans la fenêtre popup
 3. Relancez `./init_mac.sh`
@@ -225,6 +236,7 @@ vim ~/.markdownlint.json
 ## Contribution
 
 Pour ajouter un outil:
+
 1. L'installer manuellement pour tester
 2. L'ajouter au fichier approprié (`Brewfile`, `npmfile`, etc.)
 3. Regénérer le fichier avec les commandes de maintenance
