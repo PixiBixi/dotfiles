@@ -1,100 +1,235 @@
 # dotfiles
-All my useful dotfiles
 
-Simply download and run the script to install my dotfile
+Configuration complète pour macOS avec installation automatisée.
 
-## Requirements
+## Quick Start
 
-### zsh
-
-Notre configuration zsh est évidemment basée sur celle qui est fournie en défaut par [oh-my-zsh](https://ohmyz.sh/). Pour l'installer, une simple ligne :
-
-```
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```bash
+git clone https://github.com/PixiBixi/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+./init_mac.sh
 ```
 
-Cepenant, nous utilisons un plugin custom : zsh-syntax-highlighting. Son installation est très simple
+Le script est **idempotent** : vous pouvez le relancer sans risque.
 
-```shell
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-```
+## Prérequis
 
-### vim
+- macOS (Ventura ou plus récent recommandé)
+- Connexion internet
+- Droits administrateur (pour Xcode Command Line Tools)
 
-If you want to use RFC plugin, you must to compile your vim with ruby support, and install the nokogiri gem
+Le script installe automatiquement:
+- Xcode Command Line Tools
+- Homebrew
+- oh-my-zsh + plugins
+- Tous les packages listés dans `Brewfile`, `npmfile`, `gemlist`
+- kubectl krew + plugins
 
-```
-gem install nokogiri
-curl https://raw.githubusercontent.com/PixiBixi/dotfiles/master/init.sh | bash
-```
-
-### npm
-
-A npmfile has been created to simplify re-installation of package. To re-install packages, that's simple:
+## Structure du Repository
 
 ```
-xargs npm install --global < ~/npmfile
+dotfiles/
+├── init_mac.sh              # Script d'installation principal
+├── Brewfile                 # Packages Homebrew (formulae, casks, mas)
+├── Plugins_Krew             # Plugins kubectl krew
+├── npmfile                  # Packages NPM globaux
+├── gemlist                  # Gems Ruby
+├── .zshrc                   # Configuration zsh
+├── .wezterm.lua             # Configuration Wezterm
+├── .gitconfig_perso         # Git config pour projets perso
+├── .gitconfig_work          # Git config pour projets work
+├── .markdownlint.json       # Configuration markdownlint
+└── .kube/
+    └── switch-config.yaml   # Configuration kubeswitch
 ```
 
-Also, if you want to export packages :
+## Fonctionnalités du Script
 
-```
-npm list --global --parseable --depth=0 | sed '1d' | awk '{gsub(/\/.*\//,"",$1); print}' > ~/npmfile
-```
+### Gestion d'erreur robuste
+- Arrêt immédiat en cas d'échec (`set -euo pipefail`)
+- Messages d'erreur clairs avec couleurs
+- Trap pour cleanup automatique
 
-### gem
+### Idempotence
+Chaque composant vérifie s'il est déjà installé:
+- ✓ Skip si déjà présent
+- ⚠ Warning si fichier manquant (non bloquant)
+- ✗ Erreur seulement pour composants critiques
 
-A gemfile has been created to simplify re-installation of package. To re-install packages, that's simple:
+### Détection automatique
+- Support Intel (`/usr/local`) et Apple Silicon (`/opt/homebrew`)
+- Vérification macOS avant exécution
+- Détection des outils déjà installés
 
-```
-cat ~/gemlist | xargs -L 1 gem install
-```
+## Post-Installation
 
-Also, if you want to export packages :
+### 1. Configuration Git
 
-```
-gem list | tail -n+1 | sed 's/(/--version /' | sed 's/)//' > ~/gemlist
-```
+Éditer vos identités Git:
 
+```bash
+# Personnel
+vim ~/.gitconfig_perso
 
-
-### ssh
-
-In order to user `ControlMaster`, we need to create `~/.ssh/private` folder
-
-```
-mkdir ~/.ssh/private
-```
-
-### Git
-
-`git h` uses an external software, lets install it
-
-```
-gem install giturl
+# Professionnel
+vim ~/.gitconfig_work
 ```
 
-### Krew
+Dans votre `.gitconfig` principal, incluez conditionnellement:
 
-To dump krew plugins :
+```ini
+[includeIf "gitdir:~/Documents/perso/"]
+    path = ~/.gitconfig_perso
+
+[includeIf "gitdir:~/Documents/work/"]
+    path = ~/.gitconfig_work
 ```
-kubectl krew list > My_Output
+
+### 2. Kubeconfig
+
+Split votre kubeconfig en plusieurs fichiers:
+
+```bash
+kubectl konfig split -o ~/.kube/configs
 ```
 
+### 3. Shell
 
-## MacOS Specific
+Recharger votre configuration:
 
+```bash
+source ~/.zshrc
+```
 
-### iTerm 2
+## Maintenance
 
-Few things only for MacOS (not use iTerm2 anymore but I keep the section)
+### Mettre à jour Brewfile
 
-  * [Theme](https://github.com/sindresorhus/iterm2-snazzy) for iTerm 2
-  * Use **Natural Key Mapping**
-    * Preference
-	* Profile, mainly use default
-	* Keys
-	* Key Mapping
-	* Presets > Use _Natural Text Editing_
+Exporter vos packages actuels:
 
--> Raycast config file is present, locked by password
+```bash
+brew bundle dump --force --file=./Brewfile
+```
+
+### Mettre à jour npmfile
+
+Lister vos packages NPM globaux:
+
+```bash
+npm list --global --parseable --depth=0 | \
+  sed '1d' | \
+  awk '{gsub(/\/.*\//,"",$1); print}' > ./npmfile
+```
+
+### Mettre à jour gemlist
+
+Lister vos gems installées:
+
+```bash
+gem list | tail -n+1 | \
+  sed 's/(/--version /' | \
+  sed 's/)//' > ./gemlist
+```
+
+### Mettre à jour Plugins_Krew
+
+Lister vos plugins krew:
+
+```bash
+kubectl krew list > ./Plugins_Krew
+```
+
+## Composants Installés
+
+### Shell & Terminal
+- **zsh** avec oh-my-zsh
+- Plugins: `zsh-autosuggestions`, `zsh-syntax-highlighting`
+- **Wezterm** comme émulateur de terminal
+
+### Outils CLI Modernes
+Voir `Brewfile` pour la liste complète. Généralement:
+- `rg` (ripgrep), `fd`, `bat`, `exa`
+- `fzf` pour fuzzy finding
+- `jq`, `yq` pour manipulation JSON/YAML
+
+### Kubernetes Tools
+- `kubectl` + krew
+- `kubectx`, `kubens`
+- `kubeswitch` pour gestion multi-cluster
+- Plugins krew selon `Plugins_Krew`
+
+### Development Tools
+- Git avec configuration avancée
+- Node.js (via Homebrew)
+- Ruby (système macOS)
+- Packages NPM/Gem selon listes
+
+## Troubleshooting
+
+### Le script échoue sur Xcode
+
+Si l'installation Xcode Command Line Tools nécessite une interaction:
+1. Le script s'arrête proprement
+2. Terminez l'installation dans la fenêtre popup
+3. Relancez `./init_mac.sh`
+
+### Homebrew pas dans le PATH
+
+Pour Apple Silicon, ajoutez à votre shell:
+
+```bash
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+
+Pour Intel:
+
+```bash
+eval "$(/usr/local/bin/brew shellenv)"
+```
+
+### Krew plugins échouent
+
+Certains plugins peuvent ne plus être maintenus. Le script continue avec un warning.
+Vérifiez manuellement:
+
+```bash
+kubectl krew search <plugin-name>
+```
+
+## Configuration Avancée
+
+### SSH ControlMaster
+
+Pour activer la réutilisation de connexions SSH (déjà configuré dans `.zshrc`):
+
+```bash
+mkdir -p ~/.ssh/private
+```
+
+### Wezterm
+
+La configuration Wezterm est copiée automatiquement. Pour la personnaliser:
+
+```bash
+vim ~/.wezterm.lua
+```
+
+### Markdownlint
+
+Configuration pour linting Markdown (VSCode, nvim):
+
+```bash
+vim ~/.markdownlint.json
+```
+
+## Contribution
+
+Pour ajouter un outil:
+1. L'installer manuellement pour tester
+2. L'ajouter au fichier approprié (`Brewfile`, `npmfile`, etc.)
+3. Regénérer le fichier avec les commandes de maintenance
+4. Commit + push
+
+## Licence
+
+Configuration personnelle - Utilisez à vos risques et périls.
