@@ -1,62 +1,303 @@
 #!/usr/bin/env bash
-#TODO: Rewrite it 100%
+set -euo pipefail
 
-xcode-select --install
+# Colors and formatting
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly BLUE='\033[0;34m'
+readonly YELLOW='\033[1;33m'
+readonly NC='\033[0m'
 
-echo "🔵  Setting up brew"
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-echo "Installation OK ✅\n"
+# Script directory
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}▶${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}✓${NC} $*"
+}
+
+log_error() {
+    echo -e "${RED}✗${NC} $*" >&2
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠${NC} $*" >&2
+}
+
+# Cleanup on exit
+cleanup() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        log_error "Script failed with exit code $exit_code"
+    fi
+}
+trap cleanup EXIT
+
+# Check prerequisites
+check_prerequisites() {
+    log_info "Checking prerequisites..."
+
+    if [[ "$(uname)" != "Darwin" ]]; then
+        log_error "This script is designed for macOS only"
+        exit 1
+    fi
+
+    log_success "Running on macOS"
+}
+
+# Install Xcode Command Line Tools
+install_xcode_tools() {
+    log_info "Checking Xcode Command Line Tools..."
+
+    if xcode-select -p &>/dev/null; then
+        log_success "Xcode Command Line Tools already installed"
+        return 0
+    fi
+
+    log_info "Installing Xcode Command Line Tools..."
+    xcode-select --install
+
+    log_warning "Please complete the Xcode installation and re-run this script"
+    exit 0
+}
+
+# Install Homebrew
+install_homebrew() {
+    log_info "Checking Homebrew installation..."
+
+    if command -v brew &>/dev/null; then
+        log_success "Homebrew already installed"
+        return 0
+    fi
+
+    log_info "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    log_success "Homebrew installed"
+}
 
 # Install oh-my-zsh
-echo "Cloning oh-my-zsh..."
-[ -d "${HOME}"/.oh-my-zsh ] || sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-echo "Installation OK ✅\n"
+install_oh_my_zsh() {
+    log_info "Checking oh-my-zsh installation..."
 
-echo "🔵  Setting up .zshrc"
-cp -f .zshrc ~/.zshrc
-echo "Installation OK ✅\n"
+    if [[ -d "${HOME}/.oh-my-zsh" ]]; then
+        log_success "oh-my-zsh already installed"
+        return 0
+    fi
 
+    log_info "Installing oh-my-zsh..."
+    RUNZSH=no sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+    log_success "oh-my-zsh installed"
+}
 
 # Install ZSH plugins
-echo "Cloning zsh plugins..."
-[ -d "${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions ] || git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}"/plugins/zsh-autosuggestions
-[ -d "${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}"/plugins/zsh-syntax-highlighting ] || git clone https://github.com/zsh-users/zsh-syntax-highlighting "${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}"/plugins/zsh-syntax-highlighting
-echo "Installation OK ✅\n"
+install_zsh_plugins() {
+    log_info "Installing ZSH plugins..."
 
-echo "Install Brew applications"
-curl -s https://raw.githubusercontent.com/PixiBixi/dotfiles/master/Brewfile > ~/Brewfile
-brew bundle install
+    local custom_dir="${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}"
+    local plugins=(
+        "zsh-defer|https://github.com/romkatv/zsh-defer"
+        "zsh-autosuggestions|https://github.com/zsh-users/zsh-autosuggestions"
+        "zsh-syntax-highlighting|https://github.com/zsh-users/zsh-syntax-highlighting"
+    )
 
-echo "🔵  Setting up fzf"
-[ -f /opt/homebrew/opt/fzf/install ] && /opt/homebrew/opt/fzf/install --all
+    for plugin_info in "${plugins[@]}"; do
+        local plugin_name="${plugin_info%%|*}"
+        local plugin_url="${plugin_info##*|}"
+        local plugin_path="${custom_dir}/plugins/${plugin_name}"
 
-echo "🔵  Setting up kubeswitch"
-[ ! -d ~/.kube ] && cp -r .kube ~/.kube || cp .kube/switch-config.yaml .kube/
+        if [[ -d "${plugin_path}" ]]; then
+            log_success "Plugin ${plugin_name} already installed"
+        else
+            log_info "Installing ${plugin_name}..."
+            git clone "${plugin_url}" "${plugin_path}"
+            log_success "Plugin ${plugin_name} installed"
+        fi
+    done
+}
 
-echo "🔵  Setting up krew plugins"
-kubectl krew install < ./Plugins_Krew
-echo "Installation OK ✅\n"
+# Setup dotfiles
+setup_dotfiles() {
+    log_info "Setting up dotfiles..."
 
-echo "🔵  Setting up Wezterm"
-cp ./.wezterm.lua ~/.wezterm.lua
-echo "Installation OK ✅\n"
+    local files=(
+        ".zshrc|${HOME}/.zshrc"
+        ".wezterm.lua|${HOME}/.wezterm.lua"
+        ".markdownlint.json|${HOME}/.markdownlint.json"
+        ".gitconfig_perso|${HOME}/.gitconfig_perso"
+        ".gitconfig_work|${HOME}/.gitconfig_work"
+    )
 
-echo "Don't forget to split your kubeconfig file into several. You can use konfig to corneliusweig/konfig to split it"
+    for file_info in "${files[@]}"; do
+        local src="${file_info%%|*}"
+        local dest="${file_info##*|}"
 
-echo "🔵  Bootstrap architecture folders"
-mkdir -p ~/Documents/{perso,work}/git/
-cp ./.gitconfig_perso ~/
-cp ./.gitconfig_work ~/
-echo "Installation OK ✅\n"
+        if [[ -f "${SCRIPT_DIR}/${src}" ]]; then
+            cp -f "${SCRIPT_DIR}/${src}" "${dest}"
+            log_success "Copied ${src} to ${dest}"
+        else
+            log_warning "Source file ${src} not found, skipping"
+        fi
+    done
+}
 
-echo "🔵  Install NPM packages"
-xargs npm install --global < ./npmfile
-echo "Installation OK ✅\n"
+# Install Homebrew packages
+install_brew_packages() {
+    log_info "Installing Homebrew packages..."
 
-echo "🔵 Install Gem packages "
-cat ./gemlist | xargs -L 1 gem install
-echo "Installation OK ✅\n"
+    if [[ ! -f "${SCRIPT_DIR}/Brewfile" ]]; then
+        log_error "Brewfile not found in ${SCRIPT_DIR}"
+        return 1
+    fi
 
-echo "🔵 Install markdownlint config file"
-cp ./.markdownlint.json ~/
-echo "Installation OK ✅\n"
+    brew bundle install --file="${SCRIPT_DIR}/Brewfile"
+    log_success "Homebrew packages installed"
+}
+
+# Setup fzf
+setup_fzf() {
+    log_info "Setting up fzf..."
+
+    local fzf_install="/opt/homebrew/opt/fzf/install"
+
+    if [[ ! -f "${fzf_install}" ]]; then
+        fzf_install="/usr/local/opt/fzf/install"
+    fi
+
+    if [[ -f "${fzf_install}" ]]; then
+        "${fzf_install}" --all
+        log_success "fzf configured"
+    else
+        log_warning "fzf not found, skipping configuration"
+    fi
+}
+
+# Setup kubeswitch
+setup_kubeswitch() {
+    log_info "Setting up kubeswitch..."
+
+    if [[ ! -d "${HOME}/.kube" ]]; then
+        if [[ -d "${SCRIPT_DIR}/.kube" ]]; then
+            cp -r "${SCRIPT_DIR}/.kube" "${HOME}/.kube"
+            log_success "Copied .kube directory"
+        else
+            log_warning ".kube directory not found in ${SCRIPT_DIR}, skipping"
+        fi
+    else
+        if [[ -f "${SCRIPT_DIR}/.kube/switch-config.yaml" ]]; then
+            cp "${SCRIPT_DIR}/.kube/switch-config.yaml" "${HOME}/.kube/"
+            log_success "Copied switch-config.yaml"
+        else
+            log_warning "switch-config.yaml not found, skipping"
+        fi
+    fi
+}
+
+# Install krew plugins
+install_krew_plugins() {
+    log_info "Installing krew plugins..."
+
+    if ! command -v kubectl-krew &>/dev/null; then
+        log_warning "kubectl-krew not found, skipping plugin installation"
+        return 0
+    fi
+
+    if [[ ! -f "${SCRIPT_DIR}/Plugins_Krew" ]]; then
+        log_warning "Plugins_Krew file not found, skipping"
+        return 0
+    fi
+
+    while IFS= read -r plugin; do
+        [[ -z "${plugin}" ]] && continue
+        log_info "Installing krew plugin: ${plugin}"
+        kubectl krew install "${plugin}" || log_warning "Failed to install ${plugin}"
+    done < "${SCRIPT_DIR}/Plugins_Krew"
+
+    log_success "Krew plugins processed"
+}
+
+# Setup directory structure
+setup_directories() {
+    log_info "Setting up directory structure..."
+
+    mkdir -p "${HOME}/Documents/perso/git"
+    mkdir -p "${HOME}/Documents/work/git"
+
+    log_success "Directory structure created"
+}
+
+# Install NPM packages
+install_npm_packages() {
+    log_info "Installing NPM packages..."
+
+    if ! command -v npm &>/dev/null; then
+        log_warning "npm not found, skipping NPM packages"
+        return 0
+    fi
+
+    if [[ ! -f "${SCRIPT_DIR}/npmfile" ]]; then
+        log_warning "npmfile not found, skipping"
+        return 0
+    fi
+
+    xargs npm install --global < "${SCRIPT_DIR}/npmfile"
+    log_success "NPM packages installed"
+}
+
+# Install Gem packages
+install_gem_packages() {
+    log_info "Installing Gem packages..."
+
+    if ! command -v gem &>/dev/null; then
+        log_warning "gem not found, skipping Gem packages"
+        return 0
+    fi
+
+    if [[ ! -f "${SCRIPT_DIR}/gemlist" ]]; then
+        log_warning "gemlist not found, skipping"
+        return 0
+    fi
+
+    while IFS= read -r gem_name; do
+        [[ -z "${gem_name}" ]] && continue
+        log_info "Installing gem: ${gem_name}"
+        gem install "${gem_name}" || log_warning "Failed to install ${gem_name}"
+    done < "${SCRIPT_DIR}/gemlist"
+
+    log_success "Gem packages processed"
+}
+
+# Main execution
+main() {
+    log_info "Starting macOS initialization..."
+    echo
+
+    check_prerequisites
+    install_xcode_tools
+    install_homebrew
+    install_oh_my_zsh
+    install_zsh_plugins
+    setup_dotfiles
+    install_brew_packages
+    setup_fzf
+    setup_kubeswitch
+    install_krew_plugins
+    setup_directories
+    install_npm_packages
+    install_gem_packages
+
+    echo
+    log_success "macOS initialization complete!"
+    echo
+    log_info "Next steps:"
+    echo "  • Split your kubeconfig file using: kubectl konfig split"
+    echo "  • Restart your terminal or run: source ~/.zshrc"
+    echo "  • Configure your git identity in .gitconfig_perso and .gitconfig_work"
+}
+
+main "$@"
