@@ -1,4 +1,7 @@
 # Top of .zshrc
+# Initialize Homebrew (needed for HOMEBREW_PREFIX)
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
 DISABLE_AUTO_UPDATE="true"
 DISABLE_MAGIC_FUNCTIONS="true"
 DISABLE_COMPFIX="true"
@@ -88,32 +91,28 @@ export SAVEHIST=$HISTSIZE
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(ssh-agent terraform timer kubectl kube-ps1 helm battery brew aws zsh-syntax-highlighting)
+plugins=(zsh-defer ssh-agent terraform kubectl kube-ps1 helm battery aws)
 
-# Load differents keys
-zstyle :omz:plugins:ssh-agent identities ~/.ssh/{id_rsa,id_ed25519,gitlab,github.com}
+# Load differents keys (lazy mode for faster startup)
+zstyle :omz:plugins:ssh-agent lazy yes
+zstyle :omz:plugins:ssh-agent identities id_rsa id_ed25519 gitlab github.com
 
 source $ZSH/oh-my-zsh.sh
-[ -f ~/.zsh_functions ] && . ~/.zsh_functions
-[ -f ~/.zsh_work ] && . ~/.zsh_work
 
 # User configuration
 
-# Source all alias
-[[ -f ~/.zsh_alias ]] && . ~/.zsh_alias
+# Defer loading non-critical files for faster startup
+zsh-defer -c '[ -f ~/.zsh_functions ] && source ~/.zsh_functions'
+zsh-defer -c '[ -f ~/.zsh_work ] && source ~/.zsh_work'
+zsh-defer -c '[[ -f ~/.zsh_alias ]] && source ~/.zsh_alias'
+zsh-defer -c '[[ $(uname) == "Darwin" ]] && source ~/.zsh_mac'
+zsh-defer -c '[[ $(uname) == "Linux" ]] && source ~/.zsh_linux'
 
-# Source things for MacOS
-[[ $(uname) == "Darwin" ]] && . ~/.zsh_mac
+# Add kube context to right prompt
+RPROMPT='$(kube_ps1)'
 
-# Source things for Linux
-[[ $(uname) == "Linux" ]] && . ~/.zsh_linux
-
-# Add TF Workspace
-RPROMPT='$(kube_ps1) $(battery_pct_prompt)'
-
-TIMER_FORMAT='[%d]'; TIMER_PRECISION=2
-
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# Defer fzf loading
+zsh-defer -c '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
 
 # Ansible better output
 export ANSIBLE_CHECK_MODE_MARKERS=True
@@ -122,11 +121,29 @@ export ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
 
 ulimit -n 9999
 
-# Gcloud
+# Gcloud - lazy load completions for faster startup
 source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc"
-source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc"
-source <(kafkactl completion zsh)
-source <(delta --generate-completion=zsh)
+
+# Lazy load gcloud completion (loads only when first used)
+gcloud() {
+    unfunction gcloud
+    source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc"
+    gcloud "$@"
+}
+
+# Lazy load kafkactl completion
+kafkactl() {
+    unfunction kafkactl
+    eval "$(command kafkactl completion zsh)"
+    kafkactl "$@"
+}
+
+# Lazy load delta completion
+delta() {
+    unfunction delta
+    eval "$(command delta --generate-completion=zsh)"
+    delta "$@"
+}
 
 PATH_DIRS=(
     "/Users/jeremy/.local/bin"
@@ -139,6 +156,8 @@ PATH_DIRS=(
     ${HOME}/go/bin
     ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
     ${HOMEBREW_PREFIX}/opt/gnu-getopt/bin
+	${HOME}/.local/bin
 )
 export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
-export CLOUDSDK_CORE_PROJECT=infra-tooling-prod
+
+export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
