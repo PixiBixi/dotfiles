@@ -147,6 +147,59 @@ setup_dotfiles() {
     done
 }
 
+# Setup Neovim with Mason
+setup_neovim() {
+    log_info "Setting up Neovim configuration..."
+
+    if ! command -v nvim &> /dev/null; then
+        log_warning "Neovim not found, skipping configuration"
+        return 0
+    fi
+
+    # Copy nvim config
+    if [[ -d "${SCRIPT_DIR}/.config/nvim" ]]; then
+        mkdir -p "${HOME}/.config/nvim"
+        cp -rf "${SCRIPT_DIR}/.config/nvim/"* "${HOME}/.config/nvim/"
+        log_success "Copied Neovim configuration"
+    else
+        log_warning "Neovim config not found in ${SCRIPT_DIR}/.config/nvim"
+        return 0
+    fi
+
+    # Install Packer if not present
+    local packer_path="${HOME}/.local/share/nvim/site/pack/packer/start/packer.nvim"
+    if [[ ! -d "${packer_path}" ]]; then
+        log_info "Installing Packer..."
+        git clone --depth 1 https://github.com/wbthomason/packer.nvim "${packer_path}"
+        log_success "Packer installed"
+    fi
+
+    # Install plugins with Packer
+    log_info "Installing Neovim plugins (this may take a minute)..."
+    nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync' 2>&1 | grep -v "^$" || true
+    log_success "Neovim plugins installed"
+
+    # Install LSP servers with Mason
+    log_info "Installing LSP servers with Mason..."
+    local lsp_servers=(
+        "ansible-language-server"
+        "bash-language-server"
+        "dockerfile-language-server"
+        "pyright"
+        "terraform-ls"
+        "tflint"
+        "yaml-language-server"
+    )
+
+    for server in "${lsp_servers[@]}"; do
+        log_info "Installing ${server}..."
+        nvim --headless -c "MasonInstall ${server}" -c "qall" 2>&1 | grep -v "^$" || true
+    done
+
+    log_success "LSP servers installed via Mason"
+    log_info "Run ':Mason' in Neovim to verify installations"
+}
+
 # Install Homebrew packages
 install_brew_packages() {
     log_info "Installing Homebrew packages..."
@@ -291,6 +344,7 @@ main() {
     setup_directories
     install_npm_packages
     install_gem_packages
+    setup_neovim
 
     echo
     log_success "macOS initialization complete!"
@@ -299,6 +353,7 @@ main() {
     echo "  • Split your kubeconfig file using: kubectl konfig split"
     echo "  • Restart your terminal or run: source ~/.zshrc"
     echo "  • Configure your git identity in .gitconfig_perso and .gitconfig_work"
+    echo "  • Open Neovim and verify LSP servers with :Mason"
 }
 
 main "$@"
