@@ -1,6 +1,5 @@
 aws-cdk
 corepack
-dockerfile-language-server-nodejs
 markdownlint
 npm
 yaml-sort
