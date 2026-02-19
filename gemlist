@@ -13,7 +13,6 @@ fcntl --version default: 1.0.0
 fiddle --version default: 1.0.0
 fileutils --version default: 1.1.0
 forwardable --version default: 1.2.0
-giturl --version 1.3.2
 io-console --version default: 0.4.7
 ipaddr --version default: 1.2.2
 irb --version default: 1.0.0
