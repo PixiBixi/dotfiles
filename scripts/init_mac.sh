@@ -8,9 +8,11 @@ readonly BLUE='\033[0;34m'
 readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m'
 
-# Script directory
+# Script and repo directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 readonly SCRIPT_DIR
+readonly REPO_DIR
 
 # Logging functions
 log_info() {
@@ -127,19 +129,19 @@ setup_dotfiles() {
     log_info "Setting up dotfiles..."
 
     local files=(
-        ".zshrc|${HOME}/.zshrc"
-        ".wezterm.lua|${HOME}/.wezterm.lua"
+        "config/.zshrc|${HOME}/.zshrc"
+        "config/.wezterm.lua|${HOME}/.wezterm.lua"
         ".markdownlint.json|${HOME}/.markdownlint.json"
-        ".gitconfig_perso|${HOME}/.gitconfig_perso"
-        ".gitconfig_work|${HOME}/.gitconfig_work"
+        "config/.gitconfig_perso|${HOME}/.gitconfig_perso"
+        "config/.gitconfig_work|${HOME}/.gitconfig_work"
     )
 
     for file_info in "${files[@]}"; do
         local src="${file_info%%|*}"
         local dest="${file_info##*|}"
 
-        if [[ -f "${SCRIPT_DIR}/${src}" ]]; then
-            cp -f "${SCRIPT_DIR}/${src}" "${dest}"
+        if [[ -f "${REPO_DIR}/${src}" ]]; then
+            cp -f "${REPO_DIR}/${src}" "${dest}"
             log_success "Copied ${src} to ${dest}"
         else
             log_warning "Source file ${src} not found, skipping"
@@ -147,16 +149,17 @@ setup_dotfiles() {
     done
 }
 
+# Setup Claude Code configuration
 setup_claude() {
     log_info "Setting up Claude Code configuration..."
 
     mkdir -p "${HOME}/.claude"
 
-    if [[ -f "${SCRIPT_DIR}/claude/CLAUDE.md" ]]; then
-        cp -f "${SCRIPT_DIR}/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md"
-        log_success "Copied claude/CLAUDE.md to ${HOME}/.claude/CLAUDE.md"
+    if [[ -f "${REPO_DIR}/apps/claude/CLAUDE.md" ]]; then
+        cp -f "${REPO_DIR}/apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md"
+        log_success "Copied apps/claude/CLAUDE.md to ${HOME}/.claude/CLAUDE.md"
     else
-        log_warning "claude/CLAUDE.md not found, skipping"
+        log_warning "apps/claude/CLAUDE.md not found, skipping"
     fi
 }
 
@@ -170,12 +173,12 @@ setup_neovim() {
     fi
 
     # Copy nvim config
-    if [[ -d "${SCRIPT_DIR}/.config/nvim" ]]; then
+    if [[ -d "${REPO_DIR}/config/.config/nvim" ]]; then
         mkdir -p "${HOME}/.config/nvim"
-        cp -rf "${SCRIPT_DIR}/.config/nvim/"* "${HOME}/.config/nvim/"
+        cp -rf "${REPO_DIR}/config/.config/nvim/"* "${HOME}/.config/nvim/"
         log_success "Copied Neovim configuration"
     else
-        log_warning "Neovim config not found in ${SCRIPT_DIR}/.config/nvim"
+        log_warning "Neovim config not found in ${REPO_DIR}/config/.config/nvim"
         return 0
     fi
 
@@ -217,12 +220,12 @@ setup_neovim() {
 install_brew_packages() {
     log_info "Installing Homebrew packages..."
 
-    if [[ ! -f "${SCRIPT_DIR}/Brewfile" ]]; then
-        log_error "Brewfile not found in ${SCRIPT_DIR}"
+    if [[ ! -f "${REPO_DIR}/packages/Brewfile" ]]; then
+        log_error "Brewfile not found in ${REPO_DIR}/packages"
         return 1
     fi
 
-    brew bundle install --file="${SCRIPT_DIR}/Brewfile"
+    brew bundle install --file="${REPO_DIR}/packages/Brewfile"
     log_success "Homebrew packages installed"
 }
 
@@ -269,15 +272,15 @@ setup_kubeswitch() {
     log_info "Setting up kubeswitch..."
 
     if [[ ! -d "${HOME}/.kube" ]]; then
-        if [[ -d "${SCRIPT_DIR}/.kube" ]]; then
-            cp -r "${SCRIPT_DIR}/.kube" "${HOME}/.kube"
+        if [[ -d "${REPO_DIR}/config/.kube" ]]; then
+            cp -r "${REPO_DIR}/config/.kube" "${HOME}/.kube"
             log_success "Copied .kube directory"
         else
-            log_warning ".kube directory not found in ${SCRIPT_DIR}, skipping"
+            log_warning ".kube directory not found in ${REPO_DIR}/config, skipping"
         fi
     else
-        if [[ -f "${SCRIPT_DIR}/.kube/switch-config.yaml" ]]; then
-            cp "${SCRIPT_DIR}/.kube/switch-config.yaml" "${HOME}/.kube/"
+        if [[ -f "${REPO_DIR}/config/.kube/switch-config.yaml" ]]; then
+            cp "${REPO_DIR}/config/.kube/switch-config.yaml" "${HOME}/.kube/"
             log_success "Copied switch-config.yaml"
         else
             log_warning "switch-config.yaml not found, skipping"
@@ -294,8 +297,8 @@ install_krew_plugins() {
         return 0
     fi
 
-    if [[ ! -f "${SCRIPT_DIR}/Plugins_Krew" ]]; then
-        log_warning "Plugins_Krew file not found, skipping"
+    if [[ ! -f "${REPO_DIR}/packages/krew.txt" ]]; then
+        log_warning "packages/krew.txt file not found, skipping"
         return 0
     fi
 
@@ -303,7 +306,7 @@ install_krew_plugins() {
         [[ -z "${plugin}" ]] && continue
         log_info "Installing krew plugin: ${plugin}"
         kubectl krew install "${plugin}" || log_warning "Failed to install ${plugin}"
-    done < "${SCRIPT_DIR}/Plugins_Krew"
+    done < "${REPO_DIR}/packages/krew.txt"
 
     log_success "Krew plugins processed"
 }
@@ -327,12 +330,12 @@ install_npm_packages() {
         return 0
     fi
 
-    if [[ ! -f "${SCRIPT_DIR}/npmfile" ]]; then
-        log_warning "npmfile not found, skipping"
+    if [[ ! -f "${REPO_DIR}/packages/npm.txt" ]]; then
+        log_warning "packages/npm.txt not found, skipping"
         return 0
     fi
 
-    xargs npm install --global < "${SCRIPT_DIR}/npmfile"
+    xargs npm install --global < "${REPO_DIR}/packages/npm.txt"
     log_success "NPM packages installed"
 }
 
@@ -345,8 +348,8 @@ install_gem_packages() {
         return 0
     fi
 
-    if [[ ! -f "${SCRIPT_DIR}/gemlist" ]]; then
-        log_warning "gemlist not found, skipping"
+    if [[ ! -f "${REPO_DIR}/packages/gems.txt" ]]; then
+        log_warning "packages/gems.txt not found, skipping"
         return 0
     fi
 
@@ -354,7 +357,7 @@ install_gem_packages() {
         [[ -z "${gem_name}" ]] && continue
         log_info "Installing gem: ${gem_name}"
         gem install "${gem_name}" || log_warning "Failed to install ${gem_name}"
-    done < "${SCRIPT_DIR}/gemlist"
+    done < "${REPO_DIR}/packages/gems.txt"
 
     log_success "Gem packages processed"
 }
@@ -387,7 +390,7 @@ main() {
     log_info "Next steps:"
     echo "  • Split your kubeconfig file using: kubectl konfig split"
     echo "  • Restart your terminal or run: source ~/.zshrc"
-    echo "  • Configure your git identity in .gitconfig_perso and .gitconfig_work"
+    echo "  • Configure your git identity in config/.gitconfig_perso and config/.gitconfig_work"
     echo "  • Open Neovim and verify LSP servers with :Mason"
 }
 

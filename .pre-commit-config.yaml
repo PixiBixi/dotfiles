@@ -30,7 +30,7 @@ repos:
     hooks:
       - id: shellcheck
         args: [--severity=warning]
-        exclude: '^\.zsh'
+        exclude: '(^|/)\.zsh'
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.10.0-1
