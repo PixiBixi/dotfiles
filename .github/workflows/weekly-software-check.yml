@@ -22,44 +22,24 @@ jobs:
           NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
 
-      - name: Add taps from Brewfile
-        run: |
-          succeeded_taps=()
-          while IFS= read -r tap; do
-            if brew tap "$tap" 2>/dev/null; then
-              succeeded_taps+=("$tap")
-            else
-              echo "::warning::Tap unavailable (macOS-only?): $tap"
-            fi
-          done < <(grep '^tap ' Brewfile | sed 's/tap "\(.*\)"/\1/')
-          printf '%s\n' "${succeeded_taps[@]}" > /tmp/succeeded_taps.txt
-
       - name: Validate Brewfile formulas
         run: |
-          declare -A tap_ok
-          while IFS= read -r tap; do
-            [[ -z "$tap" ]] && continue
-            tap_ok["$tap"]=1
-          done < /tmp/succeeded_taps.txt
-
           removed=()
           while IFS= read -r line; do
             formula=$(echo "$line" | sed 's/^brew "\([^"]*\)".*/\1/')
 
-            # For tap formulas (owner/tap/name): only validate if the tap succeeded
+            # Skip tap formulas (owner/tap/name) — may be macOS-only even if tap loads
             if [[ "$formula" == *"/"* ]]; then
-              tap_name=$(echo "$formula" | cut -d'/' -f1,2)
-              if [[ -z "${tap_ok[$tap_name]:-}" ]]; then
-                echo "Skipping (tap unavailable): $formula"
-                continue
-              fi
+              echo "Skipping tap formula (platform check skipped): $formula"
+              continue
             fi
 
             if ! brew info "$formula" &>/dev/null; then
               echo "::warning::Invalid formula: $formula"
               removed+=("$formula")
-              escaped=$(printf '%s\n' "$formula" | sed 's/[[\.*^$()+?{|]/\\&/g')
-              sed -i "/^brew \"${escaped}\"/d" Brewfile
+              # Use # as sed delimiter to avoid clashes with / in formula names
+              escaped=$(printf '%s\n' "$formula" | sed 's/[[\.*^$()+?{|#]/\\&/g')
+              sed -i "\#^brew \"${escaped}\"#d" Brewfile
             fi
           done < <(grep '^brew "' Brewfile)
 
@@ -130,7 +110,7 @@ jobs:
               echo "All plugins valid ✓"
             fi
             echo ""
-            echo "> Tap formulas whose tap failed to load, and krew plugins from custom indexes (\`index/plugin\`), are skipped and not auto-removed."
+            echo "> Tap formulas (\`owner/tap/name\`) and krew plugins from custom indexes (\`index/plugin\`) are skipped — too platform-specific to validate on Linux."
           } > /tmp/pr_body.txt
 
       - name: Create pull request
