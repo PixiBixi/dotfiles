@@ -111,7 +111,7 @@ jobs:
             fi
             echo ""
             echo "> Tap formulas (\`owner/tap/name\`) and krew plugins from custom indexes (\`index/plugin\`) are skipped — too platform-specific to validate on Linux."
-          } > /tmp/pr_body.txt
+          } | tee /tmp/pr_body.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
