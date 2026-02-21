@@ -390,7 +390,7 @@ main() {
     log_info "Next steps:"
     echo "  • Split your kubeconfig file using: kubectl konfig split"
     echo "  • Restart your terminal or run: source ~/.zshrc"
-    echo "  • Configure your git identity in config/.gitconfig_perso and config/.gitconfig_work"
+    echo "  • Configure your git identity in ~/.gitconfig_perso and ~/.gitconfig_work"
     echo "  • Open Neovim and verify LSP servers with :Mason"
 }
 
