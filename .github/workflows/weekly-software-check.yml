@@ -1,0 +1,148 @@
+name: weekly-software-check
+
+on:
+  schedule:
+    - cron: '0 8 * * 1' # Every Monday at 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Homebrew ────────────────────────────────────────────────────────────
+
+      - name: Install Homebrew
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+
+      - name: Add taps from Brewfile
+        run: |
+          succeeded_taps=()
+          while IFS= read -r tap; do
+            if brew tap "$tap" 2>/dev/null; then
+              succeeded_taps+=("$tap")
+            else
+              echo "::warning::Tap unavailable (macOS-only?): $tap"
+            fi
+          done < <(grep '^tap ' Brewfile | sed 's/tap "\(.*\)"/\1/')
+          printf '%s\n' "${succeeded_taps[@]}" > /tmp/succeeded_taps.txt
+
+      - name: Validate Brewfile formulas
+        run: |
+          declare -A tap_ok
+          while IFS= read -r tap; do
+            [[ -z "$tap" ]] && continue
+            tap_ok["$tap"]=1
+          done < /tmp/succeeded_taps.txt
+
+          removed=()
+          while IFS= read -r line; do
+            formula=$(echo "$line" | sed 's/^brew "\([^"]*\)".*/\1/')
+
+            # For tap formulas (owner/tap/name): only validate if the tap succeeded
+            if [[ "$formula" == *"/"* ]]; then
+              tap_name=$(echo "$formula" | cut -d'/' -f1,2)
+              if [[ -z "${tap_ok[$tap_name]:-}" ]]; then
+                echo "Skipping (tap unavailable): $formula"
+                continue
+              fi
+            fi
+
+            if ! brew info "$formula" &>/dev/null; then
+              echo "::warning::Invalid formula: $formula"
+              removed+=("$formula")
+              escaped=$(printf '%s\n' "$formula" | sed 's/[[\.*^$()+?{|]/\\&/g')
+              sed -i "/^brew \"${escaped}\"/d" Brewfile
+            fi
+          done < <(grep '^brew "' Brewfile)
+
+          printf '%s\n' "${removed[@]}" > /tmp/removed_formulas.txt
+
+      # ── Krew ────────────────────────────────────────────────────────────────
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Install krew
+        run: |
+          cd "$(mktemp -d)"
+          curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/krew-linux_amd64.tar.gz"
+          tar zxf krew-linux_amd64.tar.gz
+          ./krew-linux_amd64 install krew
+          echo "${KREW_ROOT:-$HOME/.krew}/bin" >> "$GITHUB_PATH"
+
+      - name: Update krew index
+        run: kubectl krew update
+
+      - name: Validate Plugins_Krew
+        run: |
+          removed=()
+          while IFS= read -r plugin; do
+            [[ -z "$plugin" ]] && continue
+            # Plugins with '/' use a custom index — skip automatic removal
+            if [[ "$plugin" == *"/"* ]]; then
+              echo "Skipping custom-index plugin: $plugin"
+              continue
+            fi
+            if ! kubectl krew info "$plugin" &>/dev/null; then
+              echo "::warning::Invalid krew plugin: $plugin"
+              removed+=("$plugin")
+              sed -i "/^${plugin}$/d" Plugins_Krew
+            fi
+          done < Plugins_Krew
+
+          printf '%s\n' "${removed[@]}" > /tmp/removed_plugins.txt
+
+      # ── PR ──────────────────────────────────────────────────────────────────
+
+      - name: Build PR description
+        run: |
+          {
+            echo "## Weekly software validity check"
+            echo ""
+            echo "### Brew formulas (Linux formulas only)"
+            if [ -s /tmp/removed_formulas.txt ]; then
+              echo "Removed (no longer available in brew):"
+              echo '```'
+              cat /tmp/removed_formulas.txt
+              echo '```'
+            else
+              echo "All formulas valid ✓"
+            fi
+            echo ""
+            echo "### Krew plugins"
+            if [ -s /tmp/removed_plugins.txt ]; then
+              echo "Removed (no longer in krew index):"
+              echo '```'
+              cat /tmp/removed_plugins.txt
+              echo '```'
+            else
+              echo "All plugins valid ✓"
+            fi
+            echo ""
+            echo "> Tap formulas whose tap failed to load, and krew plugins from custom indexes (\`index/plugin\`), are skipped and not auto-removed."
+          } > /tmp/pr_body.txt
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/weekly-software-check
+          commit-message: "chore: remove invalid brew formulas and krew plugins"
+          title: "chore: weekly software validity check"
+          body-path: /tmp/pr_body.txt
+          add-paths: |
+            Brewfile
+            Plugins_Krew
+          labels: maintenance
+          delete-branch: true
