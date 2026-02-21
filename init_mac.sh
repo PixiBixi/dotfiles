@@ -231,6 +231,26 @@ setup_fzf() {
     fi
 }
 
+# Setup Google Cloud Application Default Credentials
+setup_gcloud_auth() {
+    log_info "Setting up Google Cloud Application Default Credentials..."
+
+    if ! command -v gcloud &> /dev/null; then
+        log_warning "gcloud not found, skipping ADC setup"
+        return 0
+    fi
+
+    local adc_file="${HOME}/.config/gcloud/application_default_credentials.json"
+    if [[ -f "${adc_file}" ]]; then
+        log_success "Google Cloud ADC already configured"
+        return 0
+    fi
+
+    log_info "Configuring Application Default Credentials (a browser window will open)..."
+    gcloud auth application-default login
+    log_success "Google Cloud ADC configured"
+}
+
 # Setup kubeswitch
 setup_kubeswitch() {
     log_info "Setting up kubeswitch..."
@@ -339,6 +359,7 @@ main() {
     setup_dotfiles
     install_brew_packages
     setup_fzf
+    setup_gcloud_auth
     setup_kubeswitch
     install_krew_plugins
     setup_directories

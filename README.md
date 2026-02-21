@@ -98,7 +98,17 @@ Split votre kubeconfig en plusieurs fichiers:
 kubectl konfig split -o ~/.kube/configs
 ```
 
-### 3. Shell
+### 3. Google Cloud (GKE)
+
+Configurer les Application Default Credentials pour que kubeswitch puisse découvrir les clusters GKE sans prompt d'authentification répété :
+
+```bash
+gcloud auth application-default login
+```
+
+À relancer si kubeswitch vous redemande l'auth Google (token expiré, renouvellement de session SSO, etc.).
+
+### 4. Shell
 
 Recharger votre configuration:
 
@@ -196,6 +206,28 @@ Pour Intel:
 
 ```bash
 eval "$(/usr/local/bin/brew shellenv)"
+```
+
+### kubeswitch demande l'auth Google à chaque fois
+
+Le store GKE appelle les APIs Google Cloud à chaque lancement pour découvrir les clusters. Si le token ADC est expiré (fréquent sur les comptes Google Workspace avec SSO), kubeswitch déclenche `gcloud auth application-default login`.
+
+```bash
+gcloud auth application-default login
+```
+
+Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/.kube/switch-config.yaml` sur le store GKE :
+
+```yaml
+- kind: gke
+  refreshIndexAfter: 8h
+  config:
+    authentication:
+      authenticationType: gcloud
+  cache:
+    kind: filesystem
+    config:
+      path: ~/.kube/cache
 ```
 
 ### Krew plugins échouent
