@@ -147,6 +147,19 @@ setup_dotfiles() {
     done
 }
 
+setup_claude() {
+    log_info "Setting up Claude Code configuration..."
+
+    mkdir -p "${HOME}/.claude"
+
+    if [[ -f "${SCRIPT_DIR}/claude/CLAUDE.md" ]]; then
+        cp -f "${SCRIPT_DIR}/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md"
+        log_success "Copied claude/CLAUDE.md to ${HOME}/.claude/CLAUDE.md"
+    else
+        log_warning "claude/CLAUDE.md not found, skipping"
+    fi
+}
+
 # Setup Neovim with Mason
 setup_neovim() {
     log_info "Setting up Neovim configuration..."
@@ -366,6 +379,7 @@ main() {
     install_npm_packages
     install_gem_packages
     setup_neovim
+    setup_claude
 
     echo
     log_success "macOS initialization complete!"
