@@ -7,7 +7,7 @@ Configuration complète pour macOS avec installation automatisée.
 ```bash
 git clone https://github.com/PixiBixi/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-./init_mac.sh
+./scripts/init_mac.sh
 ```
 
 Le script est **idempotent** : vous pouvez le relancer sans risque.
@@ -23,25 +23,50 @@ Le script installe automatiquement:
 - Xcode Command Line Tools
 - Homebrew
 - oh-my-zsh + plugins
-- Tous les packages listés dans `Brewfile`, `npmfile`, `gemlist`
+- Tous les packages listés dans `packages/`
 - kubectl krew + plugins
 
 ## Structure du Repository
 
-```sh
+```text
 dotfiles/
-├── init_mac.sh              # Script d'installation principal
-├── Brewfile                 # Packages Homebrew (formulae, casks, mas)
-├── Plugins_Krew             # Plugins kubectl krew
-├── npmfile                  # Packages NPM globaux
-├── gemlist                  # Gems Ruby
-├── .zshrc                   # Configuration zsh
-├── .wezterm.lua             # Configuration Wezterm
-├── .gitconfig_perso         # Git config pour projets perso
-├── .gitconfig_work          # Git config pour projets work
-├── .markdownlint.json       # Configuration markdownlint
-└── .kube/
-    └── switch-config.yaml   # Configuration kubeswitch
+├── config/                      # Dotfiles — miroir de $HOME
+│   ├── .zshrc
+│   ├── .zsh_alias
+│   ├── .zsh_functions
+│   ├── .zsh_linux
+│   ├── .zsh_mac
+│   ├── .gitconfig
+│   ├── .gitconfig_perso
+│   ├── .gitconfig_work
+│   ├── .tmux.conf
+│   ├── .vimrc
+│   ├── .wezterm.lua
+│   ├── .ssh/
+│   │   └── config
+│   ├── .kube/
+│   │   └── switch-config.yaml
+│   └── .config/
+│       └── nvim/
+├── packages/                    # Listes de paquets à installer
+│   ├── Brewfile
+│   ├── npm.txt
+│   ├── gems.txt
+│   └── krew.txt
+├── apps/                        # Configs d'applications non-dotfiles
+│   ├── claude/
+│   │   └── CLAUDE.md
+│   ├── raycast/
+│   │   └── Raycast.rayconfig
+│   └── vscode/
+│       ├── settings.json
+│       └── extensions.txt
+├── scripts/
+│   ├── init_mac.sh              # Script d'installation principal
+│   └── init.sh
+├── .markdownlint.json
+├── .pre-commit-config.yaml
+└── .yamllint.yaml
 ```
 
 ## Fonctionnalités du Script
@@ -123,35 +148,35 @@ source ~/.zshrc
 Exporter vos packages actuels:
 
 ```bash
-brew bundle dump --force --file=./Brewfile
+brew bundle dump --force --file=./packages/Brewfile
 ```
 
-### Mettre à jour npmfile
+### Mettre à jour npm.txt
 
 Lister vos packages NPM globaux:
 
 ```bash
 npm list --global --parseable --depth=0 | \
   sed '1d' | \
-  awk '{gsub(/\/.*\//,"",$1); print}' > ./npmfile
+  awk '{gsub(/\/.*\//,"",$1); print}' > ./packages/npm.txt
 ```
 
-### Mettre à jour gemlist
+### Mettre à jour gems.txt
 
 Lister vos gems installées:
 
 ```bash
 gem list | tail -n+1 | \
   sed 's/(/--version /' | \
-  sed 's/)//' > ./gemlist
+  sed 's/)//' > ./packages/gems.txt
 ```
 
-### Mettre à jour Plugins_Krew
+### Mettre à jour krew.txt
 
 Lister vos plugins krew:
 
 ```bash
-kubectl krew list > ./Plugins_Krew
+kubectl krew list > ./packages/krew.txt
 ```
 
 ## Composants Installés
@@ -164,7 +189,7 @@ kubectl krew list > ./Plugins_Krew
 
 ### Outils CLI Modernes
 
-Voir `Brewfile` pour la liste complète. Généralement:
+Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 - `rg` (ripgrep), `fd`, `bat`, `exa`
 - `fzf` pour fuzzy finding
@@ -175,7 +200,7 @@ Voir `Brewfile` pour la liste complète. Généralement:
 - `kubectl` + krew
 - `kubectx`, `kubens`
 - `kubeswitch` pour gestion multi-cluster
-- Plugins krew selon `Plugins_Krew`
+- Plugins krew selon `packages/krew.txt`
 
 ### Development Tools
 
@@ -192,7 +217,7 @@ Si l'installation Xcode Command Line Tools nécessite une interaction:
 
 1. Le script s'arrête proprement
 2. Terminez l'installation dans la fenêtre popup
-3. Relancez `./init_mac.sh`
+3. Relancez `./scripts/init_mac.sh`
 
 ### Homebrew pas dans le PATH
 
@@ -270,7 +295,7 @@ vim ~/.markdownlint.json
 Pour ajouter un outil:
 
 1. L'installer manuellement pour tester
-2. L'ajouter au fichier approprié (`Brewfile`, `npmfile`, etc.)
+2. L'ajouter au fichier approprié (`packages/Brewfile`, `packages/npm.txt`, etc.)
 3. Regénérer le fichier avec les commandes de maintenance
 4. Commit + push
 
