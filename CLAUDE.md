@@ -41,7 +41,7 @@ All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, et
 
 ## CI
 
-`.github/workflows/weekly-software-check.yml` runs every Monday to validate that Homebrew formulae and krew plugins still exist. It auto-creates a PR removing stale entries. Note: it references `Brewfile` and `Plugins_Krew` at the repo root — these paths need updating to `packages/Brewfile` and `packages/krew.txt` following the structure migration.
+`.github/workflows/weekly-software-check.yml` runs every Monday to validate that Homebrew formulae and krew plugins still exist. It auto-creates a PR removing stale entries from `packages/Brewfile` and `packages/krew.txt`.
 
 ## Pre-commit Hooks
 
