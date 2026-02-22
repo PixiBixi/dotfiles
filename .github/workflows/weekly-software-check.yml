@@ -5,24 +5,40 @@ on:
     - cron: '0 8 * * 1' # Every Monday at 08:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: weekly-software-check
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  check:
+  # ── Homebrew ──────────────────────────────────────────────────────────────
+  check-brew:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # ── Homebrew ────────────────────────────────────────────────────────────
+      - name: Cache Homebrew
+        id: cache-homebrew
+        uses: actions/cache@v4
+        with:
+          path: /home/linuxbrew/.linuxbrew
+          key: homebrew-${{ runner.os }}-v1
 
       - name: Install Homebrew
+        if: steps.cache-homebrew.outputs.cache-hit != 'true'
         run: |
           NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
 
-      - name: Validate Brewfile formulas
+      - name: Add Homebrew to PATH
+        run: echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+
+      - name: Update Homebrew
+        run: brew update --quiet
+
+      - name: Validate formulas
         run: |
           removed=()
           while IFS= read -r line; do
@@ -43,9 +59,54 @@ jobs:
             fi
           done < <(grep '^brew "' packages/Brewfile)
 
-          printf '%s\n' "${removed[@]}" > /tmp/removed_formulas.txt
+          printf '%s\n' "${removed[@]}" > removed_formulas.txt
 
-      # ── Krew ────────────────────────────────────────────────────────────────
+      - name: Validate casks
+        run: |
+          removed=()
+          while IFS= read -r line; do
+            cask=$(echo "$line" | sed 's/^cask "\([^"]*\)".*/\1/')
+
+            if ! curl -fsSL "https://formulae.brew.sh/api/cask/${cask}.json" > /dev/null 2>&1; then
+              echo "::warning::Invalid cask: $cask"
+              removed+=("$cask")
+              escaped=$(printf '%s\n' "$cask" | sed 's/[[\.*^$()+?{|#]/\\&/g')
+              sed -i "\#^cask \"${escaped}\"#d" packages/Brewfile
+            fi
+          done < <(grep '^cask "' packages/Brewfile || true)
+
+          printf '%s\n' "${removed[@]}" >> removed_formulas.txt
+
+      - name: Write job summary
+        run: |
+          {
+            echo "### Brew formulas & casks (Linux formulas only)"
+            if [ -s removed_formulas.txt ]; then
+              echo "Removed (no longer available):"
+              echo '```'
+              cat removed_formulas.txt
+              echo '```'
+            else
+              echo "All formulas and casks valid ✓"
+            fi
+            echo ""
+            echo "> Tap formulas (\`owner/tap/name\`) are skipped — platform-specific."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: brew-results
+          retention-days: 1
+          path: |
+            packages/Brewfile
+            removed_formulas.txt
+
+  # ── Krew ──────────────────────────────────────────────────────────────────
+  check-krew:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install kubectl
         run: |
@@ -81,37 +142,84 @@ jobs:
             fi
           done < packages/krew.txt
 
-          printf '%s\n' "${removed[@]}" > /tmp/removed_plugins.txt
+          printf '%s\n' "${removed[@]}" > removed_plugins.txt
 
-      # ── PR ──────────────────────────────────────────────────────────────────
+      - name: Write job summary
+        run: |
+          {
+            echo "### Krew plugins"
+            if [ -s removed_plugins.txt ]; then
+              echo "Removed (no longer in krew index):"
+              echo '```'
+              cat removed_plugins.txt
+              echo '```'
+            else
+              echo "All plugins valid ✓"
+            fi
+            echo ""
+            echo "> Plugins from custom indexes (\`index/plugin\`) are skipped."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: krew-results
+          retention-days: 1
+          path: |
+            packages/krew.txt
+            removed_plugins.txt
+
+  # ── PR ────────────────────────────────────────────────────────────────────
+  create-pr:
+    needs: [check-brew, check-krew]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download brew results
+        uses: actions/download-artifact@v4
+        with:
+          name: brew-results
+          path: /tmp/brew-results
+
+      - name: Download krew results
+        uses: actions/download-artifact@v4
+        with:
+          name: krew-results
+          path: /tmp/krew-results
+
+      - name: Apply changes
+        run: |
+          cp /tmp/brew-results/packages/Brewfile packages/Brewfile
+          cp /tmp/krew-results/packages/krew.txt packages/krew.txt
 
       - name: Build PR description
         run: |
           {
             echo "## Weekly software validity check"
             echo ""
-            echo "### Brew formulas (Linux formulas only)"
-            if [ -s /tmp/removed_formulas.txt ]; then
-              echo "Removed (no longer available in brew):"
+            echo "### Brew formulas & casks (Linux formulas only)"
+            if [ -s /tmp/brew-results/removed_formulas.txt ]; then
+              echo "Removed (no longer available):"
               echo '```'
-              cat /tmp/removed_formulas.txt
+              cat /tmp/brew-results/removed_formulas.txt
               echo '```'
             else
-              echo "All formulas valid ✓"
+              echo "All formulas and casks valid ✓"
             fi
             echo ""
             echo "### Krew plugins"
-            if [ -s /tmp/removed_plugins.txt ]; then
+            if [ -s /tmp/krew-results/removed_plugins.txt ]; then
               echo "Removed (no longer in krew index):"
               echo '```'
-              cat /tmp/removed_plugins.txt
+              cat /tmp/krew-results/removed_plugins.txt
               echo '```'
             else
               echo "All plugins valid ✓"
             fi
             echo ""
             echo "> Tap formulas (\`owner/tap/name\`) and krew plugins from custom indexes (\`index/plugin\`) are skipped — too platform-specific to validate on Linux."
-          } | tee /tmp/pr_body.txt >> "$GITHUB_STEP_SUMMARY"
+          } > /tmp/pr_body.txt
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
