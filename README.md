@@ -143,7 +143,15 @@ source ~/.zshrc
 
 ## CI
 
-Le workflow `.github/workflows/weekly-software-check.yml` tourne chaque lundi et valide que les formulas Homebrew (`packages/Brewfile`) et les plugins krew (`packages/krew.txt`) existent toujours. Il crée automatiquement une PR pour supprimer les entrées obsolètes.
+Le workflow `.github/workflows/weekly-software-check.yml` tourne chaque lundi et valide que les formulas Homebrew, les casks et les plugins krew existent toujours. Il crée automatiquement une PR pour supprimer les entrées obsolètes.
+
+Le workflow comporte trois jobs :
+
+- `check-brew` — valide les formulas (`brew info`) et les casks (API `formulae.brew.sh`) dans `packages/Brewfile`
+- `check-krew` — valide les plugins dans `packages/krew.txt`
+- `create-pr` — agrège les résultats et ouvre la PR si des entrées ont été supprimées
+
+Les jobs `check-brew` et `check-krew` tournent en parallèle. Homebrew est mis en cache entre les runs pour éviter une réinstallation complète à chaque exécution.
 
 Les formulas de taps (`owner/tap/name`) et les plugins krew issus d'index custom (`index/plugin`) sont ignorés — trop spécifiques à macOS pour être validés sur Linux.
 
