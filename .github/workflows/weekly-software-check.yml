@@ -39,9 +39,9 @@ jobs:
               removed+=("$formula")
               # Use # as sed delimiter to avoid clashes with / in formula names
               escaped=$(printf '%s\n' "$formula" | sed 's/[[\.*^$()+?{|#]/\\&/g')
-              sed -i "\#^brew \"${escaped}\"#d" Brewfile
+              sed -i "\#^brew \"${escaped}\"#d" packages/Brewfile
             fi
-          done < <(grep '^brew "' Brewfile)
+          done < <(grep '^brew "' packages/Brewfile)
 
           printf '%s\n' "${removed[@]}" > /tmp/removed_formulas.txt
 
@@ -64,7 +64,7 @@ jobs:
       - name: Update krew index
         run: kubectl krew update
 
-      - name: Validate Plugins_Krew
+      - name: Validate krew plugins
         run: |
           removed=()
           while IFS= read -r plugin; do
@@ -77,9 +77,9 @@ jobs:
             if ! kubectl krew info "$plugin" &>/dev/null; then
               echo "::warning::Invalid krew plugin: $plugin"
               removed+=("$plugin")
-              sed -i "/^${plugin}$/d" Plugins_Krew
+              sed -i "/^${plugin}$/d" packages/krew.txt
             fi
-          done < Plugins_Krew
+          done < packages/krew.txt
 
           printf '%s\n' "${removed[@]}" > /tmp/removed_plugins.txt
 
@@ -122,7 +122,7 @@ jobs:
           title: "chore: weekly software validity check"
           body-path: /tmp/pr_body.txt
           add-paths: |
-            Brewfile
-            Plugins_Krew
+            packages/Brewfile
+            packages/krew.txt
           labels: maintenance
           delete-branch: true
