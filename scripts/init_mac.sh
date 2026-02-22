@@ -131,7 +131,7 @@ setup_dotfiles() {
     local files=(
         "config/.zshrc|${HOME}/.zshrc"
         "config/.wezterm.lua|${HOME}/.wezterm.lua"
-        ".markdownlint.json|${HOME}/.markdownlint.json"
+        "config/.markdownlint.json|${HOME}/.markdownlint.json"
         "config/.gitconfig_perso|${HOME}/.gitconfig_perso"
         "config/.gitconfig_work|${HOME}/.gitconfig_work"
     )

@@ -28,7 +28,7 @@ This is a macOS dotfiles repo organized into four purpose-driven directories:
 - `apps/` — non-dotfile app configs: `claude/CLAUDE.md`, `raycast/`, `vscode/`
 - `scripts/` — `init_mac.sh` (main setup), `init.sh` (legacy)
 
-Repo-level tooling files stay at root: `.markdownlint.json`, `.pre-commit-config.yaml`, `.yamllint.yaml`.
+Repo-level tooling files stay at root: `.pre-commit-config.yaml`, `.yamllint.yaml`. Note: `.markdownlint.json` lives in `config/` (deployed to `$HOME`) and is referenced via `--config config/.markdownlint.json` in the pre-commit hook.
 
 ## init_mac.sh
 
