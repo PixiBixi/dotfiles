@@ -81,6 +81,7 @@ If unsure, ask for context rather than guessing.
 - **Self-documenting code** over comments
 - **Documentation**: Favor practical examples and real-world troubleshooting guides over theoretical content
 - **Commits**: Conventional Commits (feat:, fix:, chore:, docs:, perf:)
+- **Git workflow**: Always rebase the branch on the target branch before pushing, opening a MR/PR, or merging (`git rebase <target>`)
 - **Naming**: Terraform → snake_case, env vars → SCREAMING_SNAKE_CASE
 - Code, commits, and all technical documentation in English
 
