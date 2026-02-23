@@ -29,6 +29,7 @@
     d = diff
     dc = diff --cached
     h = !gopen
+    hc = !gopen -c
     l = log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
     mm = merge master
     nah = "!f(){ git reset --hard; git clean -df; if [ -d ".git/rebase-apply" ] || [ -d ".git/rebase-merge" ]; then git rebase --abort; fi; }; f"
@@ -36,7 +37,7 @@
     ps = push
     psf = push --force-with-lease
     psci = push -o ci.skip
-    psmr = !git push && glab mr create --fill --remove-source-branch -y
+    psmr = "!f() { git push && OUT=$(glab mr create --fill --remove-source-branch -y); echo \"$OUT\"; echo \"$OUT\" | grep -oE 'https?://[^ ]+' | tail -1 | pbcopy && echo '=> MR URL copied to clipboard'; }; f"
     s = show
     sm = submodule
     sh = stash
