@@ -12,6 +12,9 @@ pre-commit run --all-files
 pre-commit run shellcheck
 pre-commit run markdownlint
 
+# Update hook versions
+pre-commit autoupdate
+
 # Install hooks after cloning
 pre-commit install
 
@@ -26,7 +29,7 @@ This is a macOS dotfiles repo organized into four purpose-driven directories:
 - `config/` — dotfiles deployed to `$HOME` (zsh, git, nvim, ssh, kube, tmux, vim, wezterm). Mirrors the target `$HOME` path structure.
 - `packages/` — package lists: `Brewfile`, `npm.txt`, `gems.txt`, `krew.txt`
 - `apps/` — non-dotfile app configs: `claude/CLAUDE.md`, `raycast/`, `vscode/`
-- `scripts/` — `init_mac.sh` (main setup), `init.sh` (legacy)
+- `scripts/` — `init_mac.sh` (main setup), `init.sh` (legacy, do not use)
 
 Repo-level tooling files stay at root: `.pre-commit-config.yaml`, `.yamllint.yaml`. Note: `.markdownlint.json` lives in `config/` (deployed to `$HOME`) and is referenced via `--config config/.markdownlint.json` in the pre-commit hook.
 
@@ -38,6 +41,11 @@ Repo-level tooling files stay at root: `.pre-commit-config.yaml`, `.yamllint.yam
 - `REPO_DIR` — the repo root (`SCRIPT_DIR/..`)
 
 All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, etc. The script is idempotent — each function checks for existing installations before acting.
+
+## apps/claude/CLAUDE.md
+
+`apps/claude/CLAUDE.md` is the versioned source for `~/.claude/CLAUDE.md` (global Claude config).
+Deployed via `setup_claude()` in `scripts/init_mac.sh`.
 
 ## CI
 
