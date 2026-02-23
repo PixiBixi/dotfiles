@@ -77,3 +77,6 @@
 [fetch]
     prune = true
     prunetags = true
+
+[init]
+    templateDir = /Users/jeremy/.git-template
