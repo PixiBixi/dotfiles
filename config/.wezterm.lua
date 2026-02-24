@@ -85,4 +85,19 @@ config.keys = {
     { key = 'RightArrow', mods = 'OPT', action = wezterm.action.SendString("\x1bf") },
 }
 
+-- Fix hyperlink detection: exclude trailing markdown bracket/paren chars
+-- Default regex is too greedy and swallows )](https://...) as one URL
+local hyperlink_rules = wezterm.default_hyperlink_rules()
+for i, rule in ipairs(hyperlink_rules) do
+    if rule.regex:find('https?') then
+        -- Exclude ) ] ( [ from URL chars to avoid eating markdown badge syntax
+        hyperlink_rules[i] = {
+            regex = [=[\b(https?|ftp|file)://[^\s<>"\[\]()]*[^\s<>"\[\]()\.,;:!?'`]]=],
+            format = '$0',
+        }
+        break
+    end
+end
+config.hyperlink_rules = hyperlink_rules
+
 return config
