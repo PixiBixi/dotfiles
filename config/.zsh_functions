@@ -36,7 +36,7 @@ kevents() {
 mergebranch() {
 	local BRANCH=$(git rev-parse --abbrev-ref HEAD)
 	glab mr approve $BRANCH
-	glab mr merge --rebase --remove-source-branch --yes $BRANCH
+    glab mr merge --rebase --remove-source-branch --yes $BRANCH
 }
 
 source <(switcher init zsh)

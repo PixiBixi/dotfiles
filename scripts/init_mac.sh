@@ -128,23 +128,46 @@ install_zsh_plugins() {
 setup_dotfiles() {
     log_info "Setting up dotfiles..."
 
-    local files=(
-        "config/.zshrc|${HOME}/.zshrc"
-        "config/.wezterm.lua|${HOME}/.wezterm.lua"
-        "config/.markdownlint.json|${HOME}/.markdownlint.json"
-        "config/.gitconfig_perso|${HOME}/.gitconfig_perso"
-        "config/.gitconfig_work|${HOME}/.gitconfig_work"
+    # Non-machine-specific: symlink so live and repo stay in sync
+    local symlink_files=(
+        "config/.zshrc"
+        "config/.zsh_alias"
+        "config/.zsh_functions"
+        "config/.zsh_mac"
+        "config/.zsh_linux"
+        "config/.wezterm.lua"
+        "config/.markdownlint.json"
+        "config/.gitconfig"
+        "config/.gitconfig_perso"
+        "config/.tmux.conf"
+        "config/.vimrc"
     )
 
-    for file_info in "${files[@]}"; do
-        local src="${file_info%%|*}"
-        local dest="${file_info##*|}"
-
-        if [[ -f "${REPO_DIR}/${src}" ]]; then
-            cp -f "${REPO_DIR}/${src}" "${dest}"
-            log_success "Copied ${src} to ${dest}"
+    for src_rel in "${symlink_files[@]}"; do
+        local src="${REPO_DIR}/${src_rel}"
+        local dest="${HOME}/${src_rel#config/}"
+        if [[ -f "${src}" ]]; then
+            mkdir -p "$(dirname "${dest}")"
+            ln -sf "${src}" "${dest}"
+            log_success "Symlinked ${src_rel} → ${dest}"
         else
-            log_warning "Source file ${src} not found, skipping"
+            log_warning "${src_rel} not found in repo, skipping"
+        fi
+    done
+
+    # Machine-specific: copy (do not symlink, differs per machine)
+    local copy_files=(
+        "config/.gitconfig_work"
+    )
+
+    for src_rel in "${copy_files[@]}"; do
+        local src="${REPO_DIR}/${src_rel}"
+        local dest="${HOME}/${src_rel#config/}"
+        if [[ -f "${src}" ]]; then
+            cp -f "${src}" "${dest}"
+            log_success "Copied ${src_rel} to ${dest}"
+        else
+            log_warning "${src_rel} not found in repo, skipping"
         fi
     done
 }
@@ -155,19 +178,17 @@ setup_claude() {
 
     mkdir -p "${HOME}/.claude"
 
-    local claude_files=(
-        "CLAUDE.md"
-        "settings.json"
-    )
+    # Non-machine-specific: symlink
+    ln -sf "${REPO_DIR}/apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md"
+    log_success "Symlinked apps/claude/CLAUDE.md → ${HOME}/.claude/CLAUDE.md"
 
-    for file in "${claude_files[@]}"; do
-        if [[ -f "${REPO_DIR}/apps/claude/${file}" ]]; then
-            cp -f "${REPO_DIR}/apps/claude/${file}" "${HOME}/.claude/${file}"
-            log_success "Copied apps/claude/${file} to ${HOME}/.claude/${file}"
-        else
-            log_warning "apps/claude/${file} not found, skipping"
-        fi
-    done
+    # Machine-specific: copy (mutated at runtime by Claude Code)
+    if [[ -f "${REPO_DIR}/apps/claude/settings.json" ]]; then
+        cp -f "${REPO_DIR}/apps/claude/settings.json" "${HOME}/.claude/settings.json"
+        log_success "Copied apps/claude/settings.json to ${HOME}/.claude/settings.json"
+    else
+        log_warning "apps/claude/settings.json not found, skipping"
+    fi
 }
 
 # Setup Neovim with Mason
@@ -179,10 +200,11 @@ setup_neovim() {
         return 0
     fi
 
-    # Copy nvim config
+    # Copy nvim config (explicit glob to include dotfiles like .gitignore)
     if [[ -d "${REPO_DIR}/config/.config/nvim" ]]; then
         mkdir -p "${HOME}/.config/nvim"
         cp -rf "${REPO_DIR}/config/.config/nvim/"* "${HOME}/.config/nvim/"
+        cp -f "${REPO_DIR}/config/.config/nvim/".* "${HOME}/.config/nvim/" 2> /dev/null || true
         log_success "Copied Neovim configuration"
     else
         log_warning "Neovim config not found in ${REPO_DIR}/config/.config/nvim"

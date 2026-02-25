@@ -1,34 +1,48 @@
-# Make life easier <3
+# ZSH Alias
+alias cat='bat --style=plain'
 alias csshx="tmux-xpanes --ssh"
-alias httpc='http -hF'
-alias mtr='mtr -z'
-alias pullparallel="find . -type d -name .git| sed s/\\.git$//g|xargs -P30 -I % git -C % pull"
-alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
-
-
-# Shorten
-alias tf="terraform"
-alias os='openstack'
-alias k='kubectl'
+alias df='dfc'
+alias dig='doggo'
 alias f="fd"
 alias g='git'
-alias s='ssh'
-
-# Software replacement
-alias vim="nvim"
-alias df='dfc'
-alias dig='dog'
-alias cat='bat --style=plain'
+alias httpc='http -hF'
 alias rm=rip
 alias ls=lsd
 
-# Kube alias
+alias k='kubectl'
 alias kctx="switch"
 alias kubectx="switch"
 alias kubens="switch ns"
 
+alias buildkustom="kustomize build ."
+
+alias logs='cd /var/log'
+alias mtr="sudo trip"
+alias os='openstack'
+alias pullparallel="find . -type d -name .git| sed s/\\.git$//g|xargs -P30 -I % git -C % pull"
+alias pullrecursive="find . -type d -name .git -exec sh -c \"cd \"{}\"/../ && pwd && git pull\" \;"
+alias s='ssh'
+alias sed="gsed"
+alias tf="terraform"
+alias tg="terragrunt"
+alias vim="nvim"
+
 complete -o default -F __start_kubectl k
+
+
 
 alias kubectl=kubecolor
 compdef kubecolor=kubectl
 compdef k=kubectl
+
+# Custom extensions
+alias -s {yml,yaml,md,tf,txt,json,go,php,cfg}=vim
+
+alias argent='open "/Users/jeremy/Library/Mobile Documents/com~apple~CloudDocs/Documents/Papiers Appartement/Propriete/Pauvreté.ods"'
+
+# Perso
+alias wiki="cd /Users/jeremy/Documents/perso/git/pixibixi.github.io/docs"
+alias perso=/Users/jeremy/Documents/perso
+
+alias date="gdate"
+CLOUDSDK_CORE_PROJECT="infra-tooling-prod"
