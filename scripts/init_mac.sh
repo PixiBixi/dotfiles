@@ -182,10 +182,9 @@ setup_claude() {
     ln -sf "${REPO_DIR}/apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md"
     log_success "Symlinked apps/claude/CLAUDE.md → ${HOME}/.claude/CLAUDE.md"
 
-    # Machine-specific: copy (mutated at runtime by Claude Code)
     if [[ -f "${REPO_DIR}/apps/claude/settings.json" ]]; then
-        cp -f "${REPO_DIR}/apps/claude/settings.json" "${HOME}/.claude/settings.json"
-        log_success "Copied apps/claude/settings.json to ${HOME}/.claude/settings.json"
+        ln -sf "${REPO_DIR}/apps/claude/settings.json" "${HOME}/.claude/settings.json"
+        log_success "Symlinked apps/claude/settings.json → ${HOME}/.claude/settings.json"
     else
         log_warning "apps/claude/settings.json not found, skipping"
     fi

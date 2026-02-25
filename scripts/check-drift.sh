@@ -127,7 +127,7 @@ echo
 printf "${BOLD}apps/claude/ → ~/.claude${NC}\n"
 
 check_file "apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md" symlink
-check_file "apps/claude/settings.json" "${HOME}/.claude/settings.json" copy
+check_file "apps/claude/settings.json" "${HOME}/.claude/settings.json" symlink
 
 # ── Summary ────────────────────────────────────────────────────────────────
 echo
