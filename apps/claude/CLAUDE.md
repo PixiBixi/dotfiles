@@ -126,12 +126,16 @@ unless explicitly stated.
 
 `~/.claude/CLAUDE.md` is deployed from the dotfiles repo at `~/Documents/perso/git/dotfiles/apps/claude/CLAUDE.md`.
 
-**Whenever you modify `~/.claude/CLAUDE.md`**, you MUST also:
-1. Copy the changes to `~/Documents/perso/git/dotfiles/apps/claude/CLAUDE.md`
+The following files are versioned in `~/Documents/perso/git/dotfiles/apps/claude/`:
+- `CLAUDE.md`
+- `settings.json`
+
+**Whenever you modify either file**, you MUST also:
+1. Copy the changes to the corresponding file in `~/Documents/perso/git/dotfiles/apps/claude/`
 2. Commit with `chore(claude): <description>`
 3. Push to remote
 
-This keeps the versioned source in sync with the deployed file.
+This keeps the versioned source in sync with the deployed files.
 
 ---
 
@@ -141,6 +145,9 @@ At the end of every session where something non-trivial was learned, **automatic
 
 Path pattern: `~/.claude/projects/<working-dir-encoded>/memory/MEMORY.md`
 Example: for `/Users/jeremy/myproject` → `~/.claude/projects/-Users-jeremy-myproject/memory/MEMORY.md`
+
+### Immediate capture
+After any explicit correction from the user, update MEMORY.md **immediately** — don't wait for end of session. Corrections are the highest-signal input and must not be lost.
 
 ### What to record
 - Stable patterns and conventions confirmed during the session

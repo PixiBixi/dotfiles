@@ -1,0 +1,26 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(tree:*)",
+            "Bash(detect-secrets scan:*)",
+            "Bash(git add:*)",
+            "Bash(git commit:*)",
+            "Bash(pre-commit run:*)",
+            "Read(**/**)"
+        ],
+        "defaultMode": "default"
+    },
+    "model": "sonnet",
+    "statusLine": {
+        "type": "command",
+        "command": "~/.claude/ccline/ccline",
+        "padding": 0
+    },
+    "enabledPlugins": {
+        "pyright-lsp@claude-plugins-official": true,
+        "claude-md-management@claude-plugins-official": true
+    },
+    "companyAnnouncements": ["Coucou Jerem pense à déconnecter"],
+    "skipDangerousModePermissionPrompt": true,
+    "includeCoAuthoredBy": false
+}

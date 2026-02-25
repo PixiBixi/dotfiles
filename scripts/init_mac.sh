@@ -155,12 +155,19 @@ setup_claude() {
 
     mkdir -p "${HOME}/.claude"
 
-    if [[ -f "${REPO_DIR}/apps/claude/CLAUDE.md" ]]; then
-        cp -f "${REPO_DIR}/apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md"
-        log_success "Copied apps/claude/CLAUDE.md to ${HOME}/.claude/CLAUDE.md"
-    else
-        log_warning "apps/claude/CLAUDE.md not found, skipping"
-    fi
+    local claude_files=(
+        "CLAUDE.md"
+        "settings.json"
+    )
+
+    for file in "${claude_files[@]}"; do
+        if [[ -f "${REPO_DIR}/apps/claude/${file}" ]]; then
+            cp -f "${REPO_DIR}/apps/claude/${file}" "${HOME}/.claude/${file}"
+            log_success "Copied apps/claude/${file} to ${HOME}/.claude/${file}"
+        else
+            log_warning "apps/claude/${file} not found, skipping"
+        fi
+    done
 }
 
 # Setup Neovim with Mason
