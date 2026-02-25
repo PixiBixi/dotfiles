@@ -122,6 +122,19 @@ unless explicitly stated.
 
 ---
 
+## CLAUDE.md Versioning
+
+`~/.claude/CLAUDE.md` is deployed from the dotfiles repo at `~/Documents/perso/git/dotfiles/apps/claude/CLAUDE.md`.
+
+**Whenever you modify `~/.claude/CLAUDE.md`**, you MUST also:
+1. Copy the changes to `~/Documents/perso/git/dotfiles/apps/claude/CLAUDE.md`
+2. Commit with `chore(claude): <description>`
+3. Push to remote
+
+This keeps the versioned source in sync with the deployed file.
+
+---
+
 ## Auto Memory (MEMORY.md)
 
 At the end of every session where something non-trivial was learned, **automatically update the MEMORY.md of the current project**.
