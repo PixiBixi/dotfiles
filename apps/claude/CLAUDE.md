@@ -105,17 +105,21 @@ Avoid filler explanations.
 
 ## Tooling Expectations
 
-- Prefer `fd` over `find`, `rg` over `grep`, `eza` over `ls`
+- **File/content search**: use Claude Code native tools first (`Glob`, `Grep`, `Read`, `Edit`, `Write`) — avoid Bash for these
+- **When Bash is needed**: `fd` over `find`, `rg` over `grep`, `eza` over `ls`
 - Assume Unix-like environment
 - Shell scripts must be defensive and explicit
 - `glab` CLI is always pre-installed — use it directly without checking
 
 ### Sub-agent prompts (Task tool)
 
-When delegating to a sub-agent, **always include these tooling rules explicitly** in the prompt, as sub-agents may not inherit the global CLAUDE.md context with the same weight:
+When delegating to a sub-agent, **always include these rules explicitly** in the prompt, as sub-agents may not inherit the global CLAUDE.md context with the same weight:
 
 ```
-Tooling rules: use fd instead of find, rg instead of grep, prefer Glob/Grep tools over Bash for file searches.
+Rules:
+- Use Glob/Grep/Read/Edit/Write tools instead of Bash for file operations
+- If Bash is necessary for file search: fd instead of find, rg instead of grep
+- Always use absolute paths
 ```
 
 ---
