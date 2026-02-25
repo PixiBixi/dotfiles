@@ -1,4 +1,5 @@
 {
+    "includeCoAuthoredBy": false,
     "permissions": {
         "allow": [
             "Bash(tree:*)",
@@ -18,9 +19,9 @@
     },
     "enabledPlugins": {
         "pyright-lsp@claude-plugins-official": true,
-        "claude-md-management@claude-plugins-official": true
+        "claude-md-management@claude-plugins-official": true,
+        "cli-tools@equativ-plugins": true
     },
     "companyAnnouncements": ["Coucou Jerem pense à déconnecter"],
-    "skipDangerousModePermissionPrompt": true,
-    "includeCoAuthoredBy": false
+    "skipDangerousModePermissionPrompt": true
 }

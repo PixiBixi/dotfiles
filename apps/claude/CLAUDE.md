@@ -110,6 +110,14 @@ Avoid filler explanations.
 - Shell scripts must be defensive and explicit
 - `glab` CLI is always pre-installed — use it directly without checking
 
+### Sub-agent prompts (Task tool)
+
+When delegating to a sub-agent, **always include these tooling rules explicitly** in the prompt, as sub-agents may not inherit the global CLAUDE.md context with the same weight:
+
+```
+Tooling rules: use fd instead of find, rg instead of grep, prefer Glob/Grep tools over Bash for file searches.
+```
+
 ---
 
 ## Scope Control
@@ -131,11 +139,10 @@ The following files are versioned in `~/Documents/perso/git/dotfiles/apps/claude
 - `settings.json`
 
 **Whenever you modify either file**, you MUST also:
-1. Copy the changes to the corresponding file in `~/Documents/perso/git/dotfiles/apps/claude/`
-2. Commit with `chore(claude): <description>`
-3. Push to remote
+1. Commit the changes in `~/Documents/perso/git/dotfiles/` with `chore(claude): <description>`
+2. Push to remote
 
-This keeps the versioned source in sync with the deployed files.
+Both files are symlinks — no copy needed, changes are reflected automatically.
 
 ---
 
