@@ -3,6 +3,8 @@
 # Run manually: pre-commit run --all-files
 # Update hooks: pre-commit autoupdate
 
+exclude: '^apps/claude/CLAUDE\.md$'
+
 repos:
   # Generic pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
