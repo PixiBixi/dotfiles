@@ -23,5 +23,18 @@
         "cli-tools@equativ-plugins": true
     },
     "companyAnnouncements": ["Coucou Jerem pense à déconnecter"],
-    "skipDangerousModePermissionPrompt": true
+    "skipDangerousModePermissionPrompt": true,
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "/Users/jeremy/.claude/hooks/rtk-rewrite.sh"
+                    }
+                ]
+            }
+        ]
+    }
 }
