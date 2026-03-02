@@ -72,6 +72,7 @@ If unsure, ask for context rather than guessing.
 - **Inclusive Terms:** allowlist/blocklist, primary/replica, placeholder/example, main branch, conflict-free, concurrent/parallel
 - **Self-documenting code** over comments
 - **Documentation**: Favor practical examples and real-world troubleshooting guides over theoretical content
+- **README**: If a project has a README.md, always update it when adding features, flags, or changing behavior — before committing
 - **Commits**: Conventional Commits (feat:, fix:, chore:, docs:, perf:)
 - **Git workflow**: Always rebase the branch on the target branch before pushing, opening a MR/PR, or merging (`git rebase <target>`)
 - **MR/PR description**: Always update the MR/PR description after adding commits — use `glab mr update` to reflect new features, fixes, and test plan changes
@@ -174,3 +175,5 @@ After any explicit correction from the user, update MEMORY.md **immediately** �
 ### Format
 Use concise bullet points grouped by topic. Keep the file under 200 lines.
 Link to separate topic files (e.g., `debugging.md`, `patterns.md`) for detailed notes.
+
+@RTK.md
