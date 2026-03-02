@@ -354,8 +354,12 @@ install_krew_plugins() {
     while IFS= read -r plugin; do
         [[ -z "${plugin}" ]] && continue
         [[ "${plugin}" =~ ^# ]] && continue
-        log_info "Installing krew plugin: ${plugin}"
-        kubectl krew install "${plugin}" || log_warning "Failed to install ${plugin}"
+        if kubectl krew list | grep -qx "${plugin}"; then
+            log_success "Krew plugin ${plugin} already installed"
+        else
+            log_info "Installing krew plugin: ${plugin}"
+            kubectl krew install "${plugin}" || log_warning "Failed to install ${plugin}"
+        fi
     done < "${REPO_DIR}/packages/krew.txt"
 
     log_success "Krew plugins processed"
