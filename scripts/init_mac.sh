@@ -172,6 +172,19 @@ setup_dotfiles() {
     done
 }
 
+# Configure RTK hook for Claude Code
+setup_rtk() {
+    log_info "Setting up RTK hook for Claude Code..."
+
+    if ! command -v rtk &> /dev/null; then
+        log_warning "rtk not found, skipping hook configuration"
+        return 0
+    fi
+
+    rtk init --global
+    log_success "RTK hook configured ($(rtk --version))"
+}
+
 # Setup Claude Code configuration
 setup_claude() {
     log_info "Setting up Claude Code configuration..."
@@ -411,6 +424,7 @@ main() {
     install_gem_packages
     setup_neovim
     setup_claude
+    setup_rtk
 
     echo
     log_success "macOS initialization complete!"

@@ -216,6 +216,11 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 - `kubeswitch` pour gestion multi-cluster
 - Plugins krew selon `packages/krew.txt`
 
+### Claude Code / AI Tooling
+
+- **Claude Code** — configuration globale (`apps/claude/CLAUDE.md`, `settings.json`)
+- **RTK** — proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique)
+
 ### Development Tools
 
 - Git avec configuration avancée
