@@ -353,6 +353,7 @@ install_krew_plugins() {
 
     while IFS= read -r plugin; do
         [[ -z "${plugin}" ]] && continue
+        [[ "${plugin}" =~ ^# ]] && continue
         log_info "Installing krew plugin: ${plugin}"
         kubectl krew install "${plugin}" || log_warning "Failed to install ${plugin}"
     done < "${REPO_DIR}/packages/krew.txt"
@@ -384,7 +385,13 @@ install_npm_packages() {
         return 0
     fi
 
-    xargs npm install --global < "${REPO_DIR}/packages/npm.txt"
+    while IFS= read -r pkg; do
+        [[ -z "${pkg}" ]] && continue
+        [[ "${pkg}" =~ ^# ]] && continue
+        log_info "Installing npm package: ${pkg}"
+        npm install --global "${pkg}" || log_warning "Failed to install npm package ${pkg}"
+    done < "${REPO_DIR}/packages/npm.txt"
+
     log_success "NPM packages installed"
 }
 
@@ -404,6 +411,7 @@ install_gem_packages() {
 
     while IFS= read -r gem_name; do
         [[ -z "${gem_name}" ]] && continue
+        [[ "${gem_name}" =~ ^# ]] && continue
         log_info "Installing gem: ${gem_name}"
         gem install "${gem_name}" || log_warning "Failed to install ${gem_name}"
     done < "${REPO_DIR}/packages/gems.txt"
