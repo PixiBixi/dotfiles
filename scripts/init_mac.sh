@@ -40,6 +40,29 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Deploy a single file: symlink or copy
+# Usage: deploy_file symlink|copy <src_rel>
+deploy_file() {
+    local mode="$1"
+    local src_rel="$2"
+    local src="${REPO_DIR}/${src_rel}"
+    local dest="${HOME}/${src_rel#config/}"
+
+    if [[ ! -f "${src}" ]]; then
+        log_warning "${src_rel} not found in repo, skipping"
+        return 0
+    fi
+
+    mkdir -p "$(dirname "${dest}")"
+    if [[ "${mode}" == "symlink" ]]; then
+        ln -sf "${src}" "${dest}"
+        log_success "Symlinked ${src_rel} → ${dest}"
+    else
+        cp -f "${src}" "${dest}"
+        log_success "Copied ${src_rel} to ${dest}"
+    fi
+}
+
 # Check prerequisites
 check_prerequisites() {
     log_info "Checking prerequisites..."
@@ -144,15 +167,7 @@ setup_dotfiles() {
     )
 
     for src_rel in "${symlink_files[@]}"; do
-        local src="${REPO_DIR}/${src_rel}"
-        local dest="${HOME}/${src_rel#config/}"
-        if [[ -f "${src}" ]]; then
-            mkdir -p "$(dirname "${dest}")"
-            ln -sf "${src}" "${dest}"
-            log_success "Symlinked ${src_rel} → ${dest}"
-        else
-            log_warning "${src_rel} not found in repo, skipping"
-        fi
+        deploy_file symlink "${src_rel}"
     done
 
     # Machine-specific: copy (do not symlink, differs per machine)
@@ -161,14 +176,7 @@ setup_dotfiles() {
     )
 
     for src_rel in "${copy_files[@]}"; do
-        local src="${REPO_DIR}/${src_rel}"
-        local dest="${HOME}/${src_rel#config/}"
-        if [[ -f "${src}" ]]; then
-            cp -f "${src}" "${dest}"
-            log_success "Copied ${src_rel} to ${dest}"
-        else
-            log_warning "${src_rel} not found in repo, skipping"
-        fi
+        deploy_file copy "${src_rel}"
     done
 }
 
