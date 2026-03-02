@@ -116,7 +116,7 @@ install_oh_my_zsh() {
     fi
 
     log_info "Installing oh-my-zsh..."
-    RUNZSH=no sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
     log_success "oh-my-zsh installed"
 }
