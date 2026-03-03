@@ -282,14 +282,11 @@ install_brew_packages() {
 setup_fzf() {
     log_info "Setting up fzf..."
 
-    local fzf_install="/opt/homebrew/opt/fzf/install"
+    local fzf_prefix
+    fzf_prefix="$(brew --prefix fzf 2> /dev/null)" || true
 
-    if [[ ! -f "${fzf_install}" ]]; then
-        fzf_install="/usr/local/opt/fzf/install"
-    fi
-
-    if [[ -f "${fzf_install}" ]]; then
-        "${fzf_install}" --all
+    if [[ -f "${fzf_prefix}/install" ]]; then
+        "${fzf_prefix}/install" --all
         log_success "fzf configured"
     else
         log_warning "fzf not found, skipping configuration"
