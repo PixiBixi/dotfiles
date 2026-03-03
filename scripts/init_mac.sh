@@ -255,11 +255,9 @@ setup_neovim() {
         "yaml-language-server"
     )
 
-    for server in "${lsp_servers[@]}"; do
-        log_info "Installing ${server}..."
-        nvim --headless -c "MasonInstall ${server}" -c "qall" 2>&1 | grep -v "^$" || true
-    done
-
+    local install_cmd
+    install_cmd="MasonInstall $(printf '%s ' "${lsp_servers[@]}")"
+    nvim --headless -c "${install_cmd}" -c "qall" 2>&1 | grep -v "^$" || true
     log_success "LSP servers installed via Mason"
     log_info "Run ':Mason' in Neovim to verify installations"
 }
