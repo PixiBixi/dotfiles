@@ -220,11 +220,10 @@ setup_neovim() {
         return 0
     fi
 
-    # Copy nvim config (explicit glob to include dotfiles like .gitignore)
+    # Sync nvim config (rsync preserves dotfiles correctly)
     if [[ -d "${REPO_DIR}/config/.config/nvim" ]]; then
         mkdir -p "${HOME}/.config/nvim"
-        cp -rf "${REPO_DIR}/config/.config/nvim/"* "${HOME}/.config/nvim/"
-        cp -f "${REPO_DIR}/config/.config/nvim/".* "${HOME}/.config/nvim/" 2> /dev/null || true
+        rsync -a "${REPO_DIR}/config/.config/nvim/" "${HOME}/.config/nvim/"
         log_success "Copied Neovim configuration"
     else
         log_warning "Neovim config not found in ${REPO_DIR}/config/.config/nvim"
