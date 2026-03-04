@@ -40,6 +40,138 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Ordered step registry: name:function
+STEPS=(
+    "xcode:install_xcode_tools"
+    "homebrew:install_homebrew"
+    "oh-my-zsh:install_oh_my_zsh"
+    "zsh-plugins:install_zsh_plugins"
+    "dotfiles:setup_dotfiles"
+    "brew-packages:install_brew_packages"
+    "fzf:setup_fzf"
+    "gcloud:setup_gcloud_auth"
+    "kubeswitch:setup_kubeswitch"
+    "krew:install_krew_plugins"
+    "directories:setup_directories"
+    "npm:install_npm_packages"
+    "gems:install_gem_packages"
+    "neovim:setup_neovim"
+    "claude:setup_claude"
+    "rtk:setup_rtk"
+)
+
+ONLY_STEPS=()
+SKIP_STEPS=()
+
+show_help() {
+    cat << EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Options:
+  --only <step> [step...]   Run only the specified steps
+  --skip <step> [step...]   Skip the specified steps
+  --list                    List available steps and exit
+  -h, --help                Show this help and exit
+
+Examples:
+  $(basename "$0") --only dotfiles claude
+  $(basename "$0") --skip gcloud neovim
+  $(basename "$0") --list
+EOF
+}
+
+list_steps() {
+    echo "Available steps:"
+    for entry in "${STEPS[@]}"; do
+        echo "  ${entry%%:*}"
+    done
+}
+
+validate_step_names() {
+    local -a provided=("$@")
+    for name in "${provided[@]}"; do
+        local found=0
+        for entry in "${STEPS[@]}"; do
+            [[ "${entry%%:*}" == "${name}" ]] && found=1 && break
+        done
+        if [[ ${found} -eq 0 ]]; then
+            log_error "Unknown step: ${name}"
+            log_info "Run '$(basename "$0") --list' to see available steps"
+            exit 1
+        fi
+    done
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --only)
+                shift
+                while [[ $# -gt 0 && "${1}" != --* ]]; do
+                    ONLY_STEPS+=("$1")
+                    shift
+                done
+                ;;
+            --skip)
+                shift
+                while [[ $# -gt 0 && "${1}" != --* ]]; do
+                    SKIP_STEPS+=("$1")
+                    shift
+                done
+                ;;
+            --list)
+                list_steps
+                exit 0
+                ;;
+            -h | --help)
+                show_help
+                exit 0
+                ;;
+            *)
+                log_error "Unknown argument: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+
+    if [[ ${#ONLY_STEPS[@]} -gt 0 && ${#SKIP_STEPS[@]} -gt 0 ]]; then
+        log_error "--only and --skip are mutually exclusive"
+        exit 1
+    fi
+
+    validate_step_names "${ONLY_STEPS[@]+"${ONLY_STEPS[@]}"}"
+    validate_step_names "${SKIP_STEPS[@]+"${SKIP_STEPS[@]}"}"
+}
+
+should_run() {
+    local step="$1"
+
+    if [[ ${#ONLY_STEPS[@]} -gt 0 ]]; then
+        for s in "${ONLY_STEPS[@]}"; do
+            [[ "${s}" == "${step}" ]] && return 0
+        done
+        return 1
+    fi
+
+    for s in "${SKIP_STEPS[@]}"; do
+        [[ "${s}" == "${step}" ]] && return 1
+    done
+
+    return 0
+}
+
+run_step() {
+    local name="$1"
+    local func="$2"
+
+    if should_run "${name}"; then
+        "${func}"
+    else
+        log_info "Skipping ${name}"
+    fi
+}
+
 # Deploy a single file: symlink or copy
 # Usage: deploy_file symlink|copy <src_rel>
 deploy_file() {
@@ -419,26 +551,28 @@ install_gem_packages() {
 
 # Main execution
 main() {
+    parse_args "$@"
+
     log_info "Starting macOS initialization..."
     echo
 
     check_prerequisites
-    install_xcode_tools
-    install_homebrew
-    install_oh_my_zsh
-    install_zsh_plugins
-    setup_dotfiles
-    install_brew_packages
-    setup_fzf
-    setup_gcloud_auth
-    setup_kubeswitch
-    install_krew_plugins
-    setup_directories
-    install_npm_packages
-    install_gem_packages
-    setup_neovim
-    setup_claude
-    setup_rtk
+    run_step "xcode" install_xcode_tools
+    run_step "homebrew" install_homebrew
+    run_step "oh-my-zsh" install_oh_my_zsh
+    run_step "zsh-plugins" install_zsh_plugins
+    run_step "dotfiles" setup_dotfiles
+    run_step "brew-packages" install_brew_packages
+    run_step "fzf" setup_fzf
+    run_step "gcloud" setup_gcloud_auth
+    run_step "kubeswitch" setup_kubeswitch
+    run_step "krew" install_krew_plugins
+    run_step "directories" setup_directories
+    run_step "npm" install_npm_packages
+    run_step "gems" install_gem_packages
+    run_step "neovim" setup_neovim
+    run_step "claude" setup_claude
+    run_step "rtk" setup_rtk
 
     echo
     log_success "macOS initialization complete!"
