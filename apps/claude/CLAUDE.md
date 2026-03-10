@@ -76,7 +76,7 @@ If unsure, ask for context rather than guessing.
 - **Commits**: Conventional Commits (feat:, fix:, chore:, docs:, perf:)
 - **Git workflow**: Always rebase the branch on the target branch before pushing, opening a MR/PR, or merging (`git rebase <target>`)
 - **MR/PR description**: Always update the MR/PR description after adding commits — use `glab mr update` to reflect new features, fixes, and test plan changes
-- **MR/PR link**: Always output the MR/PR URL in the response after creating or referencing a merge/pull request
+- **MR/PR link**: Always output the MR/PR URL in the response after creating or referencing a merge/pull request, AND copy it to the clipboard with `echo "<url>" | pbcopy`
 - **Naming**: Terraform → snake_case, env vars → SCREAMING_SNAKE_CASE
 - Code, commits, and all technical documentation in English
 
