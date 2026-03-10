@@ -73,7 +73,7 @@ If unsure, ask for context rather than guessing.
 - **Self-documenting code** over comments
 - **Documentation**: Favor practical examples and real-world troubleshooting guides over theoretical content
 - **README**: If a project has a README.md, always update it when adding features, flags, or changing behavior — before committing
-- **Commits**: Conventional Commits (feat:, fix:, chore:, docs:, perf:)
+- **Commits**: Conventional Commits (feat:, fix:, chore:, docs:, perf:) — **one commit per scope** (e.g. separate commits for `fix(tflint):`, `feat(module):`, `chore(live):`) — never bundle unrelated scopes into a single commit
 - **Git workflow**: Always rebase the branch on the target branch before pushing, opening a MR/PR, or merging (`git rebase <target>`)
 - **MR/PR description**: Always update the MR/PR description after adding commits — use `glab mr update` to reflect new features, fixes, and test plan changes
 - **MR/PR link**: Always output the MR/PR URL in the response after creating or referencing a merge/pull request, AND copy it to the clipboard with `echo "<url>" | pbcopy`
