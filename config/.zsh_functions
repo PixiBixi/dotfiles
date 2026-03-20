@@ -33,6 +33,18 @@ kevents() {
 		| less -S
 }
 
+# Switch context, preserve current namespace
+kcx() {
+    local current_ns
+    current_ns=$(kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}')
+    [[ -z "$current_ns" ]] && current_ns="default"
+
+    switch "$@"
+
+    kubectl config set-context --current --namespace="$current_ns" > /dev/null
+    echo "namespace: $current_ns"
+}
+
 mergebranch() {
 	local BRANCH=$(git rev-parse --abbrev-ref HEAD)
 	glab mr approve $BRANCH
