@@ -14,9 +14,9 @@ Applies to **sub-agent selection** (Task tool). The main conversation model is s
 
 | Model | When to Use | Examples |
 |-------|-------------|----------|
-| **Haiku** | Simple CRUD, repetitive patterns, minor changes, single file edits following existing patterns | Add field to form, copy-paste pattern, simple route |
-| **Sonnet** | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
-| **Opus** | Architecture decisions, complex business logic, debugging, design choices | Permission system design, workflow logic, investigating bugs |
+| **Haiku** (`claude-haiku-4-5`) | Simple CRUD, repetitive patterns, minor changes, single file edits following existing patterns | Add field to form, copy-paste pattern, simple route |
+| **Sonnet** (`claude-sonnet-4-6`) | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
+| **Opus** (`claude-opus-4-6`) | Architecture decisions, complex business logic, debugging, design choices | Permission system design, workflow logic, investigating bugs |
 
 ### Golden Rule
 If the code follows existing patterns in the codebase → **Haiku or Sonnet**.
@@ -25,10 +25,7 @@ Reserve Opus for tasks requiring complex reasoning.
 ### Self-Check Before Each Task
 Ask yourself: "Is this really Opus-level complexity, or am I being lazy?"
 
-If you proposed Haiku/Sonnet in the plan but find yourself wanting to use Opus:
-1. **STOP**
-2. **Ask the user**: "I initially planned to use [model] but this seems more complex because [reason]. Should I proceed with Opus?"
-3. **Do NOT silently upgrade**
+If you planned Haiku/Sonnet but want to use Opus mid-task: **STOP and ask the user** — do NOT silently upgrade.
 
 ---
 
@@ -79,6 +76,65 @@ If unsure, ask for context rather than guessing.
 - **MR/PR link**: Always output the MR/PR URL in the response after creating or referencing a merge/pull request, AND copy it to the clipboard with `echo "<url>" | pbcopy`
 - **Naming**: Terraform → snake_case, env vars → SCREAMING_SNAKE_CASE
 - Code, commits, and all technical documentation in English
+
+---
+
+## Jira Ticket Suggestion
+
+At the end of any session where significant work was done (new feature, fix, refactor, infrastructure change), **proactively propose to create a Jira ticket** summarizing the work if no ticket was referenced during the session.
+
+Whenever a Jira ticket is created or referenced during a session, **automatically**:
+1. Assign it to the user (`jdelgado@equativ.com`) if unassigned
+2. Add it to the current sprint (`jira sprint add <id> <TICKET>`)
+3. Add the appropriate AI label (`ai:tech:generated` for interactive sessions, `ai:tech:autonomous` for agent mode)
+
+Use `jira sprint list --table` to find the active sprint ID.
+
+Technical notes:
+- Use `zsh -l -c 'jira ...'` — the `JIRA_API_TOKEN` is in the user's shell profile, not in env directly
+- Do NOT use the `jira-cli` sub-agent — it does not inherit the shell environment and will always fail
+
+---
+
+## AI Activity Labeling (Equativ Policy)
+
+Every MR/PR and Jira ticket must be labeled according to the [AI activity Labeling policy](https://equativ.atlassian.net/wiki/spaces/grc/pages/5176361097/AI+activity+Labeling+policy).
+
+### 4 levels
+
+| Level | Definition |
+|-------|-----------|
+| `none` | No AI used — human is sole author |
+| `assisted` | AI provides occasional suggestions; human accepts/modifies/rejects |
+| `generated` | AI produces significant portion; human directs and validates |
+| `autonomous` | AI agent operates end-to-end; human validates final deliverable |
+
+### GitLab/GitHub MRs & PRs
+
+Apply **exactly one** label per MR/PR:
+
+| Label | When |
+|-------|------|
+| `ai:tech:none` | No AI used |
+| `ai:tech:assisted` | Copilot autocomplete, inline suggestions, ChatGPT snippets |
+| `ai:tech:generated` | Claude Code interactive, Cursor Composer, AI-generated full files |
+| `ai:tech:autonomous` | Claude Code agent mode, agentic CI/CD, agent resolving bug end-to-end |
+
+**My work always qualifies as at least `ai:tech:generated` or `ai:tech:autonomous`.** When I create a MR/PR, **automatically apply the label** via `glab mr update <id> --label "ai:tech:generated"` (or `autonomous` if appropriate) — do NOT just remind the user.
+
+### Jira tickets
+
+Label each stage independently with `ai:{stage}:{level}`:
+- `ai:product:{level}` — PM/PO work (user stories, requirements)
+- `ai:tech:{level}` — implementation, technical design
+- `ai:qa:{level}` — test scenarios, acceptance criteria
+
+When I help draft or update a Jira ticket, remind the user to apply the relevant label(s).
+
+### Rules
+- Labels are **mandatory**, including `ai:{stage}:none` (to distinguish from unlabeled)
+- When unsure between two levels, pick the **lower** one
+- Labels measure team/org adoption — not individual performance
 
 ---
 
@@ -176,5 +232,9 @@ After any explicit correction from the user, update MEMORY.md **immediately** �
 ### Format
 Use concise bullet points grouped by topic. Keep the file under 200 lines.
 Link to separate topic files (e.g., `debugging.md`, `patterns.md`) for detailed notes.
+
+## RTK (Rust Token Killer)
+
+RTK is a token-optimization proxy installed globally. It transparently rewrites shell commands via a Claude Code hook to reduce token usage 60–90%. The file below documents its meta commands and usage.
 
 @RTK.md
