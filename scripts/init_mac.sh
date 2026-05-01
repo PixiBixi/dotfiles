@@ -341,6 +341,17 @@ setup_claude() {
     else
         log_warning "apps/claude/settings.json not found, skipping"
     fi
+
+    # Deploy hooks
+    if [[ -d "${REPO_DIR}/apps/claude/hooks" ]]; then
+        mkdir -p "${HOME}/.claude/hooks"
+        for hook in "${REPO_DIR}/apps/claude/hooks/"*.sh; do
+            [[ -f "$hook" ]] || continue
+            ln -sf "$hook" "${HOME}/.claude/hooks/$(basename "$hook")"
+            chmod +x "$hook"
+            log_success "Symlinked hooks/$(basename "$hook") → ${HOME}/.claude/hooks/"
+        done
+    fi
 }
 
 # Setup Neovim with Mason
