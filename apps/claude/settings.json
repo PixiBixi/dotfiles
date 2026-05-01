@@ -7,23 +7,27 @@
             "Bash(git add:*)",
             "Bash(git commit:*)",
             "Bash(pre-commit run:*)",
-            "Read(**/**)"
+            "Read(**/**)",
+            "Read",
+            "Glob",
+            "Grep",
+            "WebFetch",
+            "WebSearch",
+            "TodoRead",
+            "TaskList",
+            "TaskGet",
+            "Bash(cat:*)",
+            "Bash(ls:*)",
+            "Bash(head:*)",
+            "Bash(tail:*)",
+            "Bash(wc:*)",
+            "Bash(file:*)",
+            "Bash(which:*)",
+            "Bash(pwd:*)"
         ],
-        "defaultMode": "default"
+        "defaultMode": "auto"
     },
     "model": "sonnet",
-    "statusLine": {
-        "type": "command",
-        "command": "~/.claude/ccline/ccline",
-        "padding": 0
-    },
-    "enabledPlugins": {
-        "pyright-lsp@claude-plugins-official": true,
-        "claude-md-management@claude-plugins-official": true,
-        "cli-tools@equativ-plugins": true
-    },
-    "companyAnnouncements": ["Coucou Jerem pense à déconnecter"],
-    "skipDangerousModePermissionPrompt": true,
     "hooks": {
         "PreToolUse": [
             {
@@ -35,6 +39,48 @@
                     }
                 ]
             }
+        ],
+        "PermissionRequest": [
+            {
+                "matcher": "^(?!AskUserQuestion$|ExitPlanMode$|EnterPlanMode$).*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "/bin/bash /Users/jeremy/.claude/hooks/session-allow.sh"
+                    }
+                ]
+            }
         ]
-    }
+    },
+    "statusLine": {
+        "type": "command",
+        "command": "~/.claude/ccline/ccline",
+        "padding": 0
+    },
+    "enabledPlugins": {
+        "pyright-lsp@claude-plugins-official": true,
+        "claude-md-management@claude-plugins-official": true,
+        "cli-tools@equativ-plugins": true,
+        "cc-skills-golang@samber": true,
+        "claude-mem@thedotmack": true,
+        "superpowers@claude-plugins-official": true,
+        "swift-lsp@claude-plugins-official": true
+    },
+    "extraKnownMarketplaces": {
+        "samber": {
+            "source": {
+                "source": "github",
+                "repo": "samber/cc"
+            }
+        },
+        "thedotmack": {
+            "source": {
+                "source": "github",
+                "repo": "thedotmack/claude-mem"
+            }
+        }
+    },
+    "companyAnnouncements": ["Coucou Jerem pense à déconnecter"],
+    "skipDangerousModePermissionPrompt": true,
+    "skipAutoPermissionPrompt": true
 }
