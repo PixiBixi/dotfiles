@@ -291,7 +291,6 @@ setup_dotfiles() {
         "config/.zsh_mac"
         "config/.zsh_linux"
         "config/.wezterm.lua"
-        "config/.config/ghostty/config"
         "config/.markdownlint.json"
         "config/.gitconfig"
         "config/.gitconfig_perso"
