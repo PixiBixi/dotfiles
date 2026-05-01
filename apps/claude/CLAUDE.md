@@ -100,7 +100,14 @@ Technical notes:
 
 Every MR/PR and Jira ticket must be labeled per the [AI activity Labeling policy](https://equativ.atlassian.net/wiki/spaces/grc/pages/5176361097/AI+activity+Labeling+policy).
 
-Levels: `none` < `assisted` < `generated` < `autonomous`. When unsure between two levels, pick the **lower** one.
+| Level | Definition |
+|-------|-----------|
+| `none` | No AI used — human is sole author |
+| `assisted` | AI provides occasional suggestions; human accepts/modifies/rejects |
+| `generated` | AI produces significant portion; human directs and validates |
+| `autonomous` | AI agent operates end-to-end; human validates final deliverable |
+
+When unsure between two levels, pick the **lower** one.
 
 ### GitLab/GitHub MRs & PRs
 
