@@ -36,7 +36,7 @@ compdef kubecolor=kubectl
 compdef k=kubectl
 
 # Custom extensions
-alias -s {yml,yaml,md,tf,txt,json,go,php,cfg}=vim
+alias -s {yml,yaml,md,tf,txt,json,go,php,cfg,hcl}=vim
 
 alias argent='open "/Users/jeremy/Library/Mobile Documents/com~apple~CloudDocs/Documents/Papiers Appartement/Propriete/Pauvreté.ods"'
 
