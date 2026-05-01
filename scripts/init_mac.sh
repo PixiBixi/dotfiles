@@ -325,21 +325,6 @@ setup_rtk() {
     log_success "RTK hook configured ($(rtk --version))"
 }
 
-# Install Bun JavaScript runtime
-install_bun() {
-    log_info "Checking Bun installation..."
-
-    if [[ -f "${HOME}/.bun/bin/bun" ]]; then
-        log_success "Bun already installed ($(${HOME}/.bun/bin/bun --version))"
-        return 0
-    fi
-
-    log_info "Installing Bun..."
-    curl -fsSL https://bun.sh/install | bash
-
-    log_success "Bun installed"
-}
-
 # Setup Claude Code configuration
 setup_claude() {
     log_info "Setting up Claude Code configuration..."
@@ -597,7 +582,6 @@ main() {
     run_step "npm" install_npm_packages
     run_step "gems" install_gem_packages
     run_step "neovim" setup_neovim
-    run_step "bun" install_bun
     run_step "claude" setup_claude
     run_step "rtk" setup_rtk
 
