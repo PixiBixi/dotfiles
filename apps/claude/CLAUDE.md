@@ -14,7 +14,7 @@ Applies to **sub-agent selection** (Task tool). The main conversation model is s
 
 | Model | When to Use | Examples |
 |-------|-------------|----------|
-| **Haiku** (`claude-haiku-4-5`) | Simple CRUD, repetitive patterns, minor changes, single file edits following existing patterns | Add field to form, copy-paste pattern, simple route |
+| **Haiku** (`claude-haiku-4-5-20251001`) | Simple CRUD, repetitive patterns, minor changes, single file edits following existing patterns | Add field to form, copy-paste pattern, simple route |
 | **Sonnet** (`claude-sonnet-4-6`) | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
 | **Opus** (`claude-opus-4-6`) | Architecture decisions, complex business logic, debugging, design choices | Permission system design, workflow logic, investigating bugs |
 
@@ -98,16 +98,9 @@ Technical notes:
 
 ## AI Activity Labeling (Equativ Policy)
 
-Every MR/PR and Jira ticket must be labeled according to the [AI activity Labeling policy](https://equativ.atlassian.net/wiki/spaces/grc/pages/5176361097/AI+activity+Labeling+policy).
+Every MR/PR and Jira ticket must be labeled per the [AI activity Labeling policy](https://equativ.atlassian.net/wiki/spaces/grc/pages/5176361097/AI+activity+Labeling+policy).
 
-### 4 levels
-
-| Level | Definition |
-|-------|-----------|
-| `none` | No AI used — human is sole author |
-| `assisted` | AI provides occasional suggestions; human accepts/modifies/rejects |
-| `generated` | AI produces significant portion; human directs and validates |
-| `autonomous` | AI agent operates end-to-end; human validates final deliverable |
+Levels: `none` < `assisted` < `generated` < `autonomous`. When unsure between two levels, pick the **lower** one.
 
 ### GitLab/GitHub MRs & PRs
 
@@ -133,7 +126,6 @@ When I help draft or update a Jira ticket, remind the user to apply the relevant
 
 ### Rules
 - Labels are **mandatory**, including `ai:{stage}:none` (to distinguish from unlabeled)
-- When unsure between two levels, pick the **lower** one
 - Labels measure team/org adoption — not individual performance
 
 ---
@@ -157,7 +149,7 @@ Avoid filler explanations.
 - Never suggest applying changes blindly
 - Prefer validation, linting, and dry-runs
 - Do not execute destructive or irreversible actions without confirmation
-- Treat production changes as high-risk by default
+- Treat production changes as high-risk by default — examples: database migrations, secret rotation, infra destroy, force-push to main, modifying CI/CD pipelines
 
 ---
 
@@ -169,6 +161,11 @@ Avoid filler explanations.
 - Shell scripts must be defensive and explicit
 - `glab` CLI is always pre-installed — use it directly without checking
 
+### Claude Code shortcuts
+
+- `#` during a session: auto-incorporates learnings into CLAUDE.md
+- `/fast`: toggle fast mode (même modèle Opus 4.6, output plus rapide)
+
 ### Sub-agent prompts (Task tool)
 
 When delegating to a sub-agent, **always include these rules explicitly** in the prompt, as sub-agents may not inherit the global CLAUDE.md context with the same weight:
@@ -178,6 +175,7 @@ Rules:
 - Use Glob/Grep/Read/Edit/Write tools instead of Bash for file operations
 - If Bash is necessary for file search: fd instead of find, rg instead of grep
 - Always use absolute paths
+- Model IDs: Haiku=`claude-haiku-4-5-20251001`, Sonnet=`claude-sonnet-4-6`, Opus=`claude-opus-4-6`
 ```
 
 ---
