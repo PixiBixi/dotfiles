@@ -164,3 +164,12 @@ export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
 
 # Claude Code Templates - Global Agents
 export PATH="/Users/jeremy/.claude-code-templates/bin:$PATH"
+
+# bun completions
+[ -s "/Users/jeremy/.bun/_bun" ] && source "/Users/jeremy/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+alias claude-mem='/Users/jeremy/.bun/bin/bun "/Users/jeremy/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs"'
