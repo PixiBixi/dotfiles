@@ -363,13 +363,19 @@ setup_neovim() {
         return 0
     fi
 
-    # Sync nvim config (rsync preserves dotfiles correctly)
-    if [[ -d "${REPO_DIR}/config/.config/nvim" ]]; then
-        mkdir -p "${HOME}/.config/nvim"
-        rsync -a "${REPO_DIR}/config/.config/nvim/" "${HOME}/.config/nvim/"
-        log_success "Copied Neovim configuration"
+    # Symlink nvim config directory so repo and live stay in sync
+    local nvim_src="${REPO_DIR}/config/.config/nvim"
+    local nvim_dest="${HOME}/.config/nvim"
+    if [[ -d "${nvim_src}" ]]; then
+        mkdir -p "${HOME}/.config"
+        if [[ -d "${nvim_dest}" && ! -L "${nvim_dest}" ]]; then
+            mv "${nvim_dest}" "${nvim_dest}.bak"
+            log_info "Backed up existing ${nvim_dest} to ${nvim_dest}.bak"
+        fi
+        ln -sfn "${nvim_src}" "${nvim_dest}"
+        log_success "Symlinked Neovim configuration → ${nvim_dest}"
     else
-        log_warning "Neovim config not found in ${REPO_DIR}/config/.config/nvim"
+        log_warning "Neovim config not found in ${nvim_src}"
         return 0
     fi
 

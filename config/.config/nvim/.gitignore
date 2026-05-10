@@ -3,3 +3,6 @@ plugin/packer_compiled.lua
 
 # Undo history (local)
 undo-dir/
+
+# Claude Code local settings
+.claude/

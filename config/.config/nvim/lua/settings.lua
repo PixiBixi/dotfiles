@@ -58,6 +58,23 @@ vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
 	command = "set ft=haproxy",
 })
 
+-- Helm: detect yaml/tpl inside any templates/ directory as helm
+-- (vim-helm requires Chart.yaml at a fixed depth, fails with nested/umbrella charts)
+-- Use vim.schedule to run after yaml FileType autocmds complete, then clear
+-- b:current_syntax so helm syntax/helm.vim doesn't exit early on its guard
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = "yaml",
+	callback = function()
+		local path = vim.api.nvim_buf_get_name(0)
+		if path:match('/templates/') then
+			vim.schedule(function()
+				vim.b.current_syntax = nil
+				vim.bo.filetype = 'helm'
+			end)
+		end
+	end,
+})
+
 -- Terraform settings
 vim.g.terraform_fmt_on_save = 1
 vim.g.terraform_align = 1
