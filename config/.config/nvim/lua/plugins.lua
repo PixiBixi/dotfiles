@@ -70,8 +70,6 @@ return packer.startup(function(use)
 	use 'lukas-reineke/indent-blankline.nvim'
 
 	-- Syntax & Language support
-	use 'nvim-treesitter/nvim-treesitter'
-	use 'nvim-treesitter/nvim-treesitter-textobjects'
 	use 'hashivim/vim-terraform'
 	use 'Joorem/vim-haproxy'
 	use 'pearofducks/ansible-vim'
