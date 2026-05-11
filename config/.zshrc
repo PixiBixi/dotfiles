@@ -161,6 +161,8 @@ PATH_DIRS=(
 export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 
 export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+# Fix mkdocs serve
+export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
 
 # Claude Code Templates - Global Agents
 export PATH="/Users/jeremy/.claude-code-templates/bin:$PATH"
