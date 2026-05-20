@@ -63,6 +63,7 @@ dotfiles/
 │       └── extensions.txt
 ├── scripts/
 │   ├── init_mac.sh              # Script d'installation principal
+│   ├── brew-usage-audit.sh      # Audit packages Homebrew vs historique shell
 │   └── init.sh
 ├── .markdownlint.json
 ├── .pre-commit-config.yaml
@@ -156,6 +157,32 @@ Les jobs `check-brew` et `check-krew` tournent en parallèle. Homebrew est mis e
 Les formulas de taps (`owner/tap/name`) et les plugins krew issus d'index custom (`index/plugin`) sont ignorés — trop spécifiques à macOS pour être validés sur Linux.
 
 ## Maintenance
+
+### Auditer l'usage du Brewfile
+
+`scripts/brew-usage-audit.sh` croise les binaires Homebrew installés avec l'historique shell
+pour identifier les packages jamais ou rarement utilisés.
+
+```bash
+# Audit complet (< 5s)
+./scripts/brew-usage-audit.sh
+
+# Derniers 90 jours, signaler < 5 hits
+./scripts/brew-usage-audit.sh --days 90 --threshold 5
+
+# Seulement les leaf packages (pas les dépendances)
+./scripts/brew-usage-audit.sh --leaves-only
+
+# Aide complète
+./scripts/brew-usage-audit.sh --help
+```
+
+Avant de supprimer un package suggéré :
+
+```bash
+brew uses --installed <package>   # vérifier s'il est requis par un autre
+brew uninstall <package>
+```
 
 ### Mettre à jour Brewfile
 
