@@ -23,8 +23,7 @@ Le script installe automatiquement:
 - Xcode Command Line Tools
 - Homebrew
 - oh-my-zsh + plugins
-- Tous les packages listés dans `packages/`
-- kubectl krew + plugins
+- Tous les packages listés dans `packages/` (formulas, casks, krew plugins, npm, gems via Brewfile)
 
 ## Structure du Repository
 
@@ -49,10 +48,9 @@ dotfiles/
 │   └── .config/
 │       └── nvim/
 ├── packages/                    # Listes de paquets à installer
-│   ├── Brewfile
+│   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
 │   ├── npm.txt
-│   ├── gems.txt
-│   └── krew.txt
+│   └── gems.txt
 ├── apps/                        # Configs d'applications non-dotfiles
 │   ├── claude/
 │   │   └── CLAUDE.md
@@ -144,17 +142,16 @@ source ~/.zshrc
 
 ## CI
 
-Le workflow `.github/workflows/weekly-software-check.yml` tourne chaque lundi et valide que les formulas Homebrew, les casks et les plugins krew existent toujours. Il crée automatiquement une PR pour supprimer les entrées obsolètes.
+Le workflow `.github/workflows/weekly-software-check.yml` tourne chaque lundi et valide que les formulas Homebrew et les casks existent toujours. Il crée automatiquement une PR pour supprimer les entrées obsolètes.
 
-Le workflow comporte trois jobs :
+Le workflow comporte deux jobs :
 
 - `check-brew` — valide les formulas (`brew info`) et les casks (API `formulae.brew.sh`) dans `packages/Brewfile`
-- `check-krew` — valide les plugins dans `packages/krew.txt`
-- `create-pr` — agrège les résultats et ouvre la PR si des entrées ont été supprimées
+- `create-pr` — applique les suppressions et ouvre la PR si nécessaire
 
-Les jobs `check-brew` et `check-krew` tournent en parallèle. Homebrew est mis en cache entre les runs pour éviter une réinstallation complète à chaque exécution.
+Homebrew est mis en cache entre les runs pour éviter une réinstallation complète à chaque exécution.
 
-Les formulas de taps (`owner/tap/name`) et les plugins krew issus d'index custom (`index/plugin`) sont ignorés — trop spécifiques à macOS pour être validés sur Linux.
+Les formulas de taps (`owner/tap/name`) sont ignorées — trop spécifiques à macOS pour être validées sur Linux.
 
 ## Maintenance
 
@@ -212,14 +209,6 @@ gem list | tail -n+1 | \
   sed 's/)//' > ./packages/gems.txt
 ```
 
-### Mettre à jour krew.txt
-
-Lister vos plugins krew:
-
-```bash
-kubectl krew list > ./packages/krew.txt
-```
-
 ## Composants Installés
 
 ### Shell & Terminal
@@ -238,10 +227,10 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 ### Kubernetes Tools
 
-- `kubectl` + krew
+- `kubectl` + krew (installés via Homebrew)
 - `kubectx`, `kubens`
 - `kubeswitch` pour gestion multi-cluster
-- Plugins krew selon `packages/krew.txt`
+- Plugins krew gérés directement dans `packages/Brewfile` (entrées `krew "..."`))
 
 ### Claude Code / AI Tooling
 
@@ -299,15 +288,6 @@ Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/
     kind: filesystem
     config:
       path: ~/.kube/cache
-```
-
-### Krew plugins échouent
-
-Certains plugins peuvent ne plus être maintenus. Le script continue avec un warning.
-Vérifiez manuellement:
-
-```bash
-kubectl krew search <plugin-name>
 ```
 
 ## Configuration Avancée

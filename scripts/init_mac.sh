@@ -51,7 +51,6 @@ STEPS=(
     "fzf:setup_fzf"
     "gcloud:setup_gcloud_auth"
     "kubeswitch:setup_kubeswitch"
-    "krew:install_krew_plugins"
     "directories:setup_directories"
     "npm:install_npm_packages"
     "gems:install_gem_packages"
@@ -480,34 +479,6 @@ setup_kubeswitch() {
     fi
 }
 
-# Install krew plugins
-install_krew_plugins() {
-    log_info "Installing krew plugins..."
-
-    if ! command -v kubectl-krew &> /dev/null; then
-        log_warning "kubectl-krew not found, skipping plugin installation"
-        return 0
-    fi
-
-    if [[ ! -f "${REPO_DIR}/packages/krew.txt" ]]; then
-        log_warning "packages/krew.txt file not found, skipping"
-        return 0
-    fi
-
-    while IFS= read -r plugin; do
-        [[ -z "${plugin}" ]] && continue
-        [[ "${plugin}" =~ ^# ]] && continue
-        if kubectl krew list | grep -qx "${plugin}"; then
-            log_success "Krew plugin ${plugin} already installed"
-        else
-            log_info "Installing krew plugin: ${plugin}"
-            kubectl krew install "${plugin}" || log_warning "Failed to install ${plugin}"
-        fi
-    done < "${REPO_DIR}/packages/krew.txt"
-
-    log_success "Krew plugins processed"
-}
-
 # Setup directory structure
 setup_directories() {
     log_info "Setting up directory structure..."
@@ -583,7 +554,6 @@ main() {
     run_step "fzf" setup_fzf
     run_step "gcloud" setup_gcloud_auth
     run_step "kubeswitch" setup_kubeswitch
-    run_step "krew" install_krew_plugins
     run_step "directories" setup_directories
     run_step "npm" install_npm_packages
     run_step "gems" install_gem_packages

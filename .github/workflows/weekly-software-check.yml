@@ -102,76 +102,9 @@ jobs:
             packages/Brewfile
             removed_formulas.txt
 
-  # ── Krew ──────────────────────────────────────────────────────────────────
-  check-krew:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-
-      - name: Install krew
-        run: |
-          cd "$(mktemp -d)"
-          curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/krew-linux_amd64.tar.gz"
-          tar zxf krew-linux_amd64.tar.gz
-          ./krew-linux_amd64 install krew
-          echo "${KREW_ROOT:-$HOME/.krew}/bin" >> "$GITHUB_PATH"
-
-      - name: Update krew index
-        run: kubectl krew update
-
-      - name: Validate krew plugins
-        run: |
-          removed=()
-          while IFS= read -r plugin; do
-            [[ -z "$plugin" ]] && continue
-            # Plugins with '/' use a custom index — skip automatic removal
-            if [[ "$plugin" == *"/"* ]]; then
-              echo "Skipping custom-index plugin: $plugin"
-              continue
-            fi
-            if ! kubectl krew info "$plugin" &>/dev/null; then
-              echo "::warning::Invalid krew plugin: $plugin"
-              removed+=("$plugin")
-              sed -i "/^${plugin}$/d" packages/krew.txt
-            fi
-          done < packages/krew.txt
-
-          printf '%s\n' "${removed[@]}" > removed_plugins.txt
-
-      - name: Write job summary
-        run: |
-          {
-            echo "### Krew plugins"
-            if [ -s removed_plugins.txt ]; then
-              echo "Removed (no longer in krew index):"
-              echo '```'
-              cat removed_plugins.txt
-              echo '```'
-            else
-              echo "All plugins valid ✓"
-            fi
-            echo ""
-            echo "> Plugins from custom indexes (\`index/plugin\`) are skipped."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: krew-results
-          retention-days: 1
-          path: |
-            packages/krew.txt
-            removed_plugins.txt
-
   # ── PR ────────────────────────────────────────────────────────────────────
   create-pr:
-    needs: [check-brew, check-krew]
+    needs: [check-brew]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -182,16 +115,8 @@ jobs:
           name: brew-results
           path: /tmp/brew-results
 
-      - name: Download krew results
-        uses: actions/download-artifact@v4
-        with:
-          name: krew-results
-          path: /tmp/krew-results
-
       - name: Apply changes
-        run: |
-          cp /tmp/brew-results/packages/Brewfile packages/Brewfile
-          cp /tmp/krew-results/packages/krew.txt packages/krew.txt
+        run: cp /tmp/brew-results/packages/Brewfile packages/Brewfile
 
       - name: Build PR description
         run: |
@@ -208,17 +133,7 @@ jobs:
               echo "All formulas and casks valid ✓"
             fi
             echo ""
-            echo "### Krew plugins"
-            if [ -s /tmp/krew-results/removed_plugins.txt ]; then
-              echo "Removed (no longer in krew index):"
-              echo '```'
-              cat /tmp/krew-results/removed_plugins.txt
-              echo '```'
-            else
-              echo "All plugins valid ✓"
-            fi
-            echo ""
-            echo "> Tap formulas (\`owner/tap/name\`) and krew plugins from custom indexes (\`index/plugin\`) are skipped — too platform-specific to validate on Linux."
+            echo "> Tap formulas (\`owner/tap/name\`) are skipped — too platform-specific to validate on Linux."
           } > /tmp/pr_body.txt
 
       - name: Create pull request
@@ -226,11 +141,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/weekly-software-check
-          commit-message: "chore: remove invalid brew formulas and krew plugins"
+          commit-message: "chore: remove invalid brew formulas"
           title: "chore: weekly software validity check"
           body-path: /tmp/pr_body.txt
-          add-paths: |
-            packages/Brewfile
-            packages/krew.txt
+          add-paths: packages/Brewfile
           labels: maintenance
           delete-branch: true
