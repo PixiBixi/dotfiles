@@ -1,86 +1,95 @@
 {
-    "includeCoAuthoredBy": false,
-    "permissions": {
-        "allow": [
-            "Bash(tree:*)",
-            "Bash(detect-secrets scan:*)",
-            "Bash(git add:*)",
-            "Bash(git commit:*)",
-            "Bash(pre-commit run:*)",
-            "Read(**/**)",
-            "Read",
-            "Glob",
-            "Grep",
-            "WebFetch",
-            "WebSearch",
-            "TodoRead",
-            "TaskList",
-            "TaskGet",
-            "Bash(cat:*)",
-            "Bash(ls:*)",
-            "Bash(head:*)",
-            "Bash(tail:*)",
-            "Bash(wc:*)",
-            "Bash(file:*)",
-            "Bash(which:*)",
-            "Bash(pwd:*)"
-        ],
-        "defaultMode": "auto"
-    },
-    "model": "sonnet",
-    "hooks": {
-        "PreToolUse": [
-            {
-                "matcher": "Bash",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "/Users/jeremy/.claude/hooks/rtk-rewrite.sh"
-                    }
-                ]
-            }
-        ],
-        "PermissionRequest": [
-            {
-                "matcher": "^(?!AskUserQuestion$|ExitPlanMode$|EnterPlanMode$).*",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "/bin/bash /Users/jeremy/.claude/hooks/session-allow.sh"
-                    }
-                ]
-            }
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(detect-secrets scan:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pre-commit run:*)",
+      "Read(**/**)",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "TodoRead",
+      "TaskList",
+      "TaskGet",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(which:*)",
+      "Bash(pwd:*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "sonnet",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/jeremy/.claude/hooks/rtk-rewrite.sh"
+          }
         ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "^(?!AskUserQuestion$|ExitPlanMode$|EnterPlanMode$).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash /Users/jeremy/.claude/hooks/session-allow.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/ccline/ccline",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "cli-tools@equativ-plugins": true,
+    "cc-skills-golang@samber": true,
+    "claude-mem@thedotmack": true,
+    "superpowers@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "ansible-skills@ansible-skills-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "samber": {
+      "source": {
+        "source": "github",
+        "repo": "samber/cc"
+      }
     },
-    "statusLine": {
-        "type": "command",
-        "command": "~/.claude/ccline/ccline",
-        "padding": 0
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
     },
-    "enabledPlugins": {
-        "pyright-lsp@claude-plugins-official": true,
-        "claude-md-management@claude-plugins-official": true,
-        "cli-tools@equativ-plugins": true,
-        "cc-skills-golang@samber": true,
-        "claude-mem@thedotmack": true,
-        "superpowers@claude-plugins-official": true,
-        "swift-lsp@claude-plugins-official": true
-    },
-    "extraKnownMarketplaces": {
-        "samber": {
-            "source": {
-                "source": "github",
-                "repo": "samber/cc"
-            }
-        },
-        "thedotmack": {
-            "source": {
-                "source": "github",
-                "repo": "thedotmack/claude-mem"
-            }
-        }
-    },
-    "companyAnnouncements": ["Coucou Jerem pense à déconnecter"],
-    "skipDangerousModePermissionPrompt": true,
-    "skipAutoPermissionPrompt": true
+    "ansible-skills-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "sigridjineth/hello-ansible-skills"
+      }
+    }
+  },
+  "companyAnnouncements": [
+    "Coucou Jerem pense à déconnecter"
+  ],
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true
 }
