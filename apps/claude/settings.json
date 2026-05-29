@@ -91,5 +91,6 @@
     "Coucou Jerem pense à déconnecter"
   ],
   "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "effortLevel": "xhigh"
 }
