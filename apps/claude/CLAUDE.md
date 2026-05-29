@@ -14,18 +14,17 @@ Applies to **sub-agent selection** (Task tool). The main conversation model is s
 
 | Model | When to Use | Examples |
 |-------|-------------|----------|
-| **Haiku** (`claude-haiku-4-5-20251001`) | Simple CRUD, repetitive patterns, minor changes, single file edits following existing patterns | Add field to form, copy-paste pattern, simple route |
-| **Sonnet** (`claude-sonnet-4-6`) | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
-| **Opus** (`claude-opus-4-6`) | Architecture decisions, complex business logic, debugging, design choices | Permission system design, workflow logic, investigating bugs |
+| **Sonnet** (`claude-sonnet-4-8`) | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
+| **Opus** (`claude-opus-4-8`) | Architecture decisions, complex business logic, debugging, design choices | Permission system design, workflow logic, investigating bugs |
 
 ### Golden Rule
-If the code follows existing patterns in the codebase → **Haiku or Sonnet**.
+If the code follows existing patterns in the codebase → **Sonnet**.
 Reserve Opus for tasks requiring complex reasoning.
 
 ### Self-Check Before Each Task
 Ask yourself: "Is this really Opus-level complexity, or am I being lazy?"
 
-If you planned Haiku/Sonnet but want to use Opus mid-task: **STOP and ask the user** — do NOT silently upgrade.
+If you planned Sonnet but want to use Opus mid-task: **STOP and ask the user** — do NOT silently upgrade.
 
 ---
 
@@ -171,7 +170,7 @@ Avoid filler explanations.
 ### Claude Code shortcuts
 
 - `#` during a session: auto-incorporates learnings into CLAUDE.md
-- `/fast`: toggle fast mode (même modèle Opus 4.6, output plus rapide)
+- `/fast`: toggle fast mode (même modèle Opus 4.8, output plus rapide)
 
 ### Sub-agent prompts (Task tool)
 
@@ -182,7 +181,6 @@ Rules:
 - Use Glob/Grep/Read/Edit/Write tools instead of Bash for file operations
 - If Bash is necessary for file search: fd instead of find, rg instead of grep
 - Always use absolute paths
-- Model IDs: Haiku=`claude-haiku-4-5-20251001`, Sonnet=`claude-sonnet-4-6`, Opus=`claude-opus-4-6`
 ```
 
 ---
