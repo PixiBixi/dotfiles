@@ -67,6 +67,12 @@ jobs:
           while IFS= read -r line; do
             cask=$(echo "$line" | sed 's/^cask "\([^"]*\)".*/\1/')
 
+            # Skip tap casks (owner/tap/name) — not available on formulae.brew.sh
+            if [[ "$cask" == *"/"* ]]; then
+              echo "Skipping tap cask (platform check skipped): $cask"
+              continue
+            fi
+
             if ! curl -fsSL "https://formulae.brew.sh/api/cask/${cask}.json" > /dev/null 2>&1; then
               echo "::warning::Invalid cask: $cask"
               removed+=("$cask")
@@ -90,7 +96,7 @@ jobs:
               echo "All formulas and casks valid ✓"
             fi
             echo ""
-            echo "> Tap formulas (\`owner/tap/name\`) are skipped — platform-specific."
+            echo "> Tap formulas and tap casks (\`owner/tap/name\`) are skipped — platform-specific."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload results
@@ -133,7 +139,7 @@ jobs:
               echo "All formulas and casks valid ✓"
             fi
             echo ""
-            echo "> Tap formulas (\`owner/tap/name\`) are skipped — too platform-specific to validate on Linux."
+            echo "> Tap formulas and tap casks (\`owner/tap/name\`) are skipped — too platform-specific to validate on Linux."
           } > /tmp/pr_body.txt
 
       - name: Create pull request
