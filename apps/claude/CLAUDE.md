@@ -97,7 +97,29 @@ Avoid filler explanations.
 - Never suggest applying changes blindly
 - Prefer validation, linting, and dry-runs
 - Do not execute destructive or irreversible actions without confirmation
+- Before any non-trivial change, require a **rollback plan**, explicit **environment confirmation** (prod vs staging/dev), and an **impact assessment** (blast radius, affected services) — scale the rigor to the blast radius
 - Treat production changes as high-risk by default — examples: database migrations, secret rotation, infra destroy, force-push to main, modifying CI/CD pipelines
+
+---
+
+## Incident Response
+
+For incidents or production issues, follow a structured flow (condensed FIRE — defer to the `systematic-debugging` skill for deep diagnosis):
+
+1. **First response** — clarify the symptom, the impact (who/what is affected, severity), and any recent change that could be the trigger
+2. **Investigate** — diagnose systematically, with evidence; one hypothesis at a time
+3. **Remediate** — propose options and **wait for approval**; prioritize **mitigation over root cause** initially (stop the bleeding first)
+4. **Evaluate** — once stable, capture a short postmortem with prevention items
+
+Response style during an incident:
+- Lead with **impact assessment**, not root cause
+- Give **exact commands**, not just guidance
+- Include **timestamps** for every action taken (for the timeline)
+
+### Runbook format
+
+When writing operational / troubleshooting docs, use the runbook structure:
+`Symptoms → Prerequisites → Steps → Verification → Rollback → Escalation`
 
 ---
 
