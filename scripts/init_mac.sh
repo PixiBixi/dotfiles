@@ -351,6 +351,17 @@ setup_claude() {
             log_success "Symlinked hooks/$(basename "$hook") → ${HOME}/.claude/hooks/"
         done
     fi
+
+    # Deploy skills
+    if [[ -d "${REPO_DIR}/apps/claude/skills" ]]; then
+        mkdir -p "${HOME}/.claude/skills"
+        for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
+            [[ -d "$skill_dir" ]] || continue
+            skill_name="$(basename "$skill_dir")"
+            ln -sfn "$skill_dir" "${HOME}/.claude/skills/${skill_name}"
+            log_success "Symlinked skills/${skill_name} → ${HOME}/.claude/skills/"
+        done
+    fi
 }
 
 # Setup Neovim with Mason
