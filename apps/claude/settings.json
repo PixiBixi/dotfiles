@@ -87,10 +87,11 @@
       }
     }
   },
+  "effortLevel": "xhigh",
   "companyAnnouncements": [
     "Coucou Jerem pense à déconnecter"
   ],
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
-  "effortLevel": "xhigh"
+  "agentPushNotifEnabled": true
 }
