@@ -2,11 +2,11 @@
 name: jira-cli
 description: Interact with Jira from the command line to create, list, view, edit, and transition issues, manage sprints and epics, and perform common Jira workflows. Use when the user asks about Jira tasks, tickets, issues, sprints, or needs to manage project work items.
 license: MIT
-source: https://raw.githubusercontent.com/Code-and-Sorts/awesome-copilot-agents/refs/heads/main/skills/jira-cli/SKILL.md
 compatibility: Requires jira-cli installed (https://github.com/ankitpokhrel/jira-cli) and configured with `jira init`. Requires JIRA_API_TOKEN environment variable.
 metadata:
   author: Colby Timm
   version: "1.0"
+source: https://raw.githubusercontent.com/Code-and-Sorts/awesome-copilot-agents/refs/heads/main/skills/jira-cli/SKILL.md
 ---
 
 # Jira CLI

@@ -40,7 +40,6 @@ confluence --profile <name> <command>
 ```
 
 Config resolution works in two stages:
-
 - **Direct env config:** If both `CONFLUENCE_DOMAIN` and `CONFLUENCE_API_TOKEN` are set, they are used directly and the config file / profiles are not consulted.
 - **Profile-based config:** Otherwise, a profile is selected in this order: `--profile` flag > `CONFLUENCE_PROFILE` env > `activeProfile` in config > `default`.
 
@@ -56,7 +55,6 @@ confluence init \
 ```
 
 **Cloud vs Server/DC:**
-
 - Atlassian Cloud (`*.atlassian.net`): use `--api-path "/wiki/rest/api"`, auth type `basic` with email + API token
 - Atlassian Cloud (custom domain): if your Cloud instance uses a custom domain (e.g., `wiki.example.org`), set `CONFLUENCE_FORCE_CLOUD=true` or add `"forceCloud": true` to your profile in `~/.confluence-cli/config.json`. Without this, links will render incorrectly.
 - Atlassian Cloud (scoped token): use `--domain "api.atlassian.com"`, `--api-path "/ex/confluence/<your-cloud-id>/wiki/rest/api"`, auth type `basic` with email + scoped token. Get your Cloud ID from `https://<your-site>.atlassian.net/_edge/tenant_info`. Recommended for agents (least privilege).
@@ -73,7 +71,6 @@ export CONFLUENCE_API_TOKEN="your-scoped-token"
 ```
 
 Required classic scopes for scoped tokens:
-
 - Read-only: `read:confluence-content.all`, `read:confluence-content.summary`, `read:confluence-space.summary`, `search:confluence`
 - Write: add `write:confluence-content`, `write:confluence-file`, `write:confluence-space`
 - Attachments: `readonly:content.attachment:confluence` (download), `write:confluence-file` (upload)
@@ -91,8 +88,7 @@ export CONFLUENCE_READ_ONLY=true
 ```
 
 When read-only mode is active, any write command exits with an error:
-
-```text
+```
 Error: This profile is in read-only mode. Write operations are not allowed.
 ```
 
