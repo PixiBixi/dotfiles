@@ -1,4 +1,5 @@
-SKILLS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+ROOT_DIR   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SKILLS_DIR := $(ROOT_DIR)apps/claude/skills/
 SCRIPT     := $(SKILLS_DIR).update-skills.py
 
 .DEFAULT_GOAL := help
