@@ -1,7 +1,8 @@
-ccline
+@cometix/ccline
+@google/gemini-cli
 aws-cdk
 corepack
 dockerfile-language-server-nodejs
 markdownlint
-npm
+uipro-cli
 yaml-sort
