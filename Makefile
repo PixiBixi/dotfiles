@@ -14,7 +14,7 @@ update: update-brew update-npm update-gems update-skills ## Update all (brew, np
 
 update-brew: ## Dump installed Homebrew packages → packages/Brewfile
 	@echo "Updating packages/Brewfile..."
-	@brew bundle dump --force --file="$(PKGS_DIR)Brewfile"
+	@brew bundle dump --force --no-describe --file="$(PKGS_DIR)Brewfile"
 	@echo "Done."
 
 update-npm: ## Dump global npm packages → packages/npm.txt
