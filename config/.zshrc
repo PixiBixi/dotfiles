@@ -6,13 +6,9 @@ DISABLE_AUTO_UPDATE="true"
 DISABLE_MAGIC_FUNCTIONS="true"
 DISABLE_COMPFIX="true"
 
-# Smarter completion initialization
-autoload -Uz compinit
-if [ "$(date +'%j')" != "$(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null)" ]; then
-    compinit
-else
-    compinit -C
-fi
+# NOTE: compinit is handled exclusively by oh-my-zsh.sh (sourced below).
+# A manual compinit here runs it a second time, doubling compdump cost
+# (~340ms wasted per shell). oh-my-zsh already regenerates the dump once/day.
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
@@ -91,7 +87,7 @@ export SAVEHIST=$HISTSIZE
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(zsh-defer ssh-agent terraform kubectl kube-ps1 helm battery aws)
+plugins=(zsh-defer ssh-agent terraform kubectl kube-ps1 helm aws)
 
 # Load differents keys (lazy mode for faster startup)
 zstyle :omz:plugins:ssh-agent lazy yes
