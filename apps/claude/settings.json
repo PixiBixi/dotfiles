@@ -62,7 +62,6 @@
     "claude-md-management@claude-plugins-official": true,
     "cli-tools@equativ-plugins": true,
     "cc-skills-golang@samber": true,
-    "claude-mem@thedotmack": true,
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "ansible-skills@ansible-skills-marketplace": true
@@ -72,12 +71,6 @@
       "source": {
         "source": "github",
         "repo": "samber/cc"
-      }
-    },
-    "thedotmack": {
-      "source": {
-        "source": "github",
-        "repo": "thedotmack/claude-mem"
       }
     },
     "ansible-skills-marketplace": {
@@ -92,6 +85,6 @@
     "Coucou Jerem pense à déconnecter"
   ],
   "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
 }
