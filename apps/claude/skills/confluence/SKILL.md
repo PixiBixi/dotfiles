@@ -164,6 +164,8 @@ confluence read 123456789 --format storage
 confluence read 123456789 --format markdown
 ```
 
+Requires content with a storage body. Folders and other bodyless content return `Page <id> has no readable body (it may be a folder or an unsupported content type).`; use `confluence info <id>` to inspect their metadata.
+
 ---
 
 ### `info <pageId>`
@@ -178,6 +180,8 @@ confluence info <pageId> [--format text|json]
 confluence info 123456789
 confluence info 123456789 --format json
 ```
+
+Works for folders and other bodyless content because it only reads metadata.
 
 ---
 
@@ -320,6 +324,8 @@ confluence update 123456789 --file ./updated.md --format markdown
 confluence update 123456789 --title "New Title" --file ./updated.xml --format storage
 ```
 
+Title-only updates reuse the target's existing storage body. Folders and other bodyless content cannot be updated this way and return `Page <id> has no readable body (it may be a folder or an unsupported content type).`.
+
 ---
 
 ### `move <pageId_or_url> <newParentId_or_url>`
@@ -376,6 +382,8 @@ confluence edit 123456789 --output ./page.xml
 # Edit page.xml, then:
 confluence update 123456789 --file ./page.xml --format storage
 ```
+
+Only content with a storage body can be exported for editing. Folders and other bodyless content return `Page <id> has no readable body (it may be a folder or an unsupported content type).`.
 
 ---
 
@@ -628,6 +636,29 @@ confluence profile remove staging
 
 ---
 
+### `api <endpoint>`
+
+Make an authenticated request to a Confluence REST endpoint that the CLI does not wrap directly.
+
+```sh
+confluence api <endpoint> [-X <method>] [-f <key=value>] [-H <key:value>] [--input <file>] [--jq <expression>] [-i] [--silent]
+```
+
+Endpoint resolution:
+- Relative paths use the configured `apiPath`.
+- Absolute paths starting with `/` bypass `apiPath` and resolve against the configured host.
+- Full `http://` or `https://` URLs are allowed only when they are same-origin with the configured host; cross-origin URLs and `http://` downgrades from an `https` profile are refused before credentials are sent.
+
+```sh
+confluence api content/123456789/label
+confluence api /wiki/api/v2/pages -f spaceKey=DEV -f limit=10 -X GET
+confluence api content/123456789/label --jq '.results[].name'
+```
+
+Read-only profiles block write methods (`POST`, `PUT`, `PATCH`, `DELETE`) while allowing `GET` and `HEAD`.
+
+---
+
 ### `stats`
 
 Show local usage statistics.
@@ -700,6 +731,8 @@ confluence edit 123456789 --output ./page.xml
 # 3. Push the updated content
 confluence update 123456789 --file ./page.xml --format storage
 ```
+
+Requires content with a storage body; folders and other bodyless content should be inspected with `confluence info <id>` instead.
 
 ### Build a documentation hierarchy
 
@@ -774,6 +807,7 @@ confluence search --cql 'siteSearch ~ "release notes" and space = "MYSPACE"' --l
 | 400 on inline comment creation | Editor metadata required | Use `--location footer` or reply to existing inline comment with `--parent` |
 | `File not found: <path>` | `--file` path doesn't exist | Check the path before calling the command |
 | `At least one of --title, --file, or --content must be provided` | `update` called with no content options | Provide at least one of the required options |
+| `Page <id> has no readable body (it may be a folder or an unsupported content type).` | `read`, `edit`, or title-only `update` targeted a folder or other bodyless content | Use `info` for metadata, or target a page with a storage body |
 | `Profile "<name>" not found!` | Specified profile doesn't exist | Run `confluence profile list` to see available profiles |
 | `Cannot delete the only remaining profile.` | Tried to remove the last profile | Add another profile before removing |
 | `This profile is in read-only mode` | Write command used with a read-only profile | Use a writable profile or remove `readOnly` from config |
