@@ -55,6 +55,7 @@ Deployed via `setup_claude()` in `scripts/init_mac.sh`.
 
 Hooks enforced on every commit:
 
+- **gitleaks** — secret scanning (hardcoded credentials, tokens, keys)
 - **shellcheck** — shell script linting, severity `warning`. Excludes zsh files matching `(^|/)\.zsh`.
 - **shfmt** — shell formatting: 4-space indent, `-ci -bn -sr`.
 - **markdownlint** — requires H1 as first line, single H1 per file, language on all fenced code blocks. Use `text` for file trees.

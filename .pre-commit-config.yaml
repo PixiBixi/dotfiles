@@ -26,6 +26,12 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
+  # Secret scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
   # Shell script validation and formatting
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
