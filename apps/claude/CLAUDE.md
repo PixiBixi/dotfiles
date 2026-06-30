@@ -10,11 +10,11 @@
 
 ### Model Selection (STRICTLY ENFORCED)
 
-Applies to **sub-agent selection** (Task tool). The main conversation model is set by the user separately.
+Applies to **sub-agent selection** (Agent tool). The main conversation model is set by the user separately.
 
 | Model | When to Use | Examples |
 |-------|-------------|----------|
-| **Sonnet** (`claude-sonnet-4-8`) | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
+| **Sonnet** (`claude-sonnet-5`) | Moderate logic, multi-file changes, conditional CRUD, light refactoring | Form with validation logic, update related files |
 | **Opus** (`claude-opus-4-8`) | Architecture decisions, complex business logic, debugging, design choices | Permission system design, workflow logic, investigating bugs |
 
 ### Golden Rule
@@ -134,9 +134,9 @@ When writing operational / troubleshooting docs, use the runbook structure:
 ### Claude Code shortcuts
 
 - `#` during a session: auto-incorporates learnings into CLAUDE.md
-- `/fast`: toggle fast mode (même modèle Opus 4.8, output plus rapide)
+- `/fast`: toggle fast mode (même modèle Opus, dispo sur Opus 4.6/4.7/4.8 — output plus rapide, **pas** de downgrade vers un modèle plus petit)
 
-### Sub-agent prompts (Task tool)
+### Sub-agent prompts (Agent tool)
 
 When delegating to a sub-agent, **always include these rules explicitly** in the prompt, as sub-agents may not inherit the global CLAUDE.md context with the same weight:
 
