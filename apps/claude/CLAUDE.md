@@ -175,30 +175,13 @@ Both files are symlinks — no copy needed, changes are reflected automatically.
 
 ---
 
-## Auto Memory (MEMORY.md)
+## Auto Memory
 
-At the end of every session where something non-trivial was learned, **automatically update the MEMORY.md of the current project**.
+Auto memory is **native** (Claude Code ≥ 2.1.59, on by default): Claude writes to `~/.claude/projects/<repo>/memory/MEMORY.md` and captures corrections/preferences on its own — no manual end-of-session or immediate-capture discipline needed. Just steer *what's worth keeping*:
 
-Path pattern: `~/.claude/projects/<working-dir-encoded>/memory/MEMORY.md`
-Example: for `/Users/jeremy/myproject` → `~/.claude/projects/-Users-jeremy-myproject/memory/MEMORY.md`
-
-### Immediate capture
-After any explicit correction from the user, update MEMORY.md **immediately** — don't wait for end of session. Corrections are the highest-signal input and must not be lost.
-
-### What to record
-- Stable patterns and conventions confirmed during the session
-- Key architectural decisions or important file paths discovered
-- User preferences for workflow, tooling, or communication
-- Solutions to recurring problems or debugging insights
-
-### What NOT to record
-- Session-specific context (current task, in-progress work, temporary state)
-- Incomplete or unverified information
-- Anything already covered in this CLAUDE.md
-
-### Format
-Use concise bullet points grouped by topic. Keep the file under 200 lines.
-Link to separate topic files (e.g., `debugging.md`, `patterns.md`) for detailed notes.
+- **Record**: stable conventions, key paths / architectural decisions, workflow & tooling preferences, fixes for recurring problems.
+- **Don't record**: session-specific or in-progress state, unverified info, anything already in this CLAUDE.md.
+- Keep `MEMORY.md` a concise index (< 200 lines / 25 KB — only the head is auto-loaded); push detail into topic files (`debugging.md`, `patterns.md`, …), loaded on demand.
 
 ## RTK (Rust Token Killer)
 
