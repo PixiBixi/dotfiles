@@ -27,8 +27,10 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-opus-4-8",
-  "fallbackModel": ["claude-sonnet-5"],
+  "model": "claude-fable-5",
+  "fallbackModel": [
+    "claude-sonnet-5"
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -65,7 +67,8 @@
     "cc-skills-golang@samber": true,
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
-    "ansible-skills@ansible-skills-marketplace": true
+    "ansible-skills@ansible-skills-marketplace": true,
+    "openwiki@openwiki-cc": true
   },
   "extraKnownMarketplaces": {
     "samber": {
@@ -78,6 +81,12 @@
       "source": {
         "source": "github",
         "repo": "sigridjineth/hello-ansible-skills"
+      }
+    },
+    "openwiki-cc": {
+      "source": {
+        "source": "github",
+        "repo": "SoulKyu/openwiki-cc"
       }
     }
   },
