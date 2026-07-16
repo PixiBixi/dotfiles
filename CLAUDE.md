@@ -66,6 +66,8 @@ All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, et
 
 `apps/claude/skills/` holds SKILL.md files that mirror upstream skills. `.update-skills.py` (run via `make update-skills` / `make check`) fetches the latest SKILL.md from each upstream URL and re-injects the local `source:` frontmatter field. Use `make check` for a dry-run diff before committing updates.
 
+`make update-skills` passes `--commit`, so each updated skill is committed on its own (`chore(claude): sync <name> skill from upstream`) — one commit per scope, no manual staging. Run the script without `--commit` to update files without committing; `--check` never commits.
+
 ## CI
 
 `.github/workflows/weekly-software-check.yml` runs every Monday (`0 8 * * 1` UTC) to validate that `packages/Brewfile` entries still exist. Two jobs:
