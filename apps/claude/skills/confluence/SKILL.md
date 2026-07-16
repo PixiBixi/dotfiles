@@ -31,7 +31,7 @@ confluence --version   # verify install
 | `CONFLUENCE_PROFILE` | Named profile to use (optional) | `staging` |
 | `CONFLUENCE_READ_ONLY` | Block all write operations when `true` | `true` |
 | `CONFLUENCE_FORCE_CLOUD` | Force Cloud link format for custom domains | `true` |
-| `CONFLUENCE_LINK_STYLE` | Override link rendering: `smart`, `plain`, or `wiki` | `plain` |
+| `CONFLUENCE_LINK_STYLE` | Override link rendering: `smart`, `plain`, or legacy `wiki` | `plain` |
 
 **Global `--profile` flag (use a named profile for any command):**
 
@@ -56,7 +56,7 @@ confluence init \
 
 **Cloud vs Server/DC:**
 - Atlassian Cloud (`*.atlassian.net`): use `--api-path "/wiki/rest/api"`, auth type `basic` with email + API token
-- Atlassian Cloud (custom domain): if your Cloud instance uses a custom domain (e.g., `wiki.example.org`), set `CONFLUENCE_FORCE_CLOUD=true` or add `"forceCloud": true` to your profile in `~/.confluence-cli/config.json`. Without this, links will render incorrectly.
+- Atlassian Cloud (custom domain): if your Cloud instance uses a custom domain (e.g., `wiki.example.org`), set `CONFLUENCE_FORCE_CLOUD=true` or add `"forceCloud": true` to your profile in `~/.confluence-cli/config.json` to enable Cloud smart-link rendering.
 - Atlassian Cloud (scoped token): use `--domain "api.atlassian.com"`, `--api-path "/ex/confluence/<your-cloud-id>/wiki/rest/api"`, auth type `basic` with email + scoped token. Get your Cloud ID from `https://<your-site>.atlassian.net/_edge/tenant_info`. Recommended for agents (least privilege).
 - Self-hosted / Data Center: use `--api-path "/rest/api"`, auth type `bearer` with a personal access token (no email needed)
 
@@ -121,7 +121,7 @@ confluence read "https://company.atlassian.net/wiki/spaces/MYSPACE/pages/1234567
 
 | Format | Notes |
 |---|---|
-| `markdown` | Recommended for agent-generated content. Automatically converted by the API. |
+| `markdown` | Recommended for agent-generated content. Automatically converted by the CLI. |
 | `storage` | Confluence XML storage format (default for create/update). Use for programmatic round-trips. |
 | `html` | Raw HTML. |
 | `text` | Plain text — for read/export output only, not for creation. |
@@ -163,6 +163,8 @@ confluence read 123456789
 confluence read 123456789 --format storage
 confluence read 123456789 --format markdown
 ```
+
+Markdown output resolves accessible Confluence page links, including links to pages in the same space, to absolute URLs while preserving custom link text and inline formatting.
 
 Requires content with a storage body. Folders and other bodyless content return `Page <id> has no readable body (it may be a folder or an unsupported content type).`; use `confluence info <id>` to inspect their metadata.
 
