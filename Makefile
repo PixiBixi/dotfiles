@@ -25,8 +25,8 @@ update-gems: ## Dump installed gems → packages/gems.txt (skips stdlib default:
 	@gem list --local 2>/dev/null | python3 -c "import re,sys; [print('{} --version {}'.format(m.group(1),v)) for line in sys.stdin for m in [re.match(r'^(\S+) \((.+)\)',line.strip())] if m for v in [m.group(2).split(',')[0].strip()] if not v.startswith('default:')]" | sort > "$(PKGS_DIR)gems.txt"
 	@echo "Done."
 
-update-skills: ## Fetch latest SKILL.md from upstream sources
-	@python3 $(SCRIPT)
+update-skills: ## Fetch latest SKILL.md from upstream sources (one commit per updated skill)
+	@python3 $(SCRIPT) --commit
 
 check: ## Show skills diffs without modifying files (dry-run)
 	@python3 $(SCRIPT) --check

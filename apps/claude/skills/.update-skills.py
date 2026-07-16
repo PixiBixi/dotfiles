@@ -5,13 +5,28 @@ import argparse
 import difflib
 import os
 import re
+import subprocess
 import sys
 import urllib.request
 
 SKILLS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def update_skill(name: str, skill_file: str, dry_run: bool) -> bool:
+def commit_skill(name: str, skill_file: str) -> None:
+    """Stage and commit a single updated SKILL.md, one commit per skill."""
+    rel = os.path.relpath(skill_file, SKILLS_DIR)
+    try:
+        subprocess.run(["git", "-C", SKILLS_DIR, "add", "--", skill_file], check=True)
+        subprocess.run(
+            ["git", "-C", SKILLS_DIR, "commit", "-m", f"chore(claude): sync {name} skill from upstream", "--", skill_file],
+            check=True,
+        )
+        print(f"  [{name}] committed")
+    except subprocess.CalledProcessError as e:
+        print(f"  [{name}] ERROR committing {rel}: {e}", file=sys.stderr)
+
+
+def update_skill(name: str, skill_file: str, dry_run: bool, commit: bool) -> bool:
     with open(skill_file) as f:
         current = f.read()
 
@@ -57,6 +72,8 @@ def update_skill(name: str, skill_file: str, dry_run: bool) -> bool:
         with open(skill_file, "w") as f:
             f.write(updated)
         print(f"  [{name}] updated")
+        if commit:
+            commit_skill(name, skill_file)
 
     return True
 
@@ -64,6 +81,7 @@ def update_skill(name: str, skill_file: str, dry_run: bool) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="dry-run: show diffs without modifying files")
+    parser.add_argument("--commit", action="store_true", help="commit each updated SKILL.md separately (one commit per skill)")
     args = parser.parse_args()
 
     changed = 0
@@ -71,7 +89,7 @@ def main() -> None:
         skill_file = os.path.join(SKILLS_DIR, name, "SKILL.md")
         if not os.path.isfile(skill_file):
             continue
-        if update_skill(name, skill_file, dry_run=args.check):
+        if update_skill(name, skill_file, dry_run=args.check, commit=args.commit and not args.check):
             changed += 1
 
     if not args.check:
