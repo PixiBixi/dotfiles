@@ -45,6 +45,49 @@ kcx() {
     echo "namespace: $current_ns"
 }
 
+# Switch context AND namespace in one go
+# Usage: kswitch [<context> [namespace]]   (no args → list contexts)
+kswitch() {
+    if [[ $# -eq 0 ]]; then
+        switcher alias ls
+        return
+    fi
+
+    local ctx="$1"
+    local ns="${2:-default}"
+
+    switch "$ctx" && switch ns "$ns"
+}
+
+# Completion for kswitch/kcx: arg1 = context (from `switcher alias ls`), arg2 = namespace
+_kswitch() {
+    local state
+    _arguments \
+        '1:context:->contexts' \
+        '2:namespace:->namespaces'
+
+    case $state in
+        contexts)
+            local -a contexts
+            contexts=(${(f)"$(switcher alias ls 2>/dev/null | awk -F'|' '/^\|/ && !/ALIAS/ && !/TOTAL/ { gsub(/^ +| +$/, "", $2); if ($2 != "") print $2 }')"})
+            _describe 'switcher alias' contexts
+            ;;
+        namespaces)
+            local -a namespaces
+            namespaces=(${(f)"$(kubectl get namespaces --no-headers -o custom-columns=':metadata.name' 2>/dev/null)"})
+            _describe 'namespace' namespaces
+            ;;
+    esac
+}
+compdef _kswitch kswitch
+compdef _kswitch kcx      # kcx switches context only → reuse the context completion
+
+# Alias generators for k8s context/namespace shortcuts (data lives in ~/.zsh_work):
+#   _kns  <alias> <namespace>            → switch ns <namespace>
+#   _kctx <alias> <context> <namespace>  → switch <context> && switch ns <namespace>
+_kns()  { alias "$1"="switch ns $2"; }
+_kctx() { alias "$1"="switch $2 && switch ns $3"; }
+
 mergebranch() {
 	local BRANCH=$(git rev-parse --abbrev-ref HEAD)
 	glab mr approve $BRANCH
