@@ -53,7 +53,10 @@ dotfiles/
 │   └── gems.txt
 ├── apps/                        # Configs d'applications non-dotfiles
 │   ├── claude/
-│   │   └── CLAUDE.md
+│   │   ├── CLAUDE.md
+│   │   ├── settings.json
+│   │   ├── hooks/               # session-allow.sh
+│   │   └── skills/              # SKILL.md upstream + skills locales
 │   ├── raycast/
 │   │   └── Raycast.rayconfig
 │   └── vscode/
@@ -234,7 +237,7 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 ### Claude Code / AI Tooling
 
-- **Claude Code** — configuration globale (`apps/claude/CLAUDE.md`, `settings.json`)
+- **Claude Code** — configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
 - **RTK** — proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique)
 
 ### Development Tools
