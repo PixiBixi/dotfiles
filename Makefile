@@ -5,12 +5,12 @@ SCRIPT     := $(SKILLS_DIR).update-skills.py
 
 .DEFAULT_GOAL := help
 
-.PHONY: help update update-brew update-npm update-gems update-skills check
+.PHONY: help update update-brew update-npm update-gems update-skills update-claude-skills check
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-update: update-brew update-npm update-gems update-skills ## Update all (brew, npm, gems, skills)
+update: update-brew update-npm update-gems update-skills update-claude-skills ## Update all (brew, npm, gems, skills)
 
 update-brew: ## Dump installed Homebrew packages → packages/Brewfile
 	@echo "Updating packages/Brewfile..."
@@ -27,6 +27,12 @@ update-gems: ## Dump installed gems → packages/gems.txt (skips stdlib default:
 
 update-skills: ## Fetch latest SKILL.md from upstream sources (one commit per updated skill)
 	@python3 $(SCRIPT) --commit
+
+update-claude-skills: ## Update skillfish-managed skills → re-bundle packages/skillfish.json
+	@npx -y skillfish@latest update --yes
+	@npx -y skillfish@latest bundle --global
+	@cp "$(HOME)/skillfish.json" "$(PKGS_DIR)skillfish.json"
+	@echo "Done."
 
 check: ## Show skills diffs without modifying files (dry-run)
 	@python3 $(SCRIPT) --check

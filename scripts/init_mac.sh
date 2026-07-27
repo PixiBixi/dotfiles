@@ -56,6 +56,7 @@ STEPS=(
     "gems:install_gem_packages"
     "neovim:setup_neovim"
     "claude:setup_claude"
+    "claude-skills:install_claude_skills"
     "rtk:setup_rtk"
 )
 
@@ -361,6 +362,67 @@ setup_claude() {
             ln -sfn "$skill_dir" "${HOME}/.claude/skills/${skill_name}"
             log_success "Symlinked skills/${skill_name} → ${HOME}/.claude/skills/"
         done
+    fi
+}
+
+# Install Claude Code skills owned by external CLIs — their content is never
+# versioned here, only the provenance needed to reinstall them.
+install_claude_skills() {
+    log_info "Installing externally-managed Claude Code skills..."
+
+    if ! command -v npx &> /dev/null; then
+        log_warning "npx not found, skipping externally-managed skills"
+        return 0
+    fi
+
+    # skillfish manifest: linkedin-best-practices-2026, python3-development, terragrunt-generator
+    if [[ -f "${REPO_DIR}/packages/skillfish.json" ]]; then
+        cp "${REPO_DIR}/packages/skillfish.json" "${HOME}/skillfish.json"
+        if npx -y skillfish@latest install --global --yes; then
+            log_success "Skillfish skills installed from packages/skillfish.json"
+        else
+            log_warning "skillfish install failed"
+        fi
+    else
+        log_warning "packages/skillfish.json not found, skipping skillfish skills"
+    fi
+
+    # ui-ux-pro-max: shipped by the ui-ux-pro-max-cli npm package (binary: uipro)
+    if command -v uipro &> /dev/null; then
+        if uipro init --ai claude --global; then
+            log_success "ui-ux-pro-max skill installed"
+        else
+            log_warning "uipro init failed"
+        fi
+    else
+        log_warning "uipro not found (npm package ui-ux-pro-max-cli), skipping ui-ux-pro-max"
+    fi
+
+    # humanizer: plain git checkout
+    if [[ -d "${HOME}/.claude/skills/humanizer" ]]; then
+        log_success "humanizer skill already present"
+    elif git clone --depth 1 https://github.com/blader/humanizer.git "${HOME}/.claude/skills/humanizer"; then
+        log_success "humanizer skill cloned"
+    else
+        log_warning "humanizer clone failed"
+    fi
+
+    # seo: upstream installer, also deploys the seo-* specialist agents to ~/.claude/agents/
+    if [[ -d "${HOME}/.claude/skills/seo" ]]; then
+        log_success "seo skill already present"
+    else
+        local seo_tmp
+        seo_tmp="$(mktemp -d)"
+        if git clone --depth 1 https://github.com/Bhanunamikaze/Agentic-SEO-Skill.git "${seo_tmp}"; then
+            if (cd "${seo_tmp}" && bash install.sh --target claude); then
+                log_success "seo skill installed"
+            else
+                log_warning "Agentic-SEO-Skill installer failed"
+            fi
+        else
+            log_warning "Agentic-SEO-Skill clone failed"
+        fi
+        rm -rf "${seo_tmp}"
     fi
 }
 

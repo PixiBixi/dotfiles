@@ -50,7 +50,8 @@ dotfiles/
 ├── packages/                    # Listes de paquets à installer
 │   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
 │   ├── npm.txt
-│   └── gems.txt
+│   ├── gems.txt
+│   └── skillfish.json           # Manifeste des skills Claude externes
 ├── apps/                        # Configs d'applications non-dotfiles
 │   ├── claude/
 │   │   ├── CLAUDE.md
@@ -238,7 +239,8 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 ### Claude Code / AI Tooling
 
 - **Claude Code** — configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
-- **RTK** — proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique)
+- **Skills externes** — celles gérées par leur propre installeur ne sont pas versionnées : `install_claude_skills()` les réinstalle depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream. Rafraîchir le manifeste avec `make update-claude-skills`
+- **RTK** — proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique et génère `~/.claude/RTK.md`)
 
 ### Development Tools
 
