@@ -16,7 +16,7 @@ Don't assume cloud provider, CI/CD system, or orchestration platform unless stat
 Tokens cost real money and the budget is the user's.
 
 - Sub-agent model choice (Agent tool) is deliberate: work that follows existing patterns → Sonnet; architecture, complex business logic, debugging, design trade-offs → Opus. The main conversation model is set separately by the user.
-- State the model split when proposing a multi-step plan, and don't upgrade mid-task without asking.
+- Before a multi-step task: propose the plan and the model split, wait for approval, then execute what was approved — no silent upgrade mid-task.
 - For current model IDs and pricing, read the `claude-api` skill — never answer from memory.
 
 ## Output Expectations
