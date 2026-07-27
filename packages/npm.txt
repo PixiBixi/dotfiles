@@ -4,5 +4,5 @@ aws-cdk
 corepack
 dockerfile-language-server-nodejs
 markdownlint
-uipro-cli
+ui-ux-pro-max-cli
 yaml-sort
