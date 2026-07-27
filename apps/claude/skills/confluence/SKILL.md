@@ -43,6 +43,8 @@ Config resolution works in two stages:
 - **Direct env config:** If both `CONFLUENCE_DOMAIN` and `CONFLUENCE_API_TOKEN` are set, they are used directly and the config file / profiles are not consulted.
 - **Profile-based config:** Otherwise, a profile is selected in this order: `--profile` flag > `CONFLUENCE_PROFILE` env > `activeProfile` in config > `default`.
 
+For `basic`/`bearer` profiles that omit a stored `token`, the token falls back to a `~/.netrc` entry matched by domain (and email for basic auth) — env/`--token` still take precedence. Override the path with `NETRC`.
+
 **Non-interactive init (good for CI/CD scripts):**
 
 ```sh
@@ -813,3 +815,7 @@ confluence search --cql 'siteSearch ~ "release notes" and space = "MYSPACE"' --l
 | `Profile "<name>" not found!` | Specified profile doesn't exist | Run `confluence profile list` to see available profiles |
 | `Cannot delete the only remaining profile.` | Tried to remove the last profile | Add another profile before removing |
 | `This profile is in read-only mode` | Write command used with a read-only profile | Use a writable profile or remove `readOnly` from config |
+
+### Parsing failures under `--json`
+
+Parse failures according to the authoritative [structured error contract](../../../../README.md#structured-errors), branching on `code` rather than matching the human-readable `error` string.
