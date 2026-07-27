@@ -60,7 +60,7 @@ repos:
       - id: prettier
         types_or: [json]
         args: [--tab-width=4]
-        exclude: '^apps/claude/settings\.json$'
+        exclude: '^(apps/claude/settings\.json|packages/skillfish\.json)$'
 
   # Markdown linting (uses existing .markdownlint.json config)
   - repo: https://github.com/igorshubovych/markdownlint-cli
