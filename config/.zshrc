@@ -156,7 +156,15 @@ PATH_DIRS=(
 )
 export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 
-export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+# Terragrunt provider cache server. Replaces TF_PLUGIN_CACHE_DIR: the native
+# plugin cache is not concurrency-safe, so a parallel `run --all` has several
+# processes writing the same provider binary at once. That leaves the kernel
+# with a stale cdhash for the inode and macOS SIGKILLs the plugin on exec
+# ("Failed to read any lines from plugin's stdout"). The cache server
+# serializes installs instead, and reuses the existing cache directory —
+# its layout is identical to plugin_cache_dir.
+export TG_PROVIDER_CACHE=1
+export TG_PROVIDER_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
 # Fix mkdocs serve
 export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
 
