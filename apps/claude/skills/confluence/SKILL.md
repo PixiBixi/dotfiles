@@ -802,6 +802,43 @@ confluence search --cql 'siteSearch ~ "release notes" and space = "MYSPACE"' --l
 - **Multiple instances**: Use `--profile <name>` or `CONFLUENCE_PROFILE` env var to target different Confluence instances without reconfiguring.
 - **Read-only mode**: Set `CONFLUENCE_READ_ONLY=true` or use `--read-only` when creating profiles to prevent accidental writes. This is enforced at the CLI level — all write commands will be blocked.
 
+## Markdown → storage conversion defects
+
+Two defects in the CLI's markdown converter produce a page that *looks* published but reads wrong. Both are silent — the command reports success. **Never trust a "published successfully" message: read the page back and check the rendering.**
+
+### External links vanish entirely
+
+Every markdown link is emitted as:
+
+```xml
+<ac:link><ri:url ri:value="URL"/><ac:plain-text-link-body><![CDATA[TEXT]]></ac:plain-text-link-body></ac:link>
+```
+
+`ac:plain-text-link-body` is for *internal* resource links (`ri:page`). Paired with `ri:url` it renders as **nothing at all** — the anchor text disappears from the page, leaving a hole mid-sentence ("It is the mirror image of ⟨nothing⟩ — read that page first"). `CONFLUENCE_LINK_STYLE` (`smart`/`plain`/`wiki`) does **not** change this; all three emit the same broken form.
+
+Fix: convert to storage, then rewrite external links to plain anchors before uploading.
+
+```sh
+confluence convert -i page.md --input-format markdown --output-format storage > page.xml
+# rewrite <ac:link><ri:url .../><ac:plain-text-link-body>…  →  <a href="URL">TEXT</a>
+confluence update <pageId> --file page.xml --format storage
+```
+
+Verify with `confluence read <pageId> --format text` — the anchor text must appear.
+
+### Hard-wrapped source becomes hard line breaks
+
+Newlines inside a paragraph are preserved verbatim in `<p>`, and Confluence renders them as real line breaks. Markdown wrapped at 80/100 columns for git readability comes out ragged, broken mid-sentence.
+
+Fix: either author paragraphs as single long lines, or collapse newlines in the storage before upload. If collapsing, **mask `<ac:plain-text-body><![CDATA[…]]></ac:plain-text-body>` first** — those newlines are code content. And do not strip whitespace adjacent to tags (`\s+<` → `<`): a newline before an inline `<a>`/`<code>` is a real word separator, and removing it glues words to link text.
+
+Check with: `grep -c '<p>[^<]*$'` on the storage, or look for `<p>…\n…` — there should be none.
+
+### Other conversion notes
+
+- `> …` blockquotes convert to plain `<blockquote>`, not warning/note panels. For a real panel, post-process into `<ac:structured-macro ac:name="warning">…<ac:rich-text-body>…</ac:rich-text-body></ac:structured-macro>`.
+- A leading `# Title` in the markdown produces an `<h1>` that **duplicates** the page title Confluence already renders. Strip it; start the body at `## `.
+
 ## Error Patterns
 
 | Error | Cause | Fix |
