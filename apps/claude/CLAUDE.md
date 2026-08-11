@@ -30,6 +30,7 @@ Tokens cost real money and the budget is the user's.
 - **Inclusive terms**: allowlist/blocklist, primary/replica, placeholder/example, main branch, conflict-free, concurrent/parallel
 - **Naming**: Terraform → snake_case, env vars → SCREAMING_SNAKE_CASE
 - **Documentation**: practical examples and real troubleshooting over theory
+- **Code comments**: 1-3 lines. State the decision and why it must not be undone, then cite the ticket for context (`# PE-1685: halved from 100. Bounds peak RSS -- at 100 pods were OOMKilled. Do NOT raise it back.`). Never inline the investigation: measurements, percentiles, rejected hypotheses and reasoning go in the ticket and the MR. Same for alert descriptions and log messages — they are read under pressure. If it does not fit in 3 lines, cut; do not expand
 - **README**: update it before committing whenever a feature, flag, or behavior changes
 - **Commits**: Conventional Commits, **one commit per scope** (`fix(tflint):`, `feat(module):`, `chore(live):`) — never bundle unrelated scopes
 - **Branch creation**: always from a freshly-fetched `origin/<target>` (`git fetch origin <target> && git checkout -b <name> origin/<target>`), never from the local target branch — a local `main` may carry unpushed commits that would silently leak into the MR
