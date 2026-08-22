@@ -165,8 +165,10 @@ export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 # its layout is identical to plugin_cache_dir.
 export TG_PROVIDER_CACHE=1
 export TG_PROVIDER_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
-# Fix mkdocs serve
-export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
+# cairocffi (plugin social de mkdocs) ne trouve pas libcairo : le Python de uv
+# ne cherche pas dans Homebrew. Les 3 chemins par défaut sont recopiés exprès,
+# dyld REMPLACE sa liste au lieu de l'étendre dès que la variable est définie.
+export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:$HOME/lib:/usr/local/lib:/usr/lib"
 
 # Claude Code Templates - Global Agents
 export PATH="/Users/jeremy/.claude-code-templates/bin:$PATH"
