@@ -30,7 +30,7 @@ Ce skill capture la procédure complète *et les pièges qui cassent la CI ou la
 4. **Cross-linker** les articles liés (dans les deux sens) via une admonition `!!! tip` ou un lien inline.
 5. **Schéma** si un *flux* le mérite (voir "Schémas SVG"). Sinon un tableau suffit.
 6. **⚠️ Wirer les DEUX index** (voir Gotcha 1) - l'étape le plus souvent oubliée.
-7. **Build + vérifier** : `./.venv/bin/mkdocs build` (Gotcha 4), puis relint markdown (Gotchas 2 et 3). Contrôler que le SVG est copié et la balise `<img>` résolue.
+7. **Build + vérifier** : `mkdocs build --strict` préfixé du `DYLD_FALLBACK_LIBRARY_PATH` (Gotcha 4), puis relint markdown (Gotchas 2 et 3). Contrôler que le SVG est copié et la balise `<img>` résolue.
 8. **Committer par scope** (Conventional Commits, un commit par portée), rebase sur `origin/master`, push.
 9. **Watcher la CI** : `gh run watch <id> --repo PixiBixi/pixibixi.github.io --exit-status`. Ne pas considérer le travail fini avant que `lint` **et** `deploy` soient verts.
 
@@ -269,22 +269,30 @@ La bonne réponse est de **sortir le bloc de code de l'admonition** et de garder
 articles en contiennent un jamais réactivé, ce qui désactive la règle sur toute la fin du
 fichier et masque de vraies erreurs.
 
-## Gotcha 4 - `mkdocs build --strict` échoue en local (faux positif)
+## Gotcha 4 - `mkdocs build --strict` a besoin de `DYLD_FALLBACK_LIBRARY_PATH`
 
-Le plugin `social` génère les cartes sociales via `cairosvg`, qui a besoin de `libcairo` (absente en local). En local, `--strict` **abort** sur des warnings `cairo` **sans rapport** avec le contenu. La CI (`deploy`) fait tourner `--strict` avec les bonnes deps → c'est elle qui fait foi.
+Le plugin `social` génère les cartes via `cairosvg`, qui charge `libcairo` par `dlopen`. Le
+Python de `uv` ne regarde pas dans Homebrew, d'où 244 warnings `cairo` (un par page) qui font
+abort `--strict` sans aucun rapport avec le contenu.
 
-En local : build **sans** `--strict`, et filtrer le bruit pour ne garder que les vrais warnings :
+`~/.zshrc` exporte déjà la variable qui corrige ça, mais zsh ne source `.zshrc` que dans un
+shell **interactif** : un shell d'agent ne l'a jamais. Donc on préfixe la commande, et on
+garde `--strict`, qui est exactement ce que fait la CI :
 
 ```bash
-./.venv/bin/mkdocs build 2>&1 | grep -viE 'cairo|dlopen|no such file|no library|find_library|ctypes|ProperDocs'
+DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:$HOME/lib:/usr/local/lib:/usr/lib" \
+  uv run mkdocs build --strict
 ```
+
+Avec ça le build sort en 0. Le seul warning non bloquant qui reste est `WARNING:root:` du
+plugin git-revision-date, y compris en `--strict`.
 
 ## Common mistakes
 
 - Créer l'article et oublier de wirer `docs/index.md` **et** `docs/<section>/index.md` (Gotcha 1).
 - Aligner/reformater des tableaux pour plaire à `MD060` - la règle est désactivée exprès (Gotcha 2).
 - Mettre un bloc de code fencé dans une admonition, ou une admonition multi-paragraphes (Gotcha 3).
-- Croire que l'échec `--strict` local vient de l'article (Gotcha 4).
+- Croire que l'échec `--strict` local vient de l'article, ou renoncer à `--strict` (Gotcha 4).
 - Committer un gros commit fourre-tout au lieu d'un commit par scope.
 - Écrire les chiffres en lettres (« trois shards ») au lieu de « 3 shards ».
 - Titrer une section par son mécanisme (`Le compactor en CronJob`) au lieu de ce qu'elle fait gagner.
