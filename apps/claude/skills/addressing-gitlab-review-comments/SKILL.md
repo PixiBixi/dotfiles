@@ -7,9 +7,9 @@ description: Use when a reviewer left inline (line-anchored) comments on a GitLa
 
 ## Overview
 
-Inline review comments on a GitLab MR live in **discussions** (threads anchored to a file+line). The whole loop — fetch with position → fix → reply → resolve — runs through `glab api`. This skill is the proven command sequence; the gotcha is that the obvious command (`glab mr view --comments`) gives you the comment text but **not the file/line position**, so you can't tell what each comment refers to.
+Inline review comments on a GitLab MR live in **discussions** (threads anchored to a file+line). The whole loop (fetch with position → fix → reply → resolve) runs through `glab api`. This skill is the proven command sequence; the gotcha is that the obvious command (`glab mr view --comments`) gives you the comment text but **not the file/line position**, so you can't tell what each comment refers to.
 
-**REQUIRED BACKGROUND:** Use `superpowers:receiving-code-review` for the judgment part — evaluate each comment with technical rigor and verify it's correct *before* applying. This skill only covers the GitLab mechanics.
+**REQUIRED BACKGROUND:** Use `superpowers:receiving-code-review` for the judgment part: evaluate each comment with technical rigor and verify it's correct *before* applying. This skill only covers the GitLab mechanics.
 
 ## Setup
 
@@ -22,7 +22,7 @@ URL-encode the path (`/` → `%2F`). Get it from `glab repo view` if unsure.
 
 ## 1. Fetch comments WITH position
 
-`glab mr view $MR --comments` does NOT include line positions — don't use it for inline comments. Hit the discussions API and parse `position`:
+`glab mr view $MR --comments` does NOT include line positions, so don't use it for inline comments. Hit the discussions API and parse `position`:
 
 ```bash
 glab api "$API/discussions" | python3 -c '
@@ -46,7 +46,7 @@ Open the file at the cited line so the comment makes sense in context. Apply the
 
 ```bash
 git commit -am "PE-XXXX: address review on <thing>"
-git push        # plain push — adding a commit, no force needed
+git push        # plain push, adding a commit, no force needed
 ```
 
 ## 3. Reply to and resolve each thread
@@ -55,7 +55,7 @@ Posting to a discussion's `notes` endpoint auto-threads the reply (no `in_reply_
 
 ```bash
 DISC="<discussion id from step 1>"
-glab api -X POST "$API/discussions/$DISC/notes" -f "body=Done — <what you changed>."
+glab api -X POST "$API/discussions/$DISC/notes" -f "body=Done: <what you changed>."
 glab api -X PUT  "$API/discussions/$DISC?resolved=true"
 ```
 
@@ -79,8 +79,8 @@ reply_resolve() {  # $1=discussion-id  $2=reply text
 
 ## Common Mistakes
 
-- **Using `glab mr view --comments` for inline comments** — gives text without file/line; you can't locate them. Use the discussions API.
-- **Inventing `glab mr note resolve`** — resolve via `glab api -X PUT ".../discussions/<id>?resolved=true"`.
-- **Reading `old_line` instead of `new_line`** — for a comment on a changed line, the current code is at `new_line`.
-- **Force-pushing to address review** — you're adding a commit on a pushed branch; a plain `git push` is enough (force only if you rebased).
-- **Applying comments blindly** — evaluate first (receiving-code-review). Reply with what you actually changed, then resolve.
+- **Using `glab mr view --comments` for inline comments**: gives text without file/line; you can't locate them. Use the discussions API.
+- **Inventing `glab mr note resolve`**: resolve via `glab api -X PUT ".../discussions/<id>?resolved=true"`.
+- **Reading `old_line` instead of `new_line`**: for a comment on a changed line, the current code is at `new_line`.
+- **Force-pushing to address review**: you're adding a commit on a pushed branch; a plain `git push` is enough (force only if you rebased).
+- **Applying comments blindly**: evaluate first (receiving-code-review). Reply with what you actually changed, then resolve.

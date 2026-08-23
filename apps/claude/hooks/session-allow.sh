@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# session-allow.sh — Claude PermissionRequest hook
-# No Python, no multiprocessing overhead — osascript + jq only
+# session-allow.sh: Claude PermissionRequest hook
+# No Python, no multiprocessing overhead: osascript + jq only
 
 SESSION_MAX_AGE=43200 # 12 hours
 TEMP_DIR="${TEMP:-${TMP:-/tmp}}"
@@ -116,7 +116,7 @@ prompt_user() {
     out=$(
         osascript << OSASCRIPT 2> /dev/null
 display dialog "${sd}
-prefix: ${sp}" buttons {"Session", "Once", "Deny", "Claude"} default button "Once" with title "Claude — ${sh}"
+prefix: ${sp}" buttons {"Session", "Once", "Deny", "Claude"} default button "Once" with title "Claude - ${sh}"
 OSASCRIPT
     ) || {
         printf 'c'

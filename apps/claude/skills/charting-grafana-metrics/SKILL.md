@@ -1,6 +1,6 @@
 ---
 name: charting-grafana-metrics
-description: Use when you need a clean PNG chart of Grafana/Prometheus metrics — comparing series (versions, canary vs control, before/after), attaching a graph to a Jira ticket or MR, or when Grafana's server-side panel render (Image Renderer plugin) is unavailable and get_panel_image returns "No image renderer available".
+description: Use when you need a clean PNG chart of Grafana/Prometheus metrics, comparing series (versions, canary vs control, before/after), attaching a graph to a Jira ticket or MR, or when Grafana's server-side panel render (Image Renderer plugin) is unavailable and get_panel_image returns "No image renderer available".
 ---
 
 # Charting Grafana metrics
@@ -9,7 +9,7 @@ description: Use when you need a clean PNG chart of Grafana/Prometheus metrics �
 
 Renders a dark-themed, Grafana-styled PNG line chart from a PromQL query, fetched
 through the **Grafana datasource proxy** (so no direct Prometheus network access is
-needed — the Grafana SA token is enough). Reproducible and scriptable, unlike a
+needed, the Grafana SA token is enough). Reproducible and scriptable, unlike a
 manual screenshot. Can attach the result straight to a Jira issue.
 
 **Why this exists:** many Grafana instances lack the *Image Renderer* plugin, so
@@ -51,14 +51,14 @@ Token: auto-read from `~/.claude.json` (`grafana_dynfactory` MCP env,
 
 ## Workflow
 
-1. Get the datasource UID + PromQL — from the dashboard (`get_dashboard_panel_queries`)
+1. Get the datasource UID + PromQL from the dashboard (`get_dashboard_panel_queries`)
    or write the query yourself.
 2. Run the script (via the venv python). Colors auto-assign from the Grafana palette
    in series order; legend shows mean/max per series.
 3. Read the PNG back to eyeball it before sharing.
 4. Optionally attach to Jira with `--attach-jira`.
 
-## Example (the canonical one — HAProxy 3.2 vs 2.7 node memory)
+## Example (the canonical one: HAProxy 3.2 vs 2.7 node memory)
 
 ```bash
 VENV=~/.claude/skills/charting-grafana-metrics/.venv/bin/python
@@ -69,7 +69,7 @@ $VENV $SKILL/plot_grafana.py \
   --datasource-uid 0wjZprLnk \
   --expr '(1 - (node_memory_MemAvailable_bytes{instance=~"proxy-bidderlevel2-ap1-(1|4)"} / node_memory_MemTotal_bytes{instance=~"proxy-bidderlevel2-ap1-(1|4)"})) * 100' \
   --start now-6h --step 60 \
-  --title "bidderlevel2 — node memory used %  ·  3.2 vs 2.7 (POP ap1, last 6h)" \
+  --title "bidderlevel2 - node memory used %  ·  3.2 vs 2.7 (POP ap1, last 6h)" \
   --ylabel "Memory used %" --ymin 0 --ymax 45 \
   --rename '{"proxy-bidderlevel2-ap1-1":"HAProxy 3.2.20 (ap1-1)","proxy-bidderlevel2-ap1-4":"HAProxy 2.7.11 (ap1-4, control)"}' \
   --annotate-max "reload: old+new worker coexist → node mem ~2x" \
@@ -89,4 +89,4 @@ $VENV $SKILL/plot_grafana.py \
 - **`:9100` (or any `:port`) in legend names** → auto-stripped from the derived
   series name, so `--rename` targets the clean host (e.g. `proxy-...-ap1-1`, not
   `proxy-...-ap1-1:9100`). No need to list both forms.
-- **`now-90m` style** not supported — units are s/m/h/d only (e.g. `now-6h`).
+- **`now-90m` style** not supported: units are s/m/h/d only (e.g. `now-6h`).

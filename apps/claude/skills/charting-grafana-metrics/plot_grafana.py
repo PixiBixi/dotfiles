@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-# Grafana "classic" palette — colors are assigned to series in order.
+# Grafana "classic" palette: colors are assigned to series in order.
 PALETTE = ["#73BF69", "#FF9830", "#5794F2", "#F2495C", "#B877D9",
            "#FADE2A", "#37872D", "#E0B400", "#1F60C4", "#8AB8FF"]
 
@@ -63,7 +63,7 @@ def fetch(args, token):
         sys.exit(f"Prometheus query failed: {payload}")
     res = payload["data"]["result"]
     if not res:
-        sys.exit("Query returned no series — check expr / datasource / time range.")
+        sys.exit("Query returned no series: check expr / datasource / time range.")
     return res
 
 
