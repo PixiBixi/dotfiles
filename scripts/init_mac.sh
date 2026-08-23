@@ -365,7 +365,7 @@ setup_claude() {
     fi
 }
 
-# Install Claude Code skills owned by external CLIs — their content is never
+# Install Claude Code skills owned by external CLIs: their content is never
 # versioned here, only the provenance needed to reinstall them.
 install_claude_skills() {
     log_info "Installing externally-managed Claude Code skills..."

@@ -65,9 +65,9 @@ check_file() {
                 src_md5=$(md5 -q "${repo_path}")
                 dst_md5=$(md5 -q "${deployed}")
                 if [[ "${src_md5}" == "${dst_md5}" ]]; then
-                    printf "  ${YELLOW}⚠ NOT LINKED${NC}  %s  [copy, in sync — run init_mac.sh]\n" "${label}"
+                    printf "  ${YELLOW}⚠ NOT LINKED${NC}  %s  [copy, in sync: run init_mac.sh]\n" "${label}"
                 else
-                    printf "  ${RED}✗ NOT LINKED${NC}  %s  [copy, DRIFT — run init_mac.sh]\n" "${label}"
+                    printf "  ${RED}✗ NOT LINKED${NC}  %s  [copy, DRIFT: run init_mac.sh]\n" "${label}"
                     ((err++)) || true
                 fi
                 ((warn++)) || true
