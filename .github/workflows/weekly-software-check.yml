@@ -44,7 +44,7 @@ jobs:
           while IFS= read -r line; do
             formula=$(echo "$line" | sed 's/^brew "\([^"]*\)".*/\1/')
 
-            # Skip tap formulas (owner/tap/name) — may be macOS-only even if tap loads
+            # Skip tap formulas (owner/tap/name): may be macOS-only even if tap loads
             if [[ "$formula" == *"/"* ]]; then
               echo "Skipping tap formula (platform check skipped): $formula"
               continue
@@ -67,7 +67,7 @@ jobs:
           while IFS= read -r line; do
             cask=$(echo "$line" | sed 's/^cask "\([^"]*\)".*/\1/')
 
-            # Skip tap casks (owner/tap/name) — not available on formulae.brew.sh
+            # Skip tap casks (owner/tap/name): not available on formulae.brew.sh
             if [[ "$cask" == *"/"* ]]; then
               echo "Skipping tap cask (platform check skipped): $cask"
               continue
@@ -96,7 +96,7 @@ jobs:
               echo "All formulas and casks valid ✓"
             fi
             echo ""
-            echo "> Tap formulas and tap casks (\`owner/tap/name\`) are skipped — platform-specific."
+            echo "> Tap formulas and tap casks (\`owner/tap/name\`) are skipped: platform-specific."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload results
@@ -139,7 +139,7 @@ jobs:
               echo "All formulas and casks valid ✓"
             fi
             echo ""
-            echo "> Tap formulas and tap casks (\`owner/tap/name\`) are skipped — too platform-specific to validate on Linux."
+            echo "> Tap formulas and tap casks (\`owner/tap/name\`) are skipped: too platform-specific to validate on Linux."
           } > /tmp/pr_body.txt
 
       - name: Create pull request
