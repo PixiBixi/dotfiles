@@ -65,7 +65,7 @@ dotfiles/
 │       └── extensions.txt
 ├── scripts/
 │   ├── init_mac.sh              # Script d'installation principal
-│   ├── brew-usage-audit.sh      # Audit packages Homebrew vs historique shell
+│   ├── brew-usage-audit.sh      # Audit packages Homebrew via l'atime des binaires
 │   └── init.sh
 ├── .markdownlint.json
 ├── .pre-commit-config.yaml
@@ -161,22 +161,41 @@ Les formulas de taps (`owner/tap/name`) sont ignorées — trop spécifiques à 
 
 ### Auditer l'usage du Brewfile
 
-`scripts/brew-usage-audit.sh` croise les binaires Homebrew installés avec l'historique shell
-pour identifier les packages jamais ou rarement utilisés.
+`scripts/brew-usage-audit.sh` identifie les packages jamais utilisés en lisant l'**atime des
+binaires** dans le Cellar. APFS met l'atime à jour à chaque exécution, donc le signal capte
+tous les chemins d'invocation : alias, fonctions shell, hooks pre-commit, serveurs LSP,
+scripts, et commandes lancées par un agent de code.
+
+L'historique shell ne capte aucun de ces cas et sert seulement de preuve d'appoint. Un audit
+basé sur l'historique déclare `bat` inutilisé alors qu'il tourne à chaque `cat`.
 
 ```bash
-# Audit complet (< 5s)
+# Signaler tout ce qui n'a pas servi depuis 90 jours (défaut)
 ./scripts/brew-usage-audit.sh
 
-# Derniers 90 jours, signaler < 5 hits
-./scripts/brew-usage-audit.sh --days 90 --threshold 5
+# Seuil à 180 jours, leaves uniquement (pas les dépendances)
+./scripts/brew-usage-audit.sh --stale-days 180 --leaves-only
 
-# Seulement les leaf packages (pas les dépendances)
-./scripts/brew-usage-audit.sh --leaves-only
+# Tout lister, y compris les packages actifs, + export JSON
+./scripts/brew-usage-audit.sh --all --json /tmp/audit.json
 
 # Aide complète
 ./scripts/brew-usage-audit.sh --help
 ```
+
+La colonne `EVIDENCE` nomme le chemin d'invocation que l'atime ne montre pas : l'alias de
+`config/.zsh_alias`, la sous-commande `kubectl <plugin>`, ou le fichier de config qui
+consomme l'outil (`.pre-commit-config.yaml`, `lsp.lua`, `init_mac.sh`). Un package avec une
+evidence est utilisé même à 0 hit d'historique : ne pas le supprimer sur le seul compte de jours.
+
+La mention `never run since install` avec une date d'install récente n'est **pas** un verdict :
+`brew upgrade` réécrit le keg et remet l'atime à la date d'install. Laisser passer quelques
+semaines avant de s'y fier.
+
+Deux limites connues : les packages sans binaire dans `$(brew --prefix)/bin` ne sont pas
+audités (`switch` livre un `switch.sh` à sourcer), et le script cible macOS (il épingle
+`/usr/bin/stat` et `/bin/date` car les coreutils GNU masquent les deux avec des flags
+incompatibles).
 
 Avant de supprimer un package suggéré :
 

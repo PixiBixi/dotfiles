@@ -21,8 +21,8 @@ make help                # list targets
 # Check for drift between config/ and deployed $HOME files
 ./scripts/check-drift.sh
 
-# Audit Homebrew packages vs shell-history usage
-./scripts/brew-usage-audit.sh [--days N] [--threshold N] [--leaves-only]
+# Audit Homebrew packages by binary atime (catches aliases, hooks, LSPs, agents)
+./scripts/brew-usage-audit.sh [--stale-days N] [--leaves-only] [--all] [--json FILE]
 
 # Pre-commit
 pre-commit install                 # after cloning
