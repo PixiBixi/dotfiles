@@ -5,11 +5,26 @@
 [interactive]
     diffFilter = delta --color-only
 
+[diff]
+    algorithm = histogram
+    colorMoved = plain
+
+[delta]
+    # diff.colorMoved emits bold magenta/cyan that delta renders like any
+    # other line. Without this mapping colorMoved has no visible effect.
+    map-styles = bold purple => syntax magenta, bold cyan => syntax blue
+
 [pull]
     rebase = true
 
 [merge]
     conflictstyle = zdiff3
+
+[rerere]
+    # Replays conflict resolutions already made. Pays off on long-lived
+    # terragrunt branches rebased onto a moving main.
+    enabled = true
+    autoUpdate = true
 
 [alias]
     a = add
