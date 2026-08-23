@@ -1,0 +1,4 @@
+# Signers allowed for gpg.ssh.allowedSignersFile. Git matches the key, not the
+# principal, so a stale principal still verifies but %GS reports the old
+# identity. Keep the current work address first, legacy domains after.
+jdelgado@equativ.com,jdelgado@smartadserver.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILlN4VPswMU4X9cS+DR3MSgesenEDQTfbJqXMkNt6yCG

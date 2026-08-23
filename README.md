@@ -46,6 +46,7 @@ dotfiles/
 │   ├── .kube/
 │   │   └── switch-config.yaml
 │   └── .config/
+│       ├── git/               # allowed_signers, ignore
 │       └── nvim/
 ├── packages/                    # Listes de paquets à installer
 │   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
@@ -117,6 +118,17 @@ Dans votre `.gitconfig` principal, incluez conditionnellement:
 [includeIf "gitdir:~/Documents/work/"]
     path = ~/.gitconfig_work
 ```
+
+Deux fichiers sous `config/.config/git/` sont symlinkés vers `~/.config/git/`
+et complètent cette config:
+
+- `allowed_signers`: référencé par `gpg.ssh.allowedSignersFile`. Git valide la
+  signature sur la **clé**, pas sur le principal, donc une adresse périmée
+  vérifie quand même mais `git log --show-signature` affiche l'ancienne
+  identité. Mettre l'adresse courante en premier, les domaines historiques
+  après, séparés par des virgules sur la même ligne.
+- `ignore`: gitignore global, lu par défaut à cet emplacement sans passer par
+  `core.excludesFile`.
 
 ### 2. Kubeconfig
 

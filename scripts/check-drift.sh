@@ -159,6 +159,8 @@ check_file "config/.vimrc" "${HOME}/.vimrc" symlink
 check_file "config/.gitconfig_work" "${HOME}/.gitconfig_work" machine
 check_file "config/.ssh/config" "${HOME}/.ssh/config" machine
 check_file "config/.kube/switch-config.yaml" "${HOME}/.kube/switch-config.yaml" machine
+check_file "config/.config/git/allowed_signers" "${HOME}/.config/git/allowed_signers" symlink
+check_file "config/.config/git/ignore" "${HOME}/.config/git/ignore" symlink
 
 # ── apps/claude/ ───────────────────────────────────────────────────────────
 echo
