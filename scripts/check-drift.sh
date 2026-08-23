@@ -100,6 +100,44 @@ check_file() {
     esac
 }
 
+# Directory variant of check_file: skills deploy as symlinked directories.
+check_dir() {
+    local repo_rel="$1"
+    local deployed="$2"
+
+    local repo_path="${REPO_DIR}/${repo_rel}"
+    local label
+    label="$(printf '%-45s' "${repo_rel}")"
+
+    if [[ ! -d "${repo_path}" ]]; then
+        printf "  ${DIM}~ SKIP       ${NC}  %s  ${DIM}[not in repo]${NC}\n" "${label}"
+        return
+    fi
+
+    if [[ ! -e "${deployed}" && ! -L "${deployed}" ]]; then
+        printf "  ${RED}✗ NOT DEPLOYED${NC}  %s\n" "${label}"
+        ((err++)) || true
+        return
+    fi
+
+    if [[ -L "${deployed}" ]]; then
+        local target
+        target="$(readlink "${deployed}")"
+        # setup_claude() links with a trailing slash, strip it before comparing
+        if [[ "${target%/}" == "${repo_path%/}" ]]; then
+            printf "  ${GREEN}✓ OK        ${NC}  %s  ${CYAN}[symlink]${NC}\n" "${label}"
+            ((ok++)) || true
+        else
+            printf "  ${YELLOW}⚠ WRONG LINK${NC}  %s  → %s\n" "${label}" "${target}"
+            ((warn++)) || true
+        fi
+    else
+        # A real directory means an external installer owns it, see CLAUDE.md
+        printf "  ${YELLOW}⚠ NOT LINKED${NC}  %s  [real dir, run init_mac.sh]\n" "${label}"
+        ((warn++)) || true
+    fi
+}
+
 echo
 printf "${BOLD}Dotfiles drift check${NC}  ${DIM}repo: ${REPO_DIR}${NC}\n"
 
@@ -128,6 +166,29 @@ printf "${BOLD}apps/claude/ → ~/.claude${NC}\n"
 
 check_file "apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md" symlink
 check_file "apps/claude/settings.json" "${HOME}/.claude/settings.json" symlink
+
+for hook in "${REPO_DIR}/apps/claude/hooks/"*.sh; do
+    [[ -f "${hook}" ]] || continue
+    name="$(basename "${hook}")"
+    check_file "apps/claude/hooks/${name}" "${HOME}/.claude/hooks/${name}" symlink
+done
+
+# Orphans: a deployed hook with no repo counterpart is still wired into
+# settings.json but nothing versions it. session-allow.py survived this way.
+for deployed in "${HOME}/.claude/hooks/"*; do
+    [[ -e "${deployed}" ]] || continue
+    name="$(basename "${deployed}")"
+    [[ -e "${REPO_DIR}/apps/claude/hooks/${name}" ]] && continue
+    printf "  ${YELLOW}⚠ ORPHAN    ${NC}  %-45s  [deployed, absent from repo]\n" \
+        "hooks/${name}"
+    ((warn++)) || true
+done
+
+for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
+    [[ -d "${skill_dir}" ]] || continue
+    name="$(basename "${skill_dir}")"
+    check_dir "apps/claude/skills/${name}" "${HOME}/.claude/skills/${name}"
+done
 
 # ── Summary ────────────────────────────────────────────────────────────────
 echo

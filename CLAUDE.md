@@ -54,6 +54,11 @@ Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.
 
 After editing a `config/` file, deploy it (`cp config/.zshrc ~/.zshrc`, etc.) or run `init_mac.sh` so the deployed copy stays in sync.
 
+`check-drift.sh` also covers `~/.claude`: `CLAUDE.md`, `settings.json`, every `apps/claude/hooks/*.sh` and every `apps/claude/skills/*/`. Hooks and skills are enumerated from the same globs `setup_claude()` deploys, so adding one needs no edit here. Two extra verdicts apply there:
+
+- `ORPHAN`: a file in `~/.claude/hooks/` with no repo counterpart. It may still be wired into `settings.json` while nothing versions it.
+- a skill deployed as a **real directory** instead of a symlink means an external installer owns it, see `Externally-managed skills` below.
+
 ## init_mac.sh
 
 `scripts/init_mac.sh` is the single entrypoint for provisioning a new Mac. It uses two path variables:
