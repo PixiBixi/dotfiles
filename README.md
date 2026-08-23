@@ -29,7 +29,7 @@ Le script installe automatiquement:
 
 ```text
 dotfiles/
-├── config/                      # Dotfiles — miroir de $HOME
+├── config/                      # Dotfiles, miroir de $HOME
 │   ├── .zshrc
 │   ├── .zsh_alias
 │   ├── .zsh_functions
@@ -150,12 +150,12 @@ Le workflow `.github/workflows/weekly-software-check.yml` tourne chaque lundi et
 
 Le workflow comporte deux jobs :
 
-- `check-brew` — valide les formulas (`brew info`) et les casks (API `formulae.brew.sh`) dans `packages/Brewfile`
-- `create-pr` — applique les suppressions et ouvre la PR si nécessaire
+- `check-brew` : valide les formulas (`brew info`) et les casks (API `formulae.brew.sh`) dans `packages/Brewfile`
+- `create-pr` : applique les suppressions et ouvre la PR si nécessaire
 
 Homebrew est mis en cache entre les runs pour éviter une réinstallation complète à chaque exécution.
 
-Les formulas de taps (`owner/tap/name`) sont ignorées — trop spécifiques à macOS pour être validées sur Linux.
+Les formulas de taps (`owner/tap/name`) sont ignorées, trop spécifiques à macOS pour être validées sur Linux.
 
 ## Maintenance
 
@@ -257,9 +257,9 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 ### Claude Code / AI Tooling
 
-- **Claude Code** — configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
-- **Skills externes** — celles gérées par leur propre installeur ne sont pas versionnées : `install_claude_skills()` les réinstalle depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream. Rafraîchir le manifeste avec `make update-claude-skills`
-- **RTK** — proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique et génère `~/.claude/RTK.md`)
+- **Claude Code** : configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
+- **Skills externes** : celles gérées par leur propre installeur ne sont pas versionnées. `install_claude_skills()` les réinstalle depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream. Rafraîchir le manifeste avec `make update-claude-skills`
+- **RTK** : proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique et génère `~/.claude/RTK.md`)
 
 ### Development Tools
 
