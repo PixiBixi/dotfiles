@@ -35,12 +35,12 @@ pre-commit autoupdate              # bump hook versions
 
 macOS dotfiles repo organized into four purpose-driven directories:
 
-- `config/` — dotfiles deployed to `$HOME` (zsh, git, nvim, ssh, kube, tmux, vim, wezterm). Mirrors the target `$HOME` path structure.
-- `packages/` — package lists: `Brewfile`, `npm.txt`, `gems.txt`, `skillfish.json`. **krew plugins live inside the `Brewfile`** as `krew "..."` entries (no separate `krew.txt`).
-- `apps/` — non-dotfile app configs:
-  - `claude/` — `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`)
+- `config/`: dotfiles deployed to `$HOME` (zsh, git, nvim, ssh, kube, tmux, vim, wezterm). Mirrors the target `$HOME` path structure.
+- `packages/` holds the package lists: `Brewfile`, `npm.txt`, `gems.txt`, `skillfish.json`. **krew plugins live inside the `Brewfile`** as `krew "..."` entries (no separate `krew.txt`).
+- `apps/` holds the non-dotfile app configs:
+  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`)
   - `raycast/`, `vscode/`
-- `scripts/` — `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`, `init.sh` (legacy, do not use)
+- `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`, `init.sh` (legacy, do not use)
 
 Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.yamllint.yaml`, `.prettierignore`. Note: `.markdownlint.json` lives in `config/` (deployed to `$HOME`) and is referenced via `--config config/.markdownlint.json` in the pre-commit hook.
 
@@ -48,9 +48,9 @@ Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.
 
 `config/` files are deployed to `$HOME` either as **symlinks** or **copies**. `scripts/check-drift.sh` classifies each managed path:
 
-- `symlink` — should point back to the repo; drift = wrong/missing link
-- `copy` — must match the repo by md5; drift = re-run `init_mac.sh` or `cp` the file
-- `machine` — machine-specific, diffs are expected and informational only
+- `symlink`: should point back to the repo; drift = wrong/missing link
+- `copy`: must match the repo by md5; drift = re-run `init_mac.sh` or `cp` the file
+- `machine`: machine-specific, diffs are expected and informational only
 
 After editing a `config/` file, deploy it (`cp config/.zshrc ~/.zshrc`, etc.) or run `init_mac.sh` so the deployed copy stays in sync.
 
@@ -58,10 +58,10 @@ After editing a `config/` file, deploy it (`cp config/.zshrc ~/.zshrc`, etc.) or
 
 `scripts/init_mac.sh` is the single entrypoint for provisioning a new Mac. It uses two path variables:
 
-- `SCRIPT_DIR` — the `scripts/` directory
-- `REPO_DIR` — the repo root (`SCRIPT_DIR/..`)
+- `SCRIPT_DIR`: the `scripts/` directory
+- `REPO_DIR`: the repo root (`SCRIPT_DIR/..`)
 
-All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, etc. The script is idempotent — each function checks for existing installations before acting. `setup_claude()` deploys `apps/claude/CLAUDE.md` + `settings.json` to `~/.claude/`; `setup_rtk()` runs `rtk init --global`, which generates `~/.claude/RTK.md` (unversioned on purpose — it tracks the installed rtk version) and wires the PreToolUse hook in `settings.json`. Since rtk 0.44 that hook is the built-in `rtk hook claude`; older versions generated a `~/.claude/hooks/rtk-rewrite.sh` wrapper that no longer exists, so re-run `rtk init --global` after a major rtk upgrade and commit the resulting `settings.json` delta.
+All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, etc. The script is idempotent: each function checks for existing installations before acting. `setup_claude()` deploys `apps/claude/CLAUDE.md` + `settings.json` to `~/.claude/`; `setup_rtk()` runs `rtk init --global`, which generates `~/.claude/RTK.md` (unversioned on purpose, it tracks the installed rtk version) and wires the PreToolUse hook in `settings.json`. Since rtk 0.44 that hook is the built-in `rtk hook claude`; older versions generated a `~/.claude/hooks/rtk-rewrite.sh` wrapper that no longer exists, so re-run `rtk init --global` after a major rtk upgrade and commit the resulting `settings.json` delta.
 
 ## apps/claude/skills
 
@@ -71,7 +71,7 @@ Locally-authored skills live here too (e.g. `incident-response/`): a SKILL.md wi
 
 ### Externally-managed skills
 
-Skills owned by their own installer are **never** vendored here — only the provenance needed to reinstall them. `install_claude_skills()` (step `claude-skills`) handles all four cases:
+Skills owned by their own installer are **never** vendored here, only the provenance needed to reinstall them. `install_claude_skills()` (step `claude-skills`) handles all four cases:
 
 | Skill | Installer |
 |-------|-----------|
@@ -80,18 +80,18 @@ Skills owned by their own installer are **never** vendored here — only the pro
 | `humanizer` | `git clone github.com/blader/humanizer` |
 | `seo` | `Bhanunamikaze/Agentic-SEO-Skill` `install.sh --target claude` (also deploys the `seo-*` agents to `~/.claude/agents/`) |
 
-`packages/skillfish.json` is generated by `npx skillfish bundle --global`, which only captures skills carrying a `.skillfish.json` manifest — hence the three explicit cases above. Refresh it with `make update-claude-skills`.
+`packages/skillfish.json` is generated by `npx skillfish bundle --global`, which only captures skills carrying a `.skillfish.json` manifest, hence the three explicit cases above. Refresh it with `make update-claude-skills`.
 
 Rule of thumb: `~/.claude/skills/<name>` being a **symlink** means the repo owns it; a **real directory** means an external installer owns it. `skillfish list` shows exactly the second group.
 
-`make update-skills` passes `--commit`, so each updated skill is committed on its own (`chore(claude): sync <name> skill from upstream`) — one commit per scope, no manual staging. Run the script without `--commit` to update files without committing; `--check` never commits.
+`make update-skills` passes `--commit`, so each updated skill is committed on its own (`chore(claude): sync <name> skill from upstream`), one commit per scope, no manual staging. Run the script without `--commit` to update files without committing; `--check` never commits.
 
 ## CI
 
 `.github/workflows/weekly-software-check.yml` runs every Monday (`0 8 * * 1` UTC) to validate that `packages/Brewfile` entries still exist. Two jobs:
 
-- `check-brew` — validates formulas (`brew info`) and casks (via `formulae.brew.sh` API, since casks aren't installable on the Linux runner); tap formulas (`owner/tap/name`) are skipped. Emits the pruned Brewfile as an artifact.
-- `create-pr` — applies the removals and opens a PR if anything changed.
+- `check-brew`: validates formulas (`brew info`) and casks (via `formulae.brew.sh` API, since casks aren't installable on the Linux runner); tap formulas (`owner/tap/name`) are skipped. Emits the pruned Brewfile as an artifact.
+- `create-pr`: applies the removals and opens a PR if anything changed.
 
 Homebrew is cached between runs; `concurrency: weekly-software-check` prevents overlapping runs.
 
@@ -99,12 +99,12 @@ Homebrew is cached between runs; `concurrency: weekly-software-check` prevents o
 
 Hooks enforced on every commit:
 
-- **gitleaks** — secret scanning (hardcoded credentials, tokens, keys)
-- **shellcheck** — shell script linting, severity `warning`. Excludes zsh files matching `(^|/)\.zsh`.
-- **shfmt** — shell formatting: 4-space indent, `-ci -bn -sr`.
-- **markdownlint** — `--fix`, requires H1 as first line, single H1 per file, language on all fenced code blocks (use `text` for file trees). Excludes `apps/claude/skills/` (upstream-managed).
-- **yamllint** — config in `.yamllint.yaml`
-- **prettier** — JSON formatting, 4-space indent. Excludes `apps/claude/settings.json`.
-- **conventional-pre-commit** — enforces Conventional Commits on commit messages (`feat:`, `fix:`, `chore:`, `docs:`, `perf:`, `refactor:`)
+- **gitleaks**: secret scanning (hardcoded credentials, tokens, keys)
+- **shellcheck**: shell script linting, severity `warning`. Excludes zsh files matching `(^|/)\.zsh`.
+- **shfmt**: shell formatting, 4-space indent, `-ci -bn -sr`.
+- **markdownlint**: `--fix`, requires H1 as first line, single H1 per file, language on all fenced code blocks (use `text` for file trees). Excludes `apps/claude/skills/` (upstream-managed).
+- **yamllint**: config in `.yamllint.yaml`
+- **prettier**: JSON formatting, 4-space indent. Excludes `apps/claude/settings.json`.
+- **conventional-pre-commit**: enforces Conventional Commits on commit messages (`feat:`, `fix:`, `chore:`, `docs:`, `perf:`, `refactor:`)
 
 `apps/claude/CLAUDE.md` is globally excluded from all hooks (`exclude:` at top of config).
