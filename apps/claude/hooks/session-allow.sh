@@ -4,7 +4,6 @@
 
 SESSION_MAX_AGE=43200 # 12 hours
 TEMP_DIR="${TEMP:-${TMP:-/tmp}}"
-NL=$'\n'
 
 # ── Output helpers ────────────────────────────────────────────────────────────
 
@@ -29,7 +28,10 @@ read_allowlist() {
     [[ ! -f "$file" ]] && return
     local now mtime age
     now=$(date +%s)
-    mtime=$(stat -f %m "$file" 2> /dev/null) || {
+    # /usr/bin/stat, not stat: .zshrc puts coreutils gnubin on PATH and GNU stat
+    # reads -f as a filesystem format, so this failed and deleted the allowlist
+    # on every read. Session approvals never survived a single tool call.
+    mtime=$(/usr/bin/stat -f %m "$file" 2> /dev/null) || {
         rm -f "$file"
         return
     }
@@ -59,12 +61,24 @@ extract_prefix() {
     fi
 }
 
+# Split compound command on |  ||  &&  ; → one sub-command per line.
+# Pure bash, not sed: BSD sed rejects an unescaped newline in the replacement, so
+# the old sed split returned empty and silently killed the session allowlist. $nl
+# must stay a variable, bash will not expand $'\n' inside ${var//pat/rep}.
+split_compound() {
+    local s="$1" nl=$'\n'
+    s="${s//&&/$nl}"
+    s="${s//||/$nl}"
+    s="${s//|/$nl}"
+    s="${s//;/$nl}"
+    printf '%s' "$s"
+}
+
 # Split compound command on |  ||  &&  ; → output "TAG:prefix" per sub-command
 get_shell_prefixes() {
     local command="$1" tag="$2"
     local split
-    split=$(printf '%s' "$command" \
-        | sed "s/&&/${NL}/g; s/||/${NL}/g; s/|/${NL}/g; s/;/${NL}/g")
+    split=$(split_compound "$command")
     while IFS= read -r sub; do
         sub="${sub#"${sub%%[![:space:]]*}"}"
         sub="${sub%"${sub##*[![:space:]]}"}"
@@ -79,8 +93,7 @@ get_shell_prefixes() {
 is_shell_allowed() {
     local command="$1" tag="$2" al="$3"
     local split
-    split=$(printf '%s' "$command" \
-        | sed "s/&&/${NL}/g; s/||/${NL}/g; s/|/${NL}/g; s/;/${NL}/g")
+    split=$(split_compound "$command")
     while IFS= read -r sub; do
         sub="${sub#"${sub%%[![:space:]]*}"}"
         sub="${sub%"${sub##*[![:space:]]}"}"
