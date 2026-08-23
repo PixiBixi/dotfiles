@@ -161,8 +161,8 @@ export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
 # processes writing the same provider binary at once. That leaves the kernel
 # with a stale cdhash for the inode and macOS SIGKILLs the plugin on exec
 # ("Failed to read any lines from plugin's stdout"). The cache server
-# serializes installs instead, and reuses the existing cache directory —
-# its layout is identical to plugin_cache_dir.
+# serializes installs instead, and reuses the existing cache
+# directory, whose layout is identical to plugin_cache_dir.
 export TG_PROVIDER_CACHE=1
 export TG_PROVIDER_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
 # cairocffi (plugin social de mkdocs) ne trouve pas libcairo : le Python de uv
