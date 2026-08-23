@@ -51,7 +51,7 @@ complète sur des points qu'aucun lint n'attrape.
   les descriptions de front matter, ni dans les commentaires d'un bloc de code. C'est la
   signature la plus visible d'un texte généré. À la place, un `-`, une virgule, un
   deux-points, ou on coupe la phrase en deux. Les incises appariées (`mot — aparté — suite`)
-  passent en virgules ou en parenthèses, jamais en deux tirets : ça se lit mal, et un `-`
+  passent en virgules ou en parenthèses, jamais en deux tirets : ça se lit mal et un `-`
   en début de ligne est parsé comme un item de liste par markdownlint.
 - **Chiffres toujours en chiffres, jamais en lettres** : « 3 shards », « 12 fichiers »,
   « 100 caches », y compris en début de phrase. Seule exception, les approximations restent
@@ -66,11 +66,24 @@ complète sur des points qu'aucun lint n'attrape.
   valable en prose, mais on ne mélange pas `12 h` et `12h` dans le même article.
 - **Guillemets français** `« … »` avec une espace intérieure, pas de `"…"` droits dans la
   prose. C'est la convention des articles récents.
+- **Pas de virgule devant « et »**, ni devant « ou » et « ni ». C'est une faute, le
+  réflexe vient de l'anglais où le comma before *and* est courant. On écrit « le cache et
+  l'enveloppe mémoire », pas « le cache, et l'enveloppe mémoire ». Ça vaut aussi dans une
+  énumération, où le français met la virgule entre les termes mais pas devant le dernier :
+  « Ansible, Terraform et Makefile ». Attention au retour à la ligne, la faute se cache
+  aussi à cheval sur 2 lignes, virgule en fin de ligne et `et` au début de la suivante,
+  où un grep sur `, et` ne la voit pas.
+
+    La seule exception est la virgule qui **ferme une incise** et se trouve juste avant le
+    « et » : dans « le `main:` du build, qui vaut `""` tant qu'on ne l'a pas écrit, et ko
+    passe cette chaîne vide », la virgule appartient à la relative, pas au « et ». La
+    retirer casse la phrase. Avant un remplacement global, chercher le motif
+    `, <qui|que|dont|où> …, et` et épargner ces cas.
 - **Genre des acronymes et des composants** : il suit le nom-tête de l'expression
   développée, pas l'anglais. Une TSDB (*Database*), une API (*interface*), une VM
   (*machine*), une store gateway (*passerelle*), une query (*requête*). Mais **un querier**,
-  qui est le composant et pas la requête, un query frontend dont la tête est *frontend*, et
-  un compactor. Accorder aussi les pronoms et adjectifs.
+  qui est le composant et pas la requête, un query frontend dont la tête est *frontend*, un
+  compactor. Accorder aussi les pronoms et adjectifs.
 - **Le vocabulaire du domaine, pas son équivalent français** : `timerange` et pas « plage
   de temps », `replicas` et pas « réplicas », `at scale` et pas « à l'échelle », `évicté` et
   pas « évincé » quand on parle de spot. Les noms K8s et infra restent en anglais, sans
@@ -119,7 +132,7 @@ Un titre dit **ce que la section fait gagner**, pas le mécanisme qu'elle décri
 |---|---|---|
 | `Le compactor en CronJob` | `Compacter sans payer le disque 24 h/24` | nomme le mécanisme, pas le gain |
 | `Sharder la store gateway par plage de temps` | `Un shard par tranche de temps` | descriptif et trop long |
-| `L'arithmétique Hyperdisk, ou comment on paye un choix d'instances` | `Payer de la capacité disque pour acheter du débit` | tournure `X, ou comment Y`, et vocabulaire vendeur dans le titre |
+| `L'arithmétique Hyperdisk, ou comment on paye un choix d'instances` | `Payer de la capacité disque pour acheter du débit` | tournure `X, ou comment Y` et vocabulaire vendeur dans le titre |
 | `Un cache chaud partagé plutôt que 100 caches froids` | `Un seul cache chaud pour toute la flotte` | bonne idée, trop bavarde |
 | `Poser des limites avant que ça coûte` | `Mettre des limites en lecture et en ingestion` | `ça coûte` est vague |
 | `Ce qu'on a essayé et retiré` | `Nos tests et nos échecs` | plat |
@@ -161,7 +174,7 @@ Ce qui sonne faux, à la place :
 Il n'existe pas de skill dédié au SVG, le style maison est ci-dessous. En revanche, dès que
 le schéma **encode des quantités** (barres, frise proportionnelle, courbe), c'est un
 graphique et pas un diagramme : invoquer le skill `dataviz` **avant** d'écrire le premier
-`<rect>`, et faire tourner son validateur de palette.
+`<rect>` et faire tourner son validateur de palette.
 
 ```bash
 node scripts/validate_palette.js "#hex,#hex,#hex" --mode dark   # puis --mode light
@@ -169,7 +182,7 @@ node scripts/validate_palette.js "#hex,#hex,#hex" --mode dark   # puis --mode li
 
 Ce qu'il attrape et qu'on ne voit pas à l'œil : aplats trop saturés en gros blocs, absence
 de gap de 2px entre fills adjacents, libellés portant la couleur de la série au lieu d'une
-encre neutre, et séparation insuffisante pour les daltonismes.
+encre neutre et séparation insuffisante pour les daltonismes.
 
 Un SVG du wiki doit passer le validateur **sur les 2 surfaces**, puisqu'il ne peut pas
 livrer une palette par thème comme le suppose `dataviz`. Éviter `fill-opacity` pour la même
@@ -208,12 +221,12 @@ Toujours contrôler le rendu (`rsvg-convert` → PNG → Read) avant de committe
 
 ### Lisibilité dans les 2 thèmes
 
-Le site a un toggle clair/sombre, et un SVG appelé en `<img>` ne peut pas le voir : Material
+Le site a un toggle clair/sombre et un SVG appelé en `<img>` ne peut pas le voir : Material
 pose `data-md-color-scheme` sur `<html>`, hors de portée du SVG. Un
 `@media (prefers-color-scheme)` suivrait l'OS et se désynchroniserait du toggle. Donc chaque
 SVG doit être lisible sur les 2 fonds par construction.
 
-- **texte dans une boîte** : donner un `fill` à la boîte (`#161b22`), jamais `fill="none"`,
+- **texte dans une boîte** : donner un `fill` à la boîte (`#161b22`), jamais `fill="none"`
   et le texte peut rester clair (`#e6edf3`)
 - **texte posé sur le fond de page** (titres, légendes, libellés de flèche) : mid-grey
   `#6e7781` avec `font-weight="600"`. Ni `#e6edf3` (invisible en clair) ni `#333`
@@ -257,7 +270,7 @@ npx -y markdownlint-cli2@0.23.0 --config .markdownlint.json docs/**/tes-fichiers
 ## Gotcha 3 - MD046 casse sur les admonitions
 
 `markdownlint` ne connaît pas la syntaxe des admonitions MkDocs. Il lit le contenu indenté
-de 4 espaces comme un bloc de code indenté, et `MD046` (`code-block-style: consistent`)
+de 4 espaces comme un bloc de code indenté et `MD046` (`code-block-style: consistent`)
 casse. Deux cas :
 
 - **un bloc de code fencé dans une admonition** → erreur systématique
@@ -276,7 +289,7 @@ Python de `uv` ne regarde pas dans Homebrew, d'où 244 warnings `cairo` (un par 
 abort `--strict` sans aucun rapport avec le contenu.
 
 `~/.zshrc` exporte déjà la variable qui corrige ça, mais zsh ne source `.zshrc` que dans un
-shell **interactif** : un shell d'agent ne l'a jamais. Donc on préfixe la commande, et on
+shell **interactif** : un shell d'agent ne l'a jamais. Donc on préfixe la commande et on
 garde `--strict`, qui est exactement ce que fait la CI :
 
 ```bash
