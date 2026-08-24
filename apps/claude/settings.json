@@ -24,7 +24,23 @@
       "Bash(wc:*)",
       "Bash(file:*)",
       "Bash(which:*)",
-      "Bash(pwd:*)"
+      "Bash(pwd:*)",
+      "Bash(git --no-pager status:*)",
+      "Bash(git --no-pager rev-parse:*)",
+      "Bash(git --no-pager rev-list:*)",
+      "Bash(git --no-pager log:*)",
+      "Bash(git --no-pager diff:*)",
+      "Bash(git --no-pager show:*)",
+      "Bash(git --no-pager blame:*)",
+      "Bash(find:*)",
+      "Bash(shasum:*)",
+      "Bash(sha256sum:*)",
+      "Bash(date:*)",
+      "Bash(rg:*)",
+      "Bash(npx prettier:*)",
+      "Bash(rm -f openwiki/_plan.md)",
+      "Edit(openwiki/**)",
+      "Edit(CLAUDE.md)"
     ],
     "defaultMode": "auto"
   },
@@ -51,6 +67,16 @@
           {
             "type": "command",
             "command": "/bin/bash /Users/jeremy/.claude/hooks/session-allow.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$OPENWIKI_HOOK\" ] || OPENWIKI_HOOK=1 nohup /Users/jeremy/.claude/hooks/wiki-sync.sh >/dev/null 2>&1 &"
           }
         ]
       }
