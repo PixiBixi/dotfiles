@@ -59,6 +59,12 @@ After editing a `config/` file, deploy it (`cp config/.zshrc ~/.zshrc`, etc.) or
 - `ORPHAN`: a file in `~/.claude/hooks/` with no repo counterpart. It may still be wired into `settings.json` while nothing versions it.
 - a skill deployed as a **real directory** instead of a symlink means an external installer owns it, see `Externally-managed skills` below.
 
+It also checks the krew indexes from `packages/krew-indexes.txt` against `kubectl-krew index list`. This is the safety net for running `brew bundle install` directly instead of `init_mac.sh`, which bypasses the `krew-indexes` step:
+
+- `NOT REGISTERED` is an **error**: every `krew "<index>/<plugin>"` entry of the Brewfile fails without it, and the fix command is printed inline.
+- `WRONG URL` warns that the index name points somewhere else than the repo says.
+- `ORPHAN`: an index registered locally but absent from `krew-indexes.txt`, so it is lost on the next machine. Version it with `make update-krew-indexes`.
+
 ## init_mac.sh
 
 `scripts/init_mac.sh` is the single entrypoint for provisioning a new Mac. It uses two path variables:

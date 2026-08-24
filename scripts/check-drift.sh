@@ -192,6 +192,54 @@ for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
     check_dir "apps/claude/skills/${name}" "${HOME}/.claude/skills/${name}"
 done
 
+# ── packages/krew-indexes.txt → krew ───────────────────────────────────────
+# A missing index is silent until brew bundle hits a `krew "<index>/<plugin>"`
+# entry and fails: krew never auto-adds anything but `default`.
+echo
+printf "${BOLD}packages/krew-indexes.txt → krew${NC}\n"
+
+krew_index_file="${REPO_DIR}/packages/krew-indexes.txt"
+
+if ! command -v kubectl-krew &> /dev/null; then
+    printf "  ${DIM}~ SKIP       ${NC}  %-45s  ${DIM}[krew not installed]${NC}\n" \
+        "packages/krew-indexes.txt"
+elif [[ ! -f "${krew_index_file}" ]]; then
+    printf "  ${DIM}~ SKIP       ${NC}  %-45s  ${DIM}[not in repo]${NC}\n" \
+        "packages/krew-indexes.txt"
+else
+    # stderr carries krew's PATH warning, drop it so awk only sees the table
+    registered="$(kubectl-krew index list 2> /dev/null | awk 'NR > 1 {print $1"\t"$2}')"
+
+    while read -r idx_name idx_url; do
+        [[ -z "${idx_name}" || "${idx_name}" == \#* ]] && continue
+
+        label="$(printf '%-45s' "krew index ${idx_name}")"
+        current="$(printf '%s\n' "${registered}" | awk -F'\t' -v n="${idx_name}" '$1 == n {print $2}')"
+
+        if [[ -z "${current}" ]]; then
+            printf "  ${RED}✗ NOT REGISTERED${NC}  %s  [kubectl krew index add %s %s]\n" \
+                "${label}" "${idx_name}" "${idx_url}"
+            ((err++)) || true
+        elif [[ "${current}" != "${idx_url}" ]]; then
+            printf "  ${YELLOW}⚠ WRONG URL ${NC}  %s  → %s\n" "${label}" "${current}"
+            ((warn++)) || true
+        else
+            printf "  ${GREEN}✓ OK        ${NC}  %s  ${CYAN}[index]${NC}\n" "${label}"
+            ((ok++)) || true
+        fi
+    done < "${krew_index_file}"
+
+    # Orphans: an index used locally but unversioned is lost on the next machine
+    while IFS=$'\t' read -r idx_name _; do
+        [[ -z "${idx_name}" || "${idx_name}" == "default" ]] && continue
+        awk -v n="${idx_name}" '$1 == n {found = 1} END {exit !found}' \
+            "${krew_index_file}" && continue
+        printf "  ${YELLOW}⚠ ORPHAN    ${NC}  %-45s  [registered, absent from repo]\n" \
+            "krew index ${idx_name}"
+        ((warn++)) || true
+    done <<< "${registered}"
+fi
+
 # ── Summary ────────────────────────────────────────────────────────────────
 echo
 printf "${BOLD}Summary:${NC}  ${GREEN}${ok} ok${NC}  ${YELLOW}${warn} warnings${NC}  ${RED}${err} errors${NC}\n"
