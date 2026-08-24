@@ -653,6 +653,7 @@ main() {
     run_step "neovim" setup_neovim
     run_step "claude-code" install_claude_code
     run_step "claude" setup_claude
+    run_step "claude-skills" install_claude_skills
     run_step "rtk" setup_rtk
 
     echo
