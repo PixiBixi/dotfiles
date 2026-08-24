@@ -97,5 +97,7 @@
   ],
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "autoUpdatesChannel": "latest",
+  "outputStyle": "Concise"
 }
