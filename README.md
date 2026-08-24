@@ -269,7 +269,7 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 ### Claude Code / AI Tooling
 
-- **Claude Code** : configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
+- **Claude Code** : installé par l'installeur natif (`curl -fsSL https://claude.ai/install.sh | bash -s latest`, step `claude-code`) et non par Homebrew, qui est trop lent à mettre à jour. Configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
 - **Skills externes** : celles gérées par leur propre installeur ne sont pas versionnées. `install_claude_skills()` les réinstalle depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream. Rafraîchir le manifeste avec `make update-claude-skills`
 - **RTK** : proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique et génère `~/.claude/RTK.md`)
 

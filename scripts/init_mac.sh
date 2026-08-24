@@ -55,6 +55,7 @@ STEPS=(
     "npm:install_npm_packages"
     "gems:install_gem_packages"
     "neovim:setup_neovim"
+    "claude-code:install_claude_code"
     "claude:setup_claude"
     "claude-skills:install_claude_skills"
     "rtk:setup_rtk"
@@ -325,6 +326,23 @@ setup_rtk() {
 
     rtk init --global
     log_success "RTK hook configured ($(rtk --version))"
+}
+
+# Install Claude Code from the native installer: the Homebrew cask lags the
+# release train and its update path is much slower than the built-in updater.
+install_claude_code() {
+    log_info "Installing Claude Code..."
+
+    if [[ -x "${HOME}/.local/bin/claude" ]]; then
+        log_success "Claude Code already installed, self-updates on the latest channel"
+        return 0
+    fi
+
+    if curl -fsSL https://claude.ai/install.sh | bash -s latest; then
+        log_success "Claude Code installed to ~/.local/bin/claude"
+    else
+        log_warning "Claude Code installation failed"
+    fi
 }
 
 # Setup Claude Code configuration
@@ -633,6 +651,7 @@ main() {
     run_step "npm" install_npm_packages
     run_step "gems" install_gem_packages
     run_step "neovim" setup_neovim
+    run_step "claude-code" install_claude_code
     run_step "claude" setup_claude
     run_step "rtk" setup_rtk
 
