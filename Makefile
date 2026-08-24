@@ -5,16 +5,25 @@ SCRIPT     := $(SKILLS_DIR).update-skills.py
 
 .DEFAULT_GOAL := help
 
-.PHONY: help update update-brew update-npm update-gems update-skills update-claude-skills check
+.PHONY: help update update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills check
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-update: update-brew update-npm update-gems update-skills update-claude-skills ## Update all (brew, npm, gems, skills)
+update: update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills ## Update all (brew, krew indexes, npm, gems, skills)
 
 update-brew: ## Dump installed Homebrew packages → packages/Brewfile
 	@echo "Updating packages/Brewfile..."
 	@brew bundle dump --force --no-describe --file="$(PKGS_DIR)Brewfile"
+	@echo "Done."
+
+update-krew-indexes: ## Dump custom krew indexes → packages/krew-indexes.txt (skips 'default')
+	@{ \
+		echo '# Custom krew indexes: <name> <git url>'; \
+		echo '# brew bundle only runs `kubectl krew install <name>`, it never adds an index.'; \
+		echo '# Any Brewfile entry prefixed `<index>/` needs its index registered first.'; \
+		kubectl-krew index list | awk 'NR > 1 && $$1 != "default" {print $$1, $$2}' | sort; \
+	} > "$(PKGS_DIR)krew-indexes.txt"
 	@echo "Done."
 
 update-npm: ## Dump global npm packages → packages/npm.txt

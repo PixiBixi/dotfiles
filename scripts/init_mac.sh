@@ -47,6 +47,7 @@ STEPS=(
     "oh-my-zsh:install_oh_my_zsh"
     "zsh-plugins:install_zsh_plugins"
     "dotfiles:setup_dotfiles"
+    "krew-indexes:setup_krew_indexes"
     "brew-packages:install_brew_packages"
     "fzf:setup_fzf"
     "gcloud:setup_gcloud_auth"
@@ -503,6 +504,39 @@ setup_neovim() {
     log_info "Run ':Mason' in Neovim to verify installations"
 }
 
+# Register the custom krew indexes the Brewfile depends on
+setup_krew_indexes() {
+    log_info "Registering custom krew indexes..."
+
+    local index_file="${REPO_DIR}/packages/krew-indexes.txt"
+    if [[ ! -f "${index_file}" ]]; then
+        log_warning "krew-indexes.txt not found, skipping"
+        return 0
+    fi
+
+    # krew comes from the Brewfile, but the indexes must exist BEFORE
+    # `brew bundle` resolves any `krew "<index>/<plugin>"` entry.
+    if ! command -v kubectl-krew &> /dev/null; then
+        log_info "Installing krew ahead of the Brewfile..."
+        brew install krew
+    fi
+
+    local name url
+    while read -r name url; do
+        [[ -z "${name}" || "${name}" == \#* ]] && continue
+
+        # kubectl-krew, not `kubectl krew`: kubectl itself comes from the
+        # Brewfile and is not installed yet at this point.
+        if kubectl-krew index list 2> /dev/null | awk 'NR > 1 {print $1}' | grep -qx "${name}"; then
+            log_success "krew index ${name} already registered"
+            continue
+        fi
+
+        kubectl-krew index add "${name}" "${url}"
+        log_success "krew index ${name} added"
+    done < "${index_file}"
+}
+
 # Install Homebrew packages
 install_brew_packages() {
     log_info "Installing Homebrew packages..."
@@ -643,6 +677,7 @@ main() {
     run_step "oh-my-zsh" install_oh_my_zsh
     run_step "zsh-plugins" install_zsh_plugins
     run_step "dotfiles" setup_dotfiles
+    run_step "krew-indexes" setup_krew_indexes
     run_step "brew-packages" install_brew_packages
     run_step "fzf" setup_fzf
     run_step "gcloud" setup_gcloud_auth

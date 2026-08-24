@@ -50,6 +50,7 @@ dotfiles/
 │       └── nvim/
 ├── packages/                    # Listes de paquets à installer
 │   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
+│   ├── krew-indexes.txt         # Index krew custom à ajouter avant le Brewfile
 │   ├── npm.txt
 │   ├── gems.txt
 │   └── skillfish.json           # Manifeste des skills Claude externes
@@ -266,6 +267,7 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 - `kubectx`, `kubens`
 - `kubeswitch` pour gestion multi-cluster
 - Plugins krew gérés directement dans `packages/Brewfile` (entrées `krew "..."`))
+- Index krew custom (`netshoot/`, `pixibixi/`) listés dans `packages/krew-indexes.txt`. `brew bundle` se contente d'appeler `kubectl krew install <nom>`, il n'ajoute aucun index : le step `krew-indexes` de `init_mac.sh` les enregistre avant `brew-packages`, sinon les plugins préfixés échouent sur une machine neuve. Rafraîchir la liste avec `make update-krew-indexes`
 
 ### Claude Code / AI Tooling
 

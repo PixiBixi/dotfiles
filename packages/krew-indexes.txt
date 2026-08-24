@@ -1,0 +1,5 @@
+# Custom krew indexes: <name> <git url>
+# brew bundle only runs `kubectl krew install <name>`, it never adds an index.
+# Any Brewfile entry prefixed `<index>/` needs its index registered first.
+netshoot https://github.com/nilic/kubectl-netshoot.git
+pixibixi https://github.com/PixiBixi/krew-index.git
