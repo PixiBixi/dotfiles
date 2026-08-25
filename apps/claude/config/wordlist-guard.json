@@ -6,7 +6,8 @@
         "re:\\bdummy\\b"
     ],
     "allowPaths": [
-        "apps/claude/skills/",
+        "apps/claude/skills/confluence/",
+        "apps/claude/skills/jira-cli/",
         "/.venv/",
         "/node_modules/",
         "/__pycache__/",
