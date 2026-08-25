@@ -103,11 +103,20 @@ except OSError:
 charset = set(chars)
 char_hits = []
 word_hits = {}
+CODE_SPAN = re.compile(r"`[^`]*`")
+fenced = False
 for i, line in enumerate(text.splitlines(), 1):
-    if charset & set(line):
+    # A doc that states the rule quotes the banned thing to state it, and that citation
+    # sits in an inline code span. Blanking those spans is what lets a file document the
+    # ban without tripping it. Fenced blocks are NOT blanked: they are real code, and the
+    # rule covers code comments too.
+    if line.lstrip().startswith("```"):
+        fenced = not fenced
+    scan_line = line if fenced else CODE_SPAN.sub(lambda m: " " * len(m.group(0)), line)
+    if charset & set(scan_line):
         char_hits.append(i)
     for entry, rx, is_regex in words:
-        m = rx.search(line)
+        m = rx.search(scan_line)
         if not m:
             continue
         # A regex entry reports the text it actually matched, not the pattern.
@@ -116,6 +125,8 @@ for i, line in enumerate(text.splitlines(), 1):
 
 if not char_hits and not word_hits:
     sys.exit(0)
+
+flagged_text = "".join(text.splitlines()[i - 1] for i in char_hits)
 
 
 def shown(nums):
@@ -126,7 +137,7 @@ name = norm.rsplit("/", 1)[-1]
 summary, detail = [], []
 
 if char_hits:
-    present = sorted({chars[c] for c in charset if c in text})
+    present = sorted({chars[c] for c in charset if c in flagged_text})
     lines = shown(char_hits)
     summary.append("%d banned-character line(s) (%s)" % (len(char_hits), lines))
     detail.append(
