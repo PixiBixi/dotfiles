@@ -374,6 +374,16 @@ setup_claude() {
         done
     fi
 
+    # Deploy hook configs. They land flat in ~/.claude/ because that is the last stop of
+    # every hook's own config-resolution chain, so a hook needs no path knowledge.
+    if [[ -d "${REPO_DIR}/apps/claude/config" ]]; then
+        for conf in "${REPO_DIR}/apps/claude/config/"*.json; do
+            [[ -f "$conf" ]] || continue
+            ln -sf "$conf" "${HOME}/.claude/$(basename "$conf")"
+            log_success "Symlinked config/$(basename "$conf") → ${HOME}/.claude/"
+        done
+    fi
+
     # Deploy skills
     if [[ -d "${REPO_DIR}/apps/claude/skills" ]]; then
         mkdir -p "${HOME}/.claude/skills"

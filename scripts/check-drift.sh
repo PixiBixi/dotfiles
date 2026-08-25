@@ -186,6 +186,14 @@ for deployed in "${HOME}/.claude/hooks/"*; do
     ((warn++)) || true
 done
 
+# Hook configs. A hook whose config is missing falls back to its built-in defaults
+# instead of erroring, so the only visible symptom is a rule quietly not enforced.
+for conf in "${REPO_DIR}/apps/claude/config/"*.json; do
+    [[ -f "${conf}" ]] || continue
+    name="$(basename "${conf}")"
+    check_file "apps/claude/config/${name}" "${HOME}/.claude/${name}" symlink
+done
+
 for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
     [[ -d "${skill_dir}" ]] || continue
     name="$(basename "${skill_dir}")"
