@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash /Users/jeremy/.claude/hooks/session-allow.sh"
+            "command": "/bin/bash $HOME/.claude/hooks/session-allow.sh"
           }
         ]
       }
@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$OPENWIKI_HOOK\" ] || OPENWIKI_HOOK=1 nohup /Users/jeremy/.claude/hooks/wiki-sync.sh >/dev/null 2>&1 &"
+            "command": "[ -n \"$OPENWIKI_HOOK\" ] || OPENWIKI_HOOK=1 nohup $HOME/.claude/hooks/wiki-sync.sh >/dev/null 2>&1 &"
           }
         ]
       }
