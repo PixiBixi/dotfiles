@@ -1,0 +1,17 @@
+{
+    "bannedChars": ["U+2014", "U+2013"],
+    "bannedWords": [
+        "re:\\b(white|black)list(s|ed|ing)?\\b",
+        "re:\\bslave(s|d)?\\b",
+        "re:\\bdummy\\b"
+    ],
+    "allowPaths": [
+        "apps/claude/skills/",
+        "/.venv/",
+        "/node_modules/",
+        "/__pycache__/",
+        "/.git/",
+        "*.min.js",
+        "*.lock"
+    ]
+}

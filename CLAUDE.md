@@ -38,7 +38,7 @@ macOS dotfiles repo organized into four purpose-driven directories:
 - `config/`: dotfiles deployed to `$HOME` (zsh, git, nvim, ssh, kube, tmux, vim, wezterm). Mirrors the target `$HOME` path structure.
 - `packages/` holds the package lists: `Brewfile`, `krew-indexes.txt`, `npm.txt`, `gems.txt`, `skillfish.json`. **krew plugins live inside the `Brewfile`** as `krew "..."` entries (no separate `krew.txt`). Custom krew *indexes* do need their own file: `brew bundle` only shells out to `kubectl krew install <name>`, it never adds an index, so any `krew "<index>/<plugin>"` entry (`netshoot/`, `pixibixi/`) would fail on a fresh machine. `krew-indexes.txt` lists them as `<name> <git url>` and the `krew-indexes` step in `init_mac.sh` registers them **before** `brew-packages` runs. Refresh it with `make update-krew-indexes`.
 - `apps/` holds the non-dotfile app configs:
-  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`)
+  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`, `wiki-sync.sh`, `wordlist-guard.sh`), `config/` (per-hook JSON config, symlinked flat into `~/.claude/`)
   - `raycast/`, `vscode/`
 - `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`, `init.sh` (legacy, do not use)
 
@@ -54,7 +54,7 @@ Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.
 
 After editing a `config/` file, deploy it (`cp config/.zshrc ~/.zshrc`, etc.) or run `init_mac.sh` so the deployed copy stays in sync.
 
-`check-drift.sh` also covers `~/.claude`: `CLAUDE.md`, `settings.json`, every `apps/claude/hooks/*.sh` and every `apps/claude/skills/*/`. Hooks and skills are enumerated from the same globs `setup_claude()` deploys, so adding one needs no edit here. Two extra verdicts apply there:
+`check-drift.sh` also covers `~/.claude`: `CLAUDE.md`, `settings.json`, every `apps/claude/hooks/*.sh`, every `apps/claude/config/*.json` and every `apps/claude/skills/*/`. All three are enumerated from the same globs `setup_claude()` deploys, so adding one needs no edit here. Two extra verdicts apply there:
 
 - `ORPHAN`: a file in `~/.claude/hooks/` with no repo counterpart. It may still be wired into `settings.json` while nothing versions it.
 - a skill deployed as a **real directory** instead of a symlink means an external installer owns it, see `Externally-managed skills` below.
@@ -73,6 +73,39 @@ It also checks the krew indexes from `packages/krew-indexes.txt` against `kubect
 - `REPO_DIR`: the repo root (`SCRIPT_DIR/..`)
 
 All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, etc. The script is idempotent: each function checks for existing installations before acting. `setup_claude()` deploys `apps/claude/CLAUDE.md` + `settings.json` to `~/.claude/`; `setup_rtk()` runs `rtk init --global`, which generates `~/.claude/RTK.md` (unversioned on purpose, it tracks the installed rtk version) and wires the PreToolUse hook in `settings.json`. Since rtk 0.44 that hook is the built-in `rtk hook claude`; older versions generated a `~/.claude/hooks/rtk-rewrite.sh` wrapper that no longer exists, so re-run `rtk init --global` after a major rtk upgrade and commit the resulting `settings.json` delta.
+
+## apps/claude/hooks
+
+Each hook resolves its own config, first readable file wins: `$CLAUDE_<NAME>_CONFIG`, then
+`./.claude/<name>.json` (per repo), then `~/.claude/<name>.json`. `apps/claude/config/*.json` is the
+versioned source of that last stop, symlinked **flat** into `~/.claude/` by `setup_claude()`, so a
+hook needs no path knowledge and a new config file needs no edit to `init_mac.sh` or
+`check-drift.sh`.
+
+Every hook exits 0 on a missing or malformed config and falls back to its built-in defaults: a
+broken config can never break a session. The flip side is that the only symptom of a config that
+failed to deploy is a rule quietly not enforced, which is why `check-drift.sh` checks them.
+
+| Hook | Event | Does |
+|------|-------|------|
+| `session-allow.sh` | PermissionRequest | Per-session prefix allowlist behind an osascript dialog (Session / Once / Deny / Claude), TTL 12h |
+| `wiki-sync.sh` | SessionEnd | Runs `/openwiki:wiki update` detached, commits and pushes `openwiki/` on the default branch only |
+| `wordlist-guard.sh` | PostToolUse `Write\|Edit` | Flags banned characters and words that just landed in a file, via `additionalContext` |
+
+`wordlist-guard.sh` is the floor under the writing rules in `apps/claude/CLAUDE.md`: a standing rule
+gets diluted with no error raised, and chat replies cannot be hooked, so this covers where written
+text persists. Config in `apps/claude/config/wordlist-guard.json`:
+
+- `bannedChars`: `U+2014` / `U+2013` (the em dash rule). Entries are `U+XXXX` or a literal character.
+- `bannedWords`: the non-inclusive terms named in `CLAUDE.md`. Prefix an entry with `re:` for a raw
+  regex, otherwise it matches the word with an optional trailing `s`.
+- `allowPaths`: `apps/claude/skills/` (upstream-managed, same exclusion markdownlint uses), plus
+  vendored and generated trees. An entry containing `/` is a substring or glob match on the full
+  path, otherwise it globs the basename.
+
+Adding a word is a one-line edit to that JSON, no script change. Widen `bannedWords` only for rules
+that are actually written down in `CLAUDE.md`: a hook enforcing a rule that exists nowhere else is
+how false positives get normalised.
 
 ## apps/claude/skills
 

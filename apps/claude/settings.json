@@ -60,6 +60,18 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/wordlist-guard.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PermissionRequest": [
       {
         "matcher": "^(?!AskUserQuestion$|ExitPlanMode$|EnterPlanMode$).*",
