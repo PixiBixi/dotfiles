@@ -41,6 +41,8 @@ update-claude-skills: ## Update skillfish-managed skills → re-bundle packages/
 	@npx -y skillfish@latest update --yes
 	@npx -y skillfish@latest bundle --global
 	@cp "$(HOME)/skillfish.json" "$(PKGS_DIR)skillfish.json"
+	@# skillfish bundle emits no trailing newline: normalize it so the file stops showing up as dirty
+	@[ -z "$$(tail -c 1 "$(PKGS_DIR)skillfish.json")" ] || echo "" >> "$(PKGS_DIR)skillfish.json"
 	@echo "Done."
 
 check: ## Show skills diffs without modifying files (dry-run)
