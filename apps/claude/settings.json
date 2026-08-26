@@ -40,7 +40,10 @@
       "Bash(npx prettier:*)",
       "Bash(rm -f openwiki/_plan.md)",
       "Edit(openwiki/**)",
-      "Edit(CLAUDE.md)"
+      "Edit(CLAUDE.md)",
+      "Bash(zsh -l -c 'jira:*)",
+      "Bash(zsh -l -c \"jira:*)",
+      "Bash(zsh -l -c '~/.claude/jira-amend.sh:*)"
     ],
     "defaultMode": "auto"
   },
