@@ -1,6 +1,9 @@
 {
   "version": 1,
   "skills": [
+    "tt-a1i/archify/archify",
+    "nutlope/hallmark/skills/hallmark",
+    "blader/humanizer",
     "lifegenieai/lifegenie-claude-marketplace/plugins/linkedin-best-practices-2026/skills/linkedin-best-practices-2026",
     "jamie-bitflight/claude_skills/plugins/python3-development/skills/python3-development",
     "akin-ozer/cc-devops-skills/devops-skills-plugin/skills/terragrunt-generator"

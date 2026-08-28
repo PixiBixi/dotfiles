@@ -406,7 +406,9 @@ install_claude_skills() {
         return 0
     fi
 
-    # skillfish manifest: linkedin-best-practices-2026, python3-development, terragrunt-generator
+    # skillfish manifest: every skill installable straight from a GitHub repo.
+    # skillfish stamps a .skillfish.json in each skill it installs, which is what
+    # `make update-claude-skills` re-bundles, so a new skill needs no edit here.
     if [[ -f "${REPO_DIR}/packages/skillfish.json" ]]; then
         cp "${REPO_DIR}/packages/skillfish.json" "${HOME}/skillfish.json"
         if npx -y skillfish@latest install --global --yes; then
@@ -427,15 +429,6 @@ install_claude_skills() {
         fi
     else
         log_warning "uipro not found (npm package ui-ux-pro-max-cli), skipping ui-ux-pro-max"
-    fi
-
-    # humanizer: plain git checkout
-    if [[ -d "${HOME}/.claude/skills/humanizer" ]]; then
-        log_success "humanizer skill already present"
-    elif git clone --depth 1 https://github.com/blader/humanizer.git "${HOME}/.claude/skills/humanizer"; then
-        log_success "humanizer skill cloned"
-    else
-        log_warning "humanizer clone failed"
     fi
 
     # seo: upstream installer, also deploys the seo-* specialist agents to ~/.claude/agents/
