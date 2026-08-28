@@ -7,7 +7,6 @@
 
 [diff]
     algorithm = histogram
-    colorMoved = plain
 
 [delta]
     # diff.colorMoved emits bold magenta/cyan that delta renders like any
