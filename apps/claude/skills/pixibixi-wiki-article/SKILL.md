@@ -91,10 +91,25 @@ complète sur des points qu'aucun lint n'attrape.
     `un stack` n'en voit aucun. Chercher aussi les quantifieurs (`tous`, `certains`,
     `plusieurs`), les participes détachés du nom et les textes alternatifs des schémas,
     que personne ne relit.
-- **Le vocabulaire du domaine, pas son équivalent français** : `timerange` et pas « plage
-  de temps », `replicas` et pas « réplicas », `at scale` et pas « à l'échelle », `évicté` et
-  pas « évincé » quand on parle de spot. Les noms K8s et infra restent en anglais, sans
-  accent. Ça vaut aussi dans les titres d'article.
+- **Le vocabulaire du domaine, pas son équivalent français.** La règle n'est pas une liste
+  de mots, c'est un critère : si le terme est celui qu'on lit dans les flags, les métriques,
+  la doc amont ou les dashboards, il reste tel quel. Traduire oblige le lecteur à refaire la
+  correspondance dans sa tête au moment où il cherche justement à retrouver un flag.
+  `timerange` et pas « plage de temps » ni « tranche de temps », `replicas` et pas
+  « réplicas », `at scale` et pas « à l'échelle », `évicté` et pas « évincé » quand on parle
+  de spot. Les noms K8s et infra restent en anglais, sans accent.
+
+    Ça vaut **surtout dans les titres et les textes alternatifs**, qui sont écrits en
+    dernier et relus le moins : c'est là que la traduction survit, alors que le corps du
+    texte emploie déjà le bon terme deux paragraphes plus haut. Avant de committer, grep
+    les traductions des termes que l'article utilise vraiment, pas seulement celles listées
+    ici, et vérifier le sommaire de droite qui n'affiche que les titres.
+
+    L'inverse est vrai aussi, le critère n'est pas « angliciser par défaut ». Quand la
+    phrase parle de l'acte et pas du composant, le mot français gagne : on écrit « la
+    requête met 26 secondes » et pas « la query », alors que `query frontend` reste le nom
+    du composant et ne se traduit jamais. Même partage entre `un cache` et le fait de
+    cacher, `un shard` et le fait de découper.
 - **Attention aux remplacements globaux** : `réplica` → `replica` mange aussi
   `réplication`, qui est un mot français et garde son accent. Ancrer les motifs sur une
   frontière de mot et relire le diff.
