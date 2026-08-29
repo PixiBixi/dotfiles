@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Regenerate package lists + sync skills from upstream (see Makefile)
-make update              # all: brew, npm, gems, skills
+make update              # all: brew, krew indexes, npm, gems, skills, Claude skills
 make update-brew         # dump installed Homebrew packages → packages/Brewfile
+make update-krew-indexes # custom krew indexes → packages/krew-indexes.txt
 make update-npm          # global npm packages → packages/npm.txt
 make update-gems         # installed gems → packages/gems.txt
 make update-skills       # fetch latest SKILL.md from upstream sources
@@ -147,9 +148,10 @@ Hooks enforced on every commit:
 - **gitleaks**: secret scanning (hardcoded credentials, tokens, keys)
 - **shellcheck**: shell script linting, severity `warning`. Excludes zsh files matching `(^|/)\.zsh`.
 - **shfmt**: shell formatting, 4-space indent, `-ci -bn -sr`.
-- **markdownlint**: `--fix`, requires H1 as first line, single H1 per file, language on all fenced code blocks (use `text` for file trees). Excludes `apps/claude/skills/` (upstream-managed).
+- **markdownlint**: `--fix`, config `config/.markdownlint.json`. Requires H1 as first line, single H1 per file, language on all fenced code blocks (use `text` for file trees), and aligned table pipes (MD060). `--fix` cannot align a table whose cells overflow the header width: shorten the cells or use a list. Excludes `apps/claude/skills/` (upstream-managed).
 - **yamllint**: config in `.yamllint.yaml`
-- **prettier**: JSON formatting, 4-space indent. Excludes `apps/claude/settings.json`.
+- **prettier**: JSON formatting, 4-space indent. Excludes `apps/claude/settings.json` and `packages/skillfish.json` (both machine-generated).
 - **conventional-pre-commit**: enforces Conventional Commits on commit messages (`feat:`, `fix:`, `chore:`, `docs:`, `perf:`, `refactor:`)
+- **pre-commit-hooks** (upstream standard set): `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-json`, `check-added-large-files`, `check-merge-conflict`, `check-case-conflict`, `check-executables-have-shebangs`, `check-shebang-scripts-are-executable`, `detect-private-key`, `mixed-line-ending`
 
 `apps/claude/CLAUDE.md` is globally excluded from all hooks (`exclude:` at top of config).
