@@ -45,6 +45,17 @@
       "Bash(zsh -l -c \"jira:*)",
       "Bash(zsh -l -c '~/.claude/jira-amend.sh:*)"
     ],
+    "deny": [
+      "Bash(git reset --hard)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)"
+    ],
+    "ask": [
+      "Bash(git checkout --:*)",
+      "Bash(git restore:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ],
     "defaultMode": "auto"
   },
   "model": "claude-opus-5",
