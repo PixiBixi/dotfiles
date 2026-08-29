@@ -18,7 +18,7 @@ Le script est **idempotent** : vous pouvez le relancer sans risque.
 - Connexion internet
 - Droits administrateur (pour Xcode Command Line Tools)
 
-Le script installe automatiquement:
+Le script installe automatiquement :
 
 - Xcode Command Line Tools
 - Homebrew
@@ -41,16 +41,17 @@ dotfiles/
 │   ├── .tmux.conf
 │   ├── .vimrc
 │   ├── .wezterm.lua
+│   ├── .markdownlint.json
 │   ├── .ssh/
 │   │   └── config
 │   ├── .kube/
 │   │   └── switch-config.yaml
 │   └── .config/
-│       ├── git/               # allowed_signers, ignore
+│       ├── git/                 # allowed_signers, ignore
 │       └── nvim/
 ├── packages/                    # Listes de paquets à installer
 │   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
-│   ├── krew-indexes.txt         # Index krew custom à ajouter avant le Brewfile
+│   ├── krew-indexes.txt         # Index krew custom, ajoutés avant le Brewfile
 │   ├── npm.txt
 │   ├── gems.txt
 │   └── skillfish.json           # Manifeste des skills Claude externes
@@ -58,7 +59,8 @@ dotfiles/
 │   ├── claude/
 │   │   ├── CLAUDE.md
 │   │   ├── settings.json
-│   │   ├── hooks/               # session-allow.sh
+│   │   ├── hooks/               # session-allow.sh, wiki-sync.sh, wordlist-guard.sh
+│   │   ├── config/              # Config JSON par hook, symlinkée dans ~/.claude/
 │   │   └── skills/              # SKILL.md upstream + skills locales
 │   ├── raycast/
 │   │   └── Raycast.rayconfig
@@ -67,40 +69,19 @@ dotfiles/
 │       └── extensions.txt
 ├── scripts/
 │   ├── init_mac.sh              # Script d'installation principal
+│   ├── check-drift.sh           # Diff entre config/ et les fichiers déployés
 │   ├── brew-usage-audit.sh      # Audit packages Homebrew via l'atime des binaires
-│   └── init.sh
-├── .markdownlint.json
+│   └── init.sh                  # Legacy, ne pas utiliser
+├── Makefile
 ├── .pre-commit-config.yaml
 └── .yamllint.yaml
 ```
-
-## Fonctionnalités du Script
-
-### Gestion d'erreur robuste
-
-- Arrêt immédiat en cas d'échec (`set -euo pipefail`)
-- Messages d'erreur clairs avec couleurs
-- Trap pour cleanup automatique
-
-### Idempotence
-
-Chaque composant vérifie s'il est déjà installé:
-
-- ✓ Skip si déjà présent
-- ⚠ Warning si fichier manquant (non bloquant)
-- ✗ Erreur seulement pour composants critiques
-
-### Détection automatique
-
-- Support Intel (`/usr/local`) et Apple Silicon (`/opt/homebrew`)
-- Vérification macOS avant exécution
-- Détection des outils déjà installés
 
 ## Post-Installation
 
 ### 1. Configuration Git
 
-Éditer vos identités Git:
+Éditer vos identités Git :
 
 ```bash
 # Personnel
@@ -110,7 +91,7 @@ vim ~/.gitconfig_perso
 vim ~/.gitconfig_work
 ```
 
-Dans votre `.gitconfig` principal, incluez conditionnellement:
+Dans votre `.gitconfig` principal, incluez conditionnellement :
 
 ```ini
 [includeIf "gitdir:~/Documents/perso/"]
@@ -120,20 +101,15 @@ Dans votre `.gitconfig` principal, incluez conditionnellement:
     path = ~/.gitconfig_work
 ```
 
-Deux fichiers sous `config/.config/git/` sont symlinkés vers `~/.config/git/`
-et complètent cette config:
+Deux fichiers sous `config/.config/git/` sont symlinkés vers `~/.config/git/` :
 
-- `allowed_signers`: référencé par `gpg.ssh.allowedSignersFile`. Git valide la
-  signature sur la **clé**, pas sur le principal, donc une adresse périmée
-  vérifie quand même mais `git log --show-signature` affiche l'ancienne
-  identité. Mettre l'adresse courante en premier, les domaines historiques
-  après, séparés par des virgules sur la même ligne.
-- `ignore`: gitignore global, lu par défaut à cet emplacement sans passer par
-  `core.excludesFile`.
+- `allowed_signers` : référencé par `gpg.ssh.allowedSignersFile`. Adresse courante en premier,
+  domaines historiques après, séparés par des virgules sur la même ligne
+- `ignore` : gitignore global, lu par défaut à cet emplacement
 
 ### 2. Kubeconfig
 
-Split votre kubeconfig en plusieurs fichiers:
+Split votre kubeconfig en plusieurs fichiers :
 
 ```bash
 kubectl konfig split -o ~/.kube/configs
@@ -141,74 +117,73 @@ kubectl konfig split -o ~/.kube/configs
 
 ### 3. Google Cloud (GKE)
 
-Configurer les Application Default Credentials pour que kubeswitch puisse découvrir les clusters GKE sans prompt d'authentification répété :
+Configurer les Application Default Credentials pour que kubeswitch découvre les clusters GKE sans prompt d'authentification répété :
 
 ```bash
 gcloud auth application-default login
 ```
 
-À relancer si kubeswitch vous redemande l'auth Google (token expiré, renouvellement de session SSO, etc.).
+À relancer si kubeswitch redemande l'auth Google (token expiré, renouvellement de session SSO).
 
 ### 4. Shell
-
-Recharger votre configuration:
 
 ```bash
 source ~/.zshrc
 ```
 
-## CI
+### 5. Pre-commit
 
-Le workflow `.github/workflows/weekly-software-check.yml` tourne chaque lundi et valide que les formulas Homebrew et les casks existent toujours. Il crée automatiquement une PR pour supprimer les entrées obsolètes.
-
-Le workflow comporte deux jobs :
-
-- `check-brew` : valide les formulas (`brew info`) et les casks (API `formulae.brew.sh`) dans `packages/Brewfile`
-- `create-pr` : applique les suppressions et ouvre la PR si nécessaire
-
-Homebrew est mis en cache entre les runs pour éviter une réinstallation complète à chaque exécution.
-
-Les formulas de taps (`owner/tap/name`) sont ignorées, trop spécifiques à macOS pour être validées sur Linux.
+```bash
+pre-commit install
+```
 
 ## Maintenance
 
-### Auditer l'usage du Brewfile
-
-`scripts/brew-usage-audit.sh` identifie les packages jamais utilisés en lisant l'**atime des
-binaires** dans le Cellar. APFS met l'atime à jour à chaque exécution, donc le signal capte
-tous les chemins d'invocation : alias, fonctions shell, hooks pre-commit, serveurs LSP,
-scripts, et commandes lancées par un agent de code.
-
-L'historique shell ne capte aucun de ces cas et sert seulement de preuve d'appoint. Un audit
-basé sur l'historique déclare `bat` inutilisé alors qu'il tourne à chaque `cat`.
+### Cibles make
 
 ```bash
-# Signaler tout ce qui n'a pas servi depuis 90 jours (défaut)
-./scripts/brew-usage-audit.sh
-
-# Seuil à 180 jours, leaves uniquement (pas les dépendances)
-./scripts/brew-usage-audit.sh --stale-days 180 --leaves-only
-
-# Tout lister, y compris les packages actifs, + export JSON
-./scripts/brew-usage-audit.sh --all --json /tmp/audit.json
-
-# Aide complète
-./scripts/brew-usage-audit.sh --help
+make help          # lister les targets
 ```
 
-La colonne `EVIDENCE` nomme le chemin d'invocation que l'atime ne montre pas : l'alias de
-`config/.zsh_alias`, la sous-commande `kubectl <plugin>`, ou le fichier de config qui
-consomme l'outil (`.pre-commit-config.yaml`, `lsp.lua`, `init_mac.sh`). Un package avec une
-evidence est utilisé même à 0 hit d'historique : ne pas le supprimer sur le seul compte de jours.
+| Target | Effet |
+| -------- | ------- |
+| `update` | Tout : brew, krew indexes, npm, gems, skills, skills Claude |
+| `update-brew` | Dump les packages Homebrew installés vers `packages/Brewfile` |
+| `update-krew-indexes` | Dump les index krew custom vers `packages/krew-indexes.txt` |
+| `update-npm` | Dump les packages npm globaux vers `packages/npm.txt` |
+| `update-gems` | Dump les gems installées vers `packages/gems.txt` |
+| `update-skills` | Récupère les derniers SKILL.md upstream (un commit par skill) |
+| `update-claude-skills` | Met à jour les skills skillfish et re-bundle `packages/skillfish.json` |
+| `check` | Dry-run : affiche les diffs de skills sans écrire |
 
-La mention `never run since install` avec une date d'install récente n'est **pas** un verdict :
-`brew upgrade` réécrit le keg et remet l'atime à la date d'install. Laisser passer quelques
-semaines avant de s'y fier.
+### Vérifier la dérive
 
-Deux limites connues : les packages sans binaire dans `$(brew --prefix)/bin` ne sont pas
-audités (`switch` livre un `switch.sh` à sourcer), et le script cible macOS (il épingle
-`/usr/bin/stat` et `/bin/date` car les coreutils GNU masquent les deux avec des flags
-incompatibles).
+`scripts/check-drift.sh` compare les fichiers de `config/` et de `apps/claude/` avec ce qui est
+déployé dans `$HOME`, et vérifie que les index krew de `packages/krew-indexes.txt` sont enregistrés.
+
+```bash
+./scripts/check-drift.sh
+```
+
+### Auditer l'usage du Brewfile
+
+`scripts/brew-usage-audit.sh` liste les packages Homebrew jamais utilisés, en lisant l'atime des
+binaires du Cellar.
+
+| Flag | Effet |
+| ------ | ------- |
+| `--stale-days N` | Signaler les packages inutilisés depuis plus de N jours (défaut : 90) |
+| `--leaves-only` | N'auditer que les leaves (ignore les dépendances) |
+| `--all` | Lister tous les packages audités, pas seulement ceux signalés |
+| `--history FILE` | Historique shell utilisé comme preuve d'appoint (défaut : `$HISTFILE`) |
+| `--json FILE` | Écrire aussi le résultat complet en JSON |
+| `-h`, `--help` | Aide |
+
+```bash
+./scripts/brew-usage-audit.sh
+./scripts/brew-usage-audit.sh --stale-days 180 --leaves-only
+./scripts/brew-usage-audit.sh --all --json /tmp/audit.json
+```
 
 Avant de supprimer un package suggéré :
 
@@ -217,47 +192,35 @@ brew uses --installed <package>   # vérifier s'il est requis par un autre
 brew uninstall <package>
 ```
 
-### Mettre à jour Brewfile
+## Pre-commit
 
-Exporter vos packages actuels:
-
-```bash
-brew bundle dump --force --file=./packages/Brewfile
-```
-
-### Mettre à jour npm.txt
-
-Lister vos packages NPM globaux:
+Hooks appliqués à chaque commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`,
+`prettier`, `conventional-pre-commit`.
 
 ```bash
-npm list --global --parseable --depth=0 | \
-  sed '1d' | \
-  awk '{gsub(/\/.*\//,"",$1); print}' > ./packages/npm.txt
+pre-commit run --all-files      # tous les hooks
+pre-commit run shellcheck       # un seul hook
+pre-commit autoupdate           # bumper les versions
 ```
 
-### Mettre à jour gems.txt
+## CI
 
-Lister vos gems installées:
-
-```bash
-gem list | tail -n+1 | \
-  sed 's/(/--version /' | \
-  sed 's/)//' > ./packages/gems.txt
-```
+`.github/workflows/weekly-software-check.yml` tourne chaque lundi, valide que les formulas et les
+casks de `packages/Brewfile` existent toujours, et ouvre une PR pour supprimer les entrées obsolètes.
 
 ## Composants Installés
 
 ### Shell & Terminal
 
 - **zsh** avec oh-my-zsh
-- Plugins: `zsh-autosuggestions`, `zsh-syntax-highlighting`
+- Plugins : `zsh-autosuggestions`, `zsh-syntax-highlighting`
 - **Wezterm** comme émulateur de terminal
 
 ### Outils CLI Modernes
 
-Voir `packages/Brewfile` pour la liste complète. Généralement:
+Voir `packages/Brewfile` pour la liste complète. Généralement :
 
-- `rg` (ripgrep), `fd`, `bat`, `exa`
+- `rg` (ripgrep), `fd`, `bat`, `eza`
 - `fzf` pour fuzzy finding
 - `jq`, `yq` pour manipulation JSON/YAML
 
@@ -265,15 +228,19 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 - `kubectl` + krew (installés via Homebrew)
 - `kubectx`, `kubens`
-- `kubeswitch` pour gestion multi-cluster
-- Plugins krew gérés directement dans `packages/Brewfile` (entrées `krew "..."`))
-- Index krew custom (`netshoot/`, `pixibixi/`) listés dans `packages/krew-indexes.txt`. `brew bundle` se contente d'appeler `kubectl krew install <nom>`, il n'ajoute aucun index : le step `krew-indexes` de `init_mac.sh` les enregistre avant `brew-packages`, sinon les plugins préfixés échouent sur une machine neuve. Rafraîchir la liste avec `make update-krew-indexes`
+- `kubeswitch` pour la gestion multi-cluster
+- Plugins krew : entrées `krew "..."` dans `packages/Brewfile`
+- Index krew custom : `packages/krew-indexes.txt`, enregistrés par le step `krew-indexes` de
+  `init_mac.sh` avant l'installation des packages
 
 ### Claude Code / AI Tooling
 
-- **Claude Code** : installé par l'installeur natif (`curl -fsSL https://claude.ai/install.sh | bash -s latest`, step `claude-code`) et non par Homebrew, qui est trop lent à mettre à jour. Configuration globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills (`apps/claude/skills/`, symlinkées vers `~/.claude/skills/` par `setup_claude()`)
-- **Skills externes** : celles gérées par leur propre installeur ne sont pas versionnées. `install_claude_skills()` les réinstalle depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream. Rafraîchir le manifeste avec `make update-claude-skills`
-- **RTK** : proxy CLI token-efficient pour Claude Code (`rtk init --global` configure le hook automatique et génère `~/.claude/RTK.md`)
+- **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale
+  (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills déployés par `setup_claude()`
+- **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json`
+  (skillfish), `uipro`, ou leur dépôt upstream
+- **RTK** : proxy CLI token-efficient (`rtk init --global` configure le hook et génère
+  `~/.claude/RTK.md`)
 
 ### Development Tools
 
@@ -286,7 +253,7 @@ Voir `packages/Brewfile` pour la liste complète. Généralement:
 
 ### Le script échoue sur Xcode
 
-Si l'installation Xcode Command Line Tools nécessite une interaction:
+Si l'installation Xcode Command Line Tools nécessite une interaction :
 
 1. Le script s'arrête proprement
 2. Terminez l'installation dans la fenêtre popup
@@ -294,13 +261,13 @@ Si l'installation Xcode Command Line Tools nécessite une interaction:
 
 ### Homebrew pas dans le PATH
 
-Pour Apple Silicon, ajoutez à votre shell:
+Pour Apple Silicon, ajoutez à votre shell :
 
 ```bash
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
-Pour Intel:
+Pour Intel :
 
 ```bash
 eval "$(/usr/local/bin/brew shellenv)"
@@ -308,13 +275,14 @@ eval "$(/usr/local/bin/brew shellenv)"
 
 ### kubeswitch demande l'auth Google à chaque fois
 
-Le store GKE appelle les APIs Google Cloud à chaque lancement pour découvrir les clusters. Si le token ADC est expiré (fréquent sur les comptes Google Workspace avec SSO), kubeswitch déclenche `gcloud auth application-default login`.
+Le token ADC est expiré (fréquent sur les comptes Google Workspace avec SSO) :
 
 ```bash
 gcloud auth application-default login
 ```
 
-Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/.kube/switch-config.yaml` sur le store GKE :
+Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans
+`~/.kube/switch-config.yaml` sur le store GKE :
 
 ```yaml
 - kind: gke
@@ -328,11 +296,16 @@ Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/
       path: ~/.kube/cache
 ```
 
+### Un plugin krew préfixé échoue à l'installation
+
+L'index custom n'est pas enregistré. `./scripts/check-drift.sh` le signale et affiche la commande
+de correction.
+
 ## Configuration Avancée
 
 ### SSH ControlMaster
 
-Pour activer la réutilisation de connexions SSH (déjà configuré dans `.zshrc`):
+Pour activer la réutilisation de connexions SSH (déjà configuré dans `.zshrc`) :
 
 ```bash
 mkdir -p ~/.ssh/private
@@ -340,15 +313,11 @@ mkdir -p ~/.ssh/private
 
 ### Wezterm
 
-La configuration Wezterm est copiée automatiquement. Pour la personnaliser:
-
 ```bash
 vim ~/.wezterm.lua
 ```
 
 ### Markdownlint
-
-Configuration pour linting Markdown (VSCode, nvim):
 
 ```bash
 vim ~/.markdownlint.json
@@ -356,11 +325,11 @@ vim ~/.markdownlint.json
 
 ## Contribution
 
-Pour ajouter un outil:
+Pour ajouter un outil :
 
 1. L'installer manuellement pour tester
 2. L'ajouter au fichier approprié (`packages/Brewfile`, `packages/npm.txt`, etc.)
-3. Regénérer le fichier avec les commandes de maintenance
+3. Regénérer le fichier avec `make update`
 4. Commit + push
 
 ## Licence
