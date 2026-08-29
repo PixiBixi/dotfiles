@@ -96,8 +96,8 @@ complète sur des points qu'aucun lint n'attrape.
   la doc amont ou les dashboards, il reste tel quel. Traduire oblige le lecteur à refaire la
   correspondance dans sa tête au moment où il cherche justement à retrouver un flag.
   `timerange` et pas « plage de temps » ni « tranche de temps », `replicas` et pas
-  « réplicas », `at scale` et pas « à l'échelle », `évicté` et pas « évincé » quand on parle
-  de spot. Les noms K8s et infra restent en anglais, sans accent.
+  « réplicas », `at scale` et pas « à l'échelle », `évicté` et pas « évincé », pour le spot
+  comme pour un cache. Les noms K8s et infra restent en anglais, sans accent.
 
     Ça vaut **surtout dans les titres et les textes alternatifs**, qui sont écrits en
     dernier et relus le moins : c'est là que la traduction survit, alors que le corps du
