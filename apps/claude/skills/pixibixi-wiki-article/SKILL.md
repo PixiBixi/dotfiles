@@ -53,6 +53,9 @@ complète sur des points qu'aucun lint n'attrape.
   deux-points, ou on coupe la phrase en deux. Les incises appariées (`mot — aparté — suite`)
   passent en virgules ou en parenthèses, jamais en deux tirets : ça se lit mal et un `-`
   en début de ligne est parsé comme un item de liste par markdownlint.
+- **Jamais d'en dash (`–`) non plus**, et il arrive surtout dans les plages : versions,
+  nombres, dates. On écrit `HAProxy 2.4 à 3.2`, pas `2.4–3.2`. Même raison que l'em dash,
+  il ne se tape pas au clavier. Selon la phrase : `à`, `de X à Y`, ou un simple `-`.
 - **Chiffres toujours en chiffres, jamais en lettres** : « 3 shards », « 12 fichiers »,
   « 100 caches », y compris en début de phrase. Seule exception, les approximations restent
   en lettres (« une vingtaine de clusters », « la centaine de pods ») - les écrire en
@@ -165,6 +168,20 @@ Un titre dit **ce que la section fait gagner**, pas le mécanisme qu'elle décri
 Le nom d'un produit vendeur (`Hyperdisk`, `Ketama`) reste dans le corps, pas dans le titre :
 il ferme le titre à ceux qui sont sur un autre cloud.
 
+### Le gras n'est pas un titre
+
+Un `**Label**` posé en tête de bloc pour annoncer ce qui suit est un titre déguisé. Il
+n'entre pas dans la nav, markdownlint ne le contrôle pas, et personne ne peut lier
+dessus. Il passe en `###`, et le deux-points de fin part avec lui.
+
+- ✗ `**CPU** (progressif, toujours en millicores) :` suivi d'un bloc de code
+- ✅ `### CPU (progressif, toujours en millicores)`
+- ✗ `**Épingler la version.** Le cache local datait de plusieurs majeures...`
+- ✅ `### Épingler la version` puis le paragraphe
+
+Le gras reste légitime à l'intérieur d'une phrase, ou en tête d'item de liste : là il
+insiste, il n'annonce pas une section.
+
 ## Construire une phrase
 
 L'erreur la plus fréquente, c'est de découper pour faire du rythme. Une phrase longue
@@ -190,6 +207,10 @@ Ce qui sonne faux, à la place :
   énormément de donnée en RAM »
 - **le familier décoratif** (« on s'en fiche », « part en vrille », « à genoux »). Le blunt
   du `CLAUDE.md` est une réaction sincère, pas un ornement qu'on saupoudre.
+- **le « je »**, et le « tu » ou le « vous » qui vont avec. Le wiki parle en « on », y
+  compris pour un constat vécu : « Je n'ai pas trouvé de cas où… » devient « Aucun cas
+  rencontré où… », « le mien datait de plusieurs majeures » devient « le cache local
+  datait de plusieurs majeures ». On dépersonnalise sans effacer le constat.
 
 ## Schémas SVG (style maison)
 
