@@ -81,9 +81,16 @@ complète sur des points qu'aucun lint n'attrape.
     `, <qui|que|dont|où> …, et` et épargner ces cas.
 - **Genre des acronymes et des composants** : il suit le nom-tête de l'expression
   développée, pas l'anglais. Une TSDB (*Database*), une API (*interface*), une VM
-  (*machine*), une store gateway (*passerelle*), une query (*requête*). Mais **un querier**,
-  qui est le composant et pas la requête, un query frontend dont la tête est *frontend*, un
-  compactor. Accorder aussi les pronoms et adjectifs.
+  (*machine*), une stack (*pile*), une store gateway (*passerelle*), une query (*requête*).
+  Mais **un querier**, qui est le composant et pas la requête, un query frontend dont la
+  tête est *frontend*, un compactor. Accorder aussi les pronoms et adjectifs.
+
+    L'accord voyage plus loin que le déterminant collé au mot, et c'est là que la faute
+    survit à la relecture. `attend tous les stacks`, `partagés par tous les stacks` et
+    `les stacks annotés` sont faux au même titre que `un stack`, mais un grep sur
+    `un stack` n'en voit aucun. Chercher aussi les quantifieurs (`tous`, `certains`,
+    `plusieurs`), les participes détachés du nom et les textes alternatifs des schémas,
+    que personne ne relit.
 - **Le vocabulaire du domaine, pas son équivalent français** : `timerange` et pas « plage
   de temps », `replicas` et pas « réplicas », `at scale` et pas « à l'échelle », `évicté` et
   pas « évincé » quand on parle de spot. Les noms K8s et infra restent en anglais, sans
