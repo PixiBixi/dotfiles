@@ -70,6 +70,7 @@
 
 [tag]
     sort = v:refname
+    gpgsign = true
 
 [includeIf "gitdir:~/Documents/perso/git/"]
     path = ~/.gitconfig_perso
@@ -94,3 +95,6 @@
 
 [init]
     templateDir = /Users/jeremy/.git-template
+
+[commit]
+    gpgsign = true
