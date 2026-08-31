@@ -5,8 +5,12 @@ Fetches a PromQL range query through the Grafana datasource proxy (no direct
 Prometheus access needed), styles it like a Grafana panel, and writes a PNG.
 Optionally attaches the PNG to a Jira issue.
 
-Auth: reads the Grafana SA token from ~/.claude.json (grafana_dynfactory MCP env)
-by default; override with --token or the GTOK env var.
+Auth: reads the Grafana SA token from ~/.claude.json, out of the MCP server named
+by --mcp-server / GRAFANA_MCP_SERVER; override with --token or the GTOK env var.
+
+Environment: GRAFANA_URL is required (or --grafana-url). --attach-jira additionally
+needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE. Nothing is hardcoded on purpose:
+this repo is public, so no host and no address belong in the source.
 
 Run with --help for all options. See SKILL.md for usage patterns.
 """
@@ -94,12 +98,18 @@ def main():
                    help='JSON map to prettify series names, e.g. \'{"raw":"Nice"}\'')
     p.add_argument("--annotate-max", default="",
                    help="annotate the global-max point with this text")
-    p.add_argument("--grafana-url", default="https://grafana.dynfactory.com/")
-    p.add_argument("--mcp-server", default="grafana_dynfactory")
+    p.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", ""),
+                   help="Grafana base URL (default: $GRAFANA_URL)")
+    p.add_argument("--mcp-server", default=os.environ.get("GRAFANA_MCP_SERVER", "grafana"),
+                   help="MCP server name in ~/.claude.json to read the token from "
+                        "(default: $GRAFANA_MCP_SERVER, else 'grafana')")
     p.add_argument("--token", default="")
     p.add_argument("--attach-jira", default="",
-                   help="Jira issue key to attach the PNG to (e.g. PE-1408)")
+                   help="Jira issue key to attach the PNG to (e.g. ABC-123)")
     args = p.parse_args()
+
+    if not args.grafana_url:
+        sys.exit("no Grafana URL: pass --grafana-url or export GRAFANA_URL")
 
     rename = json.loads(args.rename)
     token = read_token(args)
@@ -160,11 +170,18 @@ def main():
 
 
 def attach_to_jira(key, img):
-    """Attach PNG to a Jira issue. Needs JIRA_API_TOKEN + JIRA_EMAIL in env."""
+    """Attach PNG to a Jira issue.
+
+    Needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE in the environment. No default:
+    an email address and a Jira host are org-identifying, and this repo is public.
+    """
     import subprocess
-    email = os.environ.get("JIRA_EMAIL", "jdelgado@equativ.com")
-    tok = os.environ["JIRA_API_TOKEN"]
-    base = os.environ.get("JIRA_BASE", "https://equativ.atlassian.net")
+    try:
+        email = os.environ["JIRA_EMAIL"]
+        tok = os.environ["JIRA_API_TOKEN"]
+        base = os.environ["JIRA_BASE"].rstrip("/")
+    except KeyError as e:
+        sys.exit(f"--attach-jira needs {e.args[0]} in the environment")
     out = subprocess.run(
         ["curl", "-s", "-u", f"{email}:{tok}", "-X", "POST",
          f"{base}/rest/api/3/issue/{key}/attachments",
