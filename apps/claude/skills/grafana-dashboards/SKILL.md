@@ -102,11 +102,26 @@ repeatedly: (1) it is a **filtered** store, many raw metrics never arrive there,
 check presence before building on them; (2) fan-out multiplied by a bad query OOMs
 the query pods. Build for both constraints.
 
-- **Prefer a federated/pre-recorded series over raw metrics.** If a ratio or a
-  rollup already exists as a recording rule shipped to the global, read it as a
-  **range vector** (`max_over_time(<rr>{...}[24h])`) instead of re-deriving it in a
-  subquery. To expose a new metric globally, ship a recording rule for it rather
-  than rewriting panels onto raw metrics that are not forwarded.
+**What usually survives to the global:** kube-state-metrics basics
+(`kube_pod_container_resource_{limits,requests}`, `kube_node_info`,
+`container_memory_working_set_bytes`) plus whatever you explicitly forward.
+
+**What usually does not**, and costs an afternoon each time you assume otherwise:
+kube-prometheus's own recording rules (`node_namespace_pod_container:*`),
+`kube_node_status_capacity`/`allocatable`, `kube_namespace_*`, and the deprecated
+`*_memory_bytes`/`*_cpu_cores` families. Per-cluster datasources have them, the
+global does not.
+
+- **Forwarding is opt-in, so a new metric needs a recording rule, not a new panel.**
+  A rule typically reaches the global only if it is explicitly marked for federation
+  (in a kube-prometheus values file, a `federate: "yes"` label on the rule). Ship the
+  rule rather than rewriting panels onto raw metrics that are not forwarded.
+- **Ship per-pod ratio recording rules once, then read them everywhere.** Rules named
+  along the lines of `kube_pod_cpu5m_limit_ratio`, `kube_pod_cpu5m_request_ratio`,
+  `kube_pod_memory_limit_ratio`, `kube_pod_memory_request_ratio` (plus per-namespace
+  equivalents) turn every saturation panel into a single cheap read. Take them as
+  **range vectors**, never re-divide in a subquery:
+  `max_over_time(kube_pod_cpu5m_limit_ratio{...}[24h])`.
 - **A ratio built on a limit or request is `+Inf` when the denominator is 0** (pod
   with no limit set). Append `< +Inf` on the `> threshold` tables; `<= X` tables
   already exclude it.
@@ -252,10 +267,13 @@ one pod name: a recreated pod carries a different `instance`, so the "pod" is tw
 objects over the window.
 
 ## Caching note
-The Thanos query-frontend response cache caches **`query_range` only**, **instant
-queries (`/api/v1/query`) are never cached**. So a heavy table panel (instant) will
-not benefit from the cache; reduce its cost via the cluster filter and range-vector
-recording rules instead.
+The Thanos query-frontend response cache (memcached, or Dragonfly speaking the
+memcached protocol) caches **`query_range` only**, **instant queries
+(`/api/v1/query`) are never cached**. So a heavy table panel (instant) will not
+benefit from the cache; reduce its cost via the cluster filter and range-vector
+recording rules instead. Note that `dragonfly_evicted_keys_total` ships nothing until
+its first eviction, so an empty panel there is not proof the cache is not evicting,
+see § Absence is not zero.
 
 ## Common mistakes
 | Symptom | Cause | Fix |
