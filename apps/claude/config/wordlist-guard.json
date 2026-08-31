@@ -1,5 +1,5 @@
 {
-    "bannedChars": ["U+2014", "U+2013"],
+    "bannedChars": ["U+2014", "U+2013", "U+2022"],
     "bannedWords": [
         "re:\\b(white|black)list(s|ed|ing)?\\b",
         "re:\\bslave(s|d)?\\b",
