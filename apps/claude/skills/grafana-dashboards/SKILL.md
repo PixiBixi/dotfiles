@@ -113,11 +113,13 @@ the query pods. Build for both constraints.
 
 ## Cluster and namespace filtering (anti-OOM, mandatory on a global store)
 - **A single-cluster filter bounds the fan-out to one stack**, the main lever against
-  OOM. Always filter on the external label your Thanos stamps per cluster, plus the
-  namespace, and exclude what you do not read:
-  `{<cluster_label>="$cluster", namespace=~"$namespace", namespace!="kube-system"}`.
-- Find the real label name before assuming: the conventional `cluster` is often
-  absent and replaced by a deployment-specific external label. Check
+  OOM. Always filter on the per-cluster external label, plus the namespace, and
+  exclude what you do not read:
+  `{k8s_cluster_name="$cluster", namespace=~"$namespace", namespace!="kube-system"}`.
+- **Check the label name before assuming.** In a Thanos receive setup the per-cluster
+  external label is commonly `k8s_cluster_name` (what the examples here use), while
+  the conventional `cluster` is often **absent** and a verbose internal one such as
+  `receive_prometheus` carries the receiver rather than the cluster. Confirm with
   `group by (<candidate>) (kube_node_info)` rather than trusting a doc.
 
 ## Template variables (fast)
@@ -125,20 +127,22 @@ Use `query_result(group by (<label>) (<low-cardinality metric>))` plus a `regex`
 `label_values()` (which hits the slow `/series` API on Thanos). Set `refresh: 1` (on
 load), variable `query.qryType: 3`.
 ```
-cluster:   query_result(group by (<cluster_label>) (kube_node_info))
-           regex: /<cluster_label>="([^"]+)"/     # kube_node_info is ~100 series
-namespace: query_result(group by (namespace) (<a per-pod metric>{<cluster_label>="$cluster", namespace!="kube-system"}))
+cluster:   query_result(group by (k8s_cluster_name) (kube_node_info))
+           regex: /k8s_cluster_name="([^"]+)"/
+namespace: query_result(group by (namespace) (<a per-pod metric>{k8s_cluster_name="$cluster", namespace!="kube-system"}))
            regex: /namespace="([^"]+)"/
 ```
-Pick the smallest metric that carries the label: a resource-limits metric can be 30x
-the series count of `kube_node_info` for the same answer.
+Pick the smallest metric that carries the label: `kube_node_info` is ~100 series where
+a per-container resource-limits metric is ~3300 for the same answer, a 30x difference
+on a query that runs on every dashboard load.
 
 ## Clean tables (the layout that works)
 1. Target: `format: table`, `instant: true`.
 2. **Wrap the query in `max by (namespace, pod) (...)` AFTER the over_time func**
    (not inside, which would create a subquery). Without it, `format: table` leaks
-   every external and federation label (cluster, dc, env, tenant, source
-   Prometheus...) as columns and pushes the value off-screen.
+   every external and federation label as a column and pushes the value off-screen.
+   Typically `k8s_cluster_name`, `receive_prometheus`, `dc`, `env`, `prometheus`,
+   `tenant_id`.
 3. Transformation `organize`: exclude `Time`, index `namespace`=0 `pod`=1.
 4. Override `byType: number`: `displayName`, `unit: percentunit`,
    `custom.cellOptions: {type: color-background, mode: basic}`, thresholds
