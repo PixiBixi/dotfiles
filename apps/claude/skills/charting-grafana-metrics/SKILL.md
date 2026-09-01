@@ -7,14 +7,9 @@ description: Use when you need a clean PNG chart of Grafana/Prometheus metrics, 
 
 ## Overview
 
-Renders a dark-themed, Grafana-styled PNG line chart from a PromQL query, fetched
-through the **Grafana datasource proxy** (so no direct Prometheus network access is
-needed, the Grafana SA token is enough). Reproducible and scriptable, unlike a
-manual screenshot. Can attach the result straight to a Jira issue.
+Renders a dark-themed, Grafana-styled PNG line chart from a PromQL query, fetched through the **Grafana datasource proxy** (so no direct Prometheus network access is needed, the Grafana SA token is enough). Reproducible and scriptable, unlike a manual screenshot. Can attach the result straight to a Jira issue.
 
-**Why this exists:** many Grafana instances lack the *Image Renderer* plugin, so
-`get_panel_image` / `/render/...` return a "No image renderer available" placeholder.
-This rebuilds the chart from raw data instead.
+**Why this exists:** many Grafana instances lack the *Image Renderer* plugin, so `get_panel_image` / `/render/...` return a "No image renderer available" placeholder. This rebuilds the chart from raw data instead.
 
 ## When to use
 
@@ -58,21 +53,14 @@ Nothing is hardcoded: no host, no address. Set these in your shell profile.
 | `GTOK` | optional | Grafana SA token, bypasses the auto-read; or `--token` |
 | `JIRA_API_TOKEN` `JIRA_EMAIL` `JIRA_BASE` | `--attach-jira` only | all three, no default |
 
-`GRAFANA_URL` and `GRAFANA_MCP_SERVER` must name the **same** Grafana: the token is
-read from the MCP server, so a mismatched pair sends instance A's token to instance
-B and the datasource proxy answers 401. With several instances, override both flags
-together (`--grafana-url ... --mcp-server ...`), never just one.
+`GRAFANA_URL` and `GRAFANA_MCP_SERVER` must name the **same** Grafana: the token is read from the MCP server, so a mismatched pair sends instance A's token to instance B and the datasource proxy answers 401. With several instances, override both flags together (`--grafana-url ... --mcp-server ...`), never just one.
 
-Token auto-read order: `--token`, then `GTOK`, then `~/.claude.json`, key
-`mcpServers.<GRAFANA_MCP_SERVER>.env.GRAFANA_SERVICE_ACCOUNT_TOKEN` (falls back to
-`GRAFANA_API_KEY`).
+Token auto-read order: `--token`, then `GTOK`, then `~/.claude.json`, key `mcpServers.<GRAFANA_MCP_SERVER>.env.GRAFANA_SERVICE_ACCOUNT_TOKEN` (falls back to `GRAFANA_API_KEY`).
 
 ## Workflow
 
-1. Get the datasource UID + PromQL from the dashboard (`get_dashboard_panel_queries`)
-   or write the query yourself.
-2. Run the script (via the venv python). Colors auto-assign from the Grafana palette
-   in series order; legend shows mean/max per series.
+1. Get the datasource UID + PromQL from the dashboard (`get_dashboard_panel_queries`) or write the query yourself.
+2. Run the script (via the venv python). Colors auto-assign from the Grafana palette in series order; legend shows mean/max per series.
 3. Read the PNG back to eyeball it before sharing.
 4. Optionally attach to Jira with `--attach-jira`.
 
@@ -100,14 +88,9 @@ $VENV $SKILL/plot_grafana.py \
 
 ## Common mistakes
 
-- **401 from the proxy** → SA token missing/wrong. `mcp-grafana` v0.11+ uses
-  `GRAFANA_SERVICE_ACCOUNT_TOKEN`, not `GRAFANA_API_KEY` (the script tries both).
+- **401 from the proxy** → SA token missing/wrong. `mcp-grafana` v0.11+ uses `GRAFANA_SERVICE_ACCOUNT_TOKEN`, not `GRAFANA_API_KEY` (the script tries both).
 - **Using system `python3`** → `ModuleNotFoundError: matplotlib`. Use the venv python.
-- **Empty/one flat line where you expect several** → the `--expr` regex matched a
-  single series; widen the label matcher.
-- **Series unnamed / all "series"** → `--legend-key` points at a label the metric
-  doesn't have; pick one it does (check the raw query result).
-- **`:9100` (or any `:port`) in legend names** → auto-stripped from the derived
-  series name, so `--rename` targets the clean host (e.g. `lb-edge-dc1-1`, not
-  `lb-edge-dc1-1:9100`). No need to list both forms.
+- **Empty/one flat line where you expect several** → the `--expr` regex matched a single series; widen the label matcher.
+- **Series unnamed / all "series"** → `--legend-key` points at a label the metric doesn't have; pick one it does (check the raw query result).
+- **`:9100` (or any `:port`) in legend names** → auto-stripped from the derived series name, so `--rename` targets the clean host (e.g. `lb-edge-dc1-1`, not `lb-edge-dc1-1:9100`). No need to list both forms.
 - **`now-90m` style** not supported: units are s/m/h/d only (e.g. `now-6h`).
