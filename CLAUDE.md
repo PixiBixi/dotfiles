@@ -77,15 +77,9 @@ All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, et
 
 ## apps/claude/hooks
 
-Each hook resolves its own config, first readable file wins: `$CLAUDE_<NAME>_CONFIG`, then
-`./.claude/<name>.json` (per repo), then `~/.claude/<name>.json`. `apps/claude/config/*.json` is the
-versioned source of that last stop, symlinked **flat** into `~/.claude/` by `setup_claude()`, so a
-hook needs no path knowledge and a new config file needs no edit to `init_mac.sh` or
-`check-drift.sh`.
+Each hook resolves its own config, first readable file wins: `$CLAUDE_<NAME>_CONFIG`, then `./.claude/<name>.json` (per repo), then `~/.claude/<name>.json`. `apps/claude/config/*.json` is the versioned source of that last stop, symlinked **flat** into `~/.claude/` by `setup_claude()`, so a hook needs no path knowledge and a new config file needs no edit to `init_mac.sh` or `check-drift.sh`.
 
-Every hook exits 0 on a missing or malformed config and falls back to its built-in defaults: a
-broken config can never break a session. The flip side is that the only symptom of a config that
-failed to deploy is a rule quietly not enforced, which is why `check-drift.sh` checks them.
+Every hook exits 0 on a missing or malformed config and falls back to its built-in defaults: a broken config can never break a session. The flip side is that the only symptom of a config that failed to deploy is a rule quietly not enforced, which is why `check-drift.sh` checks them.
 
 | Hook | Event | Does |
 |------|-------|------|
@@ -93,20 +87,13 @@ failed to deploy is a rule quietly not enforced, which is why `check-drift.sh` c
 | `wiki-sync.sh` | SessionEnd | Runs `/openwiki:wiki update` detached, commits and pushes `openwiki/` on the default branch only |
 | `wordlist-guard.sh` | PostToolUse `Write\|Edit` | Flags banned characters and words that just landed in a file, via `additionalContext` |
 
-`wordlist-guard.sh` is the floor under the writing rules in `apps/claude/CLAUDE.md`: a standing rule
-gets diluted with no error raised, and chat replies cannot be hooked, so this covers where written
-text persists. Config in `apps/claude/config/wordlist-guard.json`:
+`wordlist-guard.sh` is the floor under the writing rules in `apps/claude/CLAUDE.md`: a standing rule gets diluted with no error raised, and chat replies cannot be hooked, so this covers where written text persists. Config in `apps/claude/config/wordlist-guard.json`:
 
-- `bannedChars`: `U+2014` / `U+2013` (the em dash rule). Entries are `U+XXXX` or a literal character.
-- `bannedWords`: the non-inclusive terms named in `CLAUDE.md`. Prefix an entry with `re:` for a raw
-  regex, otherwise it matches the word with an optional trailing `s`.
-- `allowPaths`: `apps/claude/skills/` (upstream-managed, same exclusion markdownlint uses), plus
-  vendored and generated trees. An entry containing `/` is a substring or glob match on the full
-  path, otherwise it globs the basename.
+- `bannedChars`: `U+2014` / `U+2013` (the em dash rule) and `U+2022` (the bullet rule). Entries are `U+XXXX` or a literal character.
+- `bannedWords`: the non-inclusive terms named in `CLAUDE.md`. Prefix an entry with `re:` for a raw regex, otherwise it matches the word with an optional trailing `s`.
+- `allowPaths`: the upstream-managed skills only (`apps/claude/skills/confluence/`, `apps/claude/skills/jira-cli/`), plus vendored and generated trees. Locally-authored skills stay guarded, unlike with markdownlint which excludes `apps/claude/skills/` wholesale. An entry containing `/` is a substring or glob match on the full path, otherwise it globs the basename.
 
-Adding a word is a one-line edit to that JSON, no script change. Widen `bannedWords` only for rules
-that are actually written down in `CLAUDE.md`: a hook enforcing a rule that exists nowhere else is
-how false positives get normalised.
+Adding a word is a one-line edit to that JSON, no script change. Widen `bannedWords` only for rules that are actually written down in `CLAUDE.md`: a hook enforcing a rule that exists nowhere else is how false positives get normalised.
 
 ## apps/claude/skills
 

@@ -103,8 +103,7 @@ Dans votre `.gitconfig` principal, incluez conditionnellement :
 
 Deux fichiers sous `config/.config/git/` sont symlinkés vers `~/.config/git/` :
 
-- `allowed_signers` : référencé par `gpg.ssh.allowedSignersFile`. Adresse courante en premier,
-  domaines historiques après, séparés par des virgules sur la même ligne
+- `allowed_signers` : référencé par `gpg.ssh.allowedSignersFile`. Adresse courante en premier, domaines historiques après, séparés par des virgules sur la même ligne
 - `ignore` : gitignore global, lu par défaut à cet emplacement
 
 ### 2. Kubeconfig
@@ -158,8 +157,7 @@ make help          # lister les targets
 
 ### Vérifier la dérive
 
-`scripts/check-drift.sh` compare les fichiers de `config/` et de `apps/claude/` avec ce qui est
-déployé dans `$HOME`, et vérifie que les index krew de `packages/krew-indexes.txt` sont enregistrés.
+`scripts/check-drift.sh` compare les fichiers de `config/` et de `apps/claude/` avec ce qui est déployé dans `$HOME`, et vérifie que les index krew de `packages/krew-indexes.txt` sont enregistrés.
 
 ```bash
 ./scripts/check-drift.sh
@@ -167,8 +165,7 @@ déployé dans `$HOME`, et vérifie que les index krew de `packages/krew-indexes
 
 ### Auditer l'usage du Brewfile
 
-`scripts/brew-usage-audit.sh` liste les packages Homebrew jamais utilisés, en lisant l'atime des
-binaires du Cellar.
+`scripts/brew-usage-audit.sh` liste les packages Homebrew jamais utilisés, en lisant l'atime des binaires du Cellar.
 
 | Flag | Effet |
 | ------ | ------- |
@@ -194,8 +191,7 @@ brew uninstall <package>
 
 ## Pre-commit
 
-Hooks appliqués à chaque commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`,
-`prettier`, `conventional-pre-commit`.
+Hooks appliqués à chaque commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`, `prettier`, `conventional-pre-commit`.
 
 ```bash
 pre-commit run --all-files      # tous les hooks
@@ -205,8 +201,7 @@ pre-commit autoupdate           # bumper les versions
 
 ## CI
 
-`.github/workflows/weekly-software-check.yml` tourne chaque lundi, valide que les formulas et les
-casks de `packages/Brewfile` existent toujours, et ouvre une PR pour supprimer les entrées obsolètes.
+`.github/workflows/weekly-software-check.yml` tourne chaque lundi, valide que les formulas et les casks de `packages/Brewfile` existent toujours, et ouvre une PR pour supprimer les entrées obsolètes.
 
 ## Composants Installés
 
@@ -230,17 +225,13 @@ Voir `packages/Brewfile` pour la liste complète. Généralement :
 - `kubectx`, `kubens`
 - `kubeswitch` pour la gestion multi-cluster
 - Plugins krew : entrées `krew "..."` dans `packages/Brewfile`
-- Index krew custom : `packages/krew-indexes.txt`, enregistrés par le step `krew-indexes` de
-  `init_mac.sh` avant l'installation des packages
+- Index krew custom : `packages/krew-indexes.txt`, enregistrés par le step `krew-indexes` de `init_mac.sh` avant l'installation des packages
 
 ### Claude Code / AI Tooling
 
-- **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale
-  (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills déployés par `setup_claude()`
-- **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json`
-  (skillfish), `uipro`, ou leur dépôt upstream
-- **RTK** : proxy CLI token-efficient (`rtk init --global` configure le hook et génère
-  `~/.claude/RTK.md`)
+- **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale (`apps/claude/CLAUDE.md`, `settings.json`), hooks et skills déployés par `setup_claude()`
+- **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream
+- **RTK** : proxy CLI token-efficient (`rtk init --global` configure le hook et génère `~/.claude/RTK.md`)
 
 ### Development Tools
 
@@ -281,8 +272,7 @@ Le token ADC est expiré (fréquent sur les comptes Google Workspace avec SSO) :
 gcloud auth application-default login
 ```
 
-Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans
-`~/.kube/switch-config.yaml` sur le store GKE :
+Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/.kube/switch-config.yaml` sur le store GKE :
 
 ```yaml
 - kind: gke
@@ -298,8 +288,7 @@ Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans
 
 ### Un plugin krew préfixé échoue à l'installation
 
-L'index custom n'est pas enregistré. `./scripts/check-drift.sh` le signale et affiche la commande
-de correction.
+L'index custom n'est pas enregistré. `./scripts/check-drift.sh` le signale et affiche la commande de correction.
 
 ## Configuration Avancée
 
