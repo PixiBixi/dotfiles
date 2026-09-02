@@ -41,7 +41,7 @@ CALLED_FROM=$(pwd)
 cd "$REPO_ROOT" || exit 1
 
 export TG_TF_FORWARD_STDOUT="${TG_TF_FORWARD_STDOUT:-true}"
-export TG_LOG_CUSTOM_FORMAT="${TG_LOG_CUSTOM_FORMAT:-%level(case=lower,width=5) %prefix(path=relative,prefix=[,suffix=] )%msg}"
+export TG_LOG_CUSTOM_FORMAT="${TG_LOG_CUSTOM_FORMAT:-%level(case=lower,width=5) %prefix(path=relative,prefix=[,suffix='] ')%msg}"
 export TG_NO_TIPS="${TG_NO_TIPS:-true}"
 # Matches the iac-core CI. Only bites when a unit has several dependencies,
 # since each unit already gets its own invocation here.
