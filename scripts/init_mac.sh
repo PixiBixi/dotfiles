@@ -300,6 +300,7 @@ setup_dotfiles() {
         "config/.vimrc"
         "config/.config/git/allowed_signers"
         "config/.config/git/ignore"
+        "config/.local/bin/tg-run"
     )
 
     for src_rel in "${symlink_files[@]}"; do

@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# Run a Terragrunt command over the units impacted by the current branch, one
+# invocation per unit so the output stays attributable under --parallelism.
+#
+# Terragrunt's default `pretty` format re-wraps Terraform output as
+# `<time> <level> [<unit path>] terraform: <line>`, which burns ~77 columns on
+# every line of a plan. TG_TF_FORWARD_STDOUT drops that wrapper for the
+# Terraform output only; Terragrunt's own lifecycle lines keep a short tag.
+#
+# Usage:
+#   tg-run                       # plan the cwd unit, or every unit below the
+#                                # cwd, or the units impacted by the branch
+#   tg-run plan live/a live/b    # plan the given units
+#   tg-run validate              # any Terragrunt command works
+#   BASE_REF=origin/master tg-run
+#
+# NOT a drop-in for `tg plan`: each unit runs through `run --all
+# --queue-include-dir`, which also pulls in that unit's dependencies.
+
+set -uo pipefail
+
+usage() {
+    awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
+}
+
+case "${1:-}" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+esac
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2> /dev/null) || {
+    echo "tg-run: not inside a git repository" >&2
+    exit 1
+}
+
+# Remember where we were called from before jumping to the root: a bare
+# invocation inside a leaf unit should plan that unit, not the whole diff.
+CALLED_FROM=$(pwd)
+cd "$REPO_ROOT" || exit 1
+
+export TG_TF_FORWARD_STDOUT="${TG_TF_FORWARD_STDOUT:-true}"
+export TG_LOG_CUSTOM_FORMAT="${TG_LOG_CUSTOM_FORMAT:-%level(case=lower,width=5) %prefix(path=relative,prefix=[,suffix=] )%msg}"
+export TG_NO_TIPS="${TG_NO_TIPS:-true}"
+# Matches the iac-core CI. Only bites when a unit has several dependencies,
+# since each unit already gets its own invocation here.
+export TG_PARALLELISM="${TG_PARALLELISM:-10}"
+
+CMD="${1:-plan}"
+[ $# -gt 0 ] && shift
+DIRS_TO_RUN=("$@")
+
+# Collapsible sections under GitLab CI, a plain rule in a terminal.
+section_start() {
+    local id="$1" title="$2"
+    if [ -n "${CI:-}" ]; then
+        printf '\e[0Ksection_start:%s:%s[collapsed=true]\r\e[0K\e[36m%s\e[0m\n' \
+            "$(date +%s)" "$id" "$title"
+    else
+        printf '\n\e[1;36m%s\e[0m\n\e[36m%s\e[0m\n' \
+            "$title" "$(printf '%*s' "${#title}" '' | tr ' ' '=')"
+    fi
+}
+
+section_end() {
+    if [ -n "${CI:-}" ]; then
+        printf '\e[0Ksection_end:%s:%s\r\e[0K\n' "$(date +%s)" "$1"
+    fi
+}
+
+slug() {
+    echo "$1" | tr '/.' '__'
+}
+
+# Every unit at or below a directory, repo-relative. .terragrunt-cache holds a
+# vendored copy of each module, terragrunt.hcl included; CI never sees them
+# (fresh clone), a local run does.
+units_below() {
+    local root="$1" tgfile out=""
+    while IFS= read -r -d '' tgfile; do
+        out="$out $(dirname "${tgfile#"$REPO_ROOT"/}")"
+    done < <(find "$root" -type f -name terragrunt.hcl -not -path '*/.terragrunt-cache/*' -print0 2> /dev/null)
+    echo "$out" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/^ *//; s/ *$//'
+}
+
+# Same walk as the terragrunt-plan job in iac-core's .gitlab-ci.yml: changed
+# live/ files, plus every live/ file referencing a changed local module, then
+# up and down to the nearest terragrunt.hcl.
+detect_dirs() {
+    local base="${BASE_REF:-origin/main}"
+    local commit_ref="${base}...HEAD"
+    local layer_files="" changed_dirs="" tf_file f dir found tgfile
+
+    for tf_file in $(git diff --name-only "$commit_ref" -- 'modules/**' || true); do
+        found=$(grep -rl "$(dirname "$tf_file")" live/ || true)
+        [ -n "$found" ] && layer_files="$layer_files $found"
+    done
+
+    local changed_live_files
+    changed_live_files=$(git diff --name-only "$commit_ref" | grep -E '^live/.*\.(hcl|tftpl|json)$' || true)
+
+    for f in $(echo "$layer_files $changed_live_files" | tr ' ' '\n' | sort -u); do
+        dir=$(dirname "$f")
+
+        # .terragrunt-cache holds a vendored copy of every module, each with its
+        # own terragrunt.hcl. CI never sees them (fresh clone), a local run does.
+        while IFS= read -r -d '' tgfile; do
+            changed_dirs="$changed_dirs $(dirname "$tgfile")"
+        done < <(find "$dir" -type f -name terragrunt.hcl -not -path '*/.terragrunt-cache/*' -print0 2> /dev/null)
+
+        while [ "$dir" != "." ] && [ "$dir" != "/" ]; do
+            if [ -f "$dir/terragrunt.hcl" ]; then
+                changed_dirs="$changed_dirs $dir"
+                break
+            fi
+            dir=$(dirname "$dir")
+        done
+    done
+
+    echo "$changed_dirs" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/^ *//; s/ *$//'
+}
+
+if [ ${#DIRS_TO_RUN[@]} -eq 0 ]; then
+    if [ -f "$CALLED_FROM/terragrunt.hcl" ]; then
+        DIRS_TO_RUN=("${CALLED_FROM#"$REPO_ROOT"/}")
+    else
+        # A subtree such as live/clusters/ssai/tvm holds units without being one.
+        # Falling through to the branch diff there silently plans an unrelated
+        # unit. The repo root is excluded, or a bare call would plan everything.
+        subtree_units=""
+        [ "$CALLED_FROM" != "$REPO_ROOT" ] && subtree_units=$(units_below "$CALLED_FROM")
+        if [ -n "$subtree_units" ]; then
+            read -r -a DIRS_TO_RUN <<< "$subtree_units"
+        else
+            read -r -a DIRS_TO_RUN <<< "$(detect_dirs)"
+        fi
+    fi
+fi
+
+if [ ${#DIRS_TO_RUN[@]} -eq 0 ]; then
+    echo "tg-run: no impacted unit, skipping $CMD"
+    exit 0
+fi
+
+# Only auto-approve in CI. Locally an `apply` must keep its confirmation prompt.
+EXTRA_ARGS=()
+[ -n "${CI:-}" ] && EXTRA_ARGS+=(--non-interactive)
+
+echo "tg-run: $CMD on ${#DIRS_TO_RUN[@]} unit(s): ${DIRS_TO_RUN[*]}"
+
+rc=0
+FAILED=()
+for dir in "${DIRS_TO_RUN[@]}"; do
+    id=$(slug "$dir")
+    section_start "$id" ">> $CMD  $dir"
+    if ! terragrunt run --all "$CMD" --queue-include-dir "$dir" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        rc=1
+        FAILED+=("$dir")
+    fi
+    section_end "$id"
+done
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+    printf '\n\e[31mtg-run: %d unit(s) failed:\e[0m\n' "${#FAILED[@]}"
+    printf '  %s\n' "${FAILED[@]}"
+fi
+
+exit "$rc"

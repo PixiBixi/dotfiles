@@ -67,6 +67,9 @@ dotfiles/
 │   └── vscode/
 │       ├── settings.json
 │       └── extensions.txt
+│   └── .local/
+│       └── bin/
+│           └── tg-run           # Runner Terragrunt à sortie lisible, déployé sur le $PATH
 ├── scripts/
 │   ├── init_mac.sh              # Script d'installation principal
 │   ├── check-drift.sh           # Diff entre config/ et les fichiers déployés
@@ -188,6 +191,20 @@ Avant de supprimer un package suggéré :
 brew uses --installed <package>   # vérifier s'il est requis par un autre
 brew uninstall <package>
 ```
+
+### Lancer un plan Terragrunt lisible
+
+`tg-run` (déployé depuis `config/.local/bin/`) lance une commande Terragrunt sur chaque unité impactée, une invocation par unité. Le format `pretty` de Terragrunt réencapsule la sortie Terraform en `<time> <level> [<unit>] terraform: <ligne>`, soit ~77 colonnes perdues sur chaque ligne d'un plan : le script exporte `TG_TF_FORWARD_STDOUT` pour laisser passer la sortie Terraform brute, et regroupe chaque unité dans une section repliable sous GitLab CI (un simple titre en local).
+
+| Invocation | Effet |
+| ------ | ------- |
+| `tg-run` | Plan de l'unité courante si le répertoire contient un `terragrunt.hcl` ; sinon de toutes les unités sous le répertoire courant ; sinon des unités impactées vs `origin/main`. La racine du repo est exclue du deuxième cas, un appel nu y planerait tout le monorepo |
+| `tg-run plan live/a live/b` | Plan des unités données |
+| `tg-run validate` | N'importe quelle commande Terragrunt |
+| `BASE_REF=origin/master tg-run` | Change la branche de référence pour la détection |
+| `-h`, `--help` | Aide |
+
+Ce n'est pas un remplacement de `tg plan` : chaque unité passe par `run --all --queue-include-dir`, ce qui embarque aussi ses dépendances. `--non-interactive` n'est ajouté que si `$CI` est défini, pour qu'un `apply` local garde sa confirmation.
 
 ## Pre-commit
 
