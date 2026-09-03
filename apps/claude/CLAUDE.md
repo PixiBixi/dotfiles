@@ -19,13 +19,13 @@ Tokens cost real money and the budget is the user's.
 - Before a multi-step task: propose the plan and the model split, wait for approval, then execute what was approved, no silent upgrade mid-task.
 - For current model IDs and pricing, read the `claude-api` skill, never answer from memory.
 
-## Scans /claude-security
+## /claude-security scans
 
-Les agents `scan-researcher`, `scan-verifier`, `patch-generator` et `patch-verifier` sont `model: inherit`: ils heritent du modele de la session. Un `medium` en session Opus lance ~48 chercheurs a ~90k tokens chacun.
+The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-verifier` agents are `model: inherit`, so they follow the session model. A `medium` scan from an Opus session dispatches ~48 researchers at ~90k tokens each.
 
-- Combo par defaut: session Sonnet 5, `--effort medium`, `focus attack-surface`, `--scope` sur les paquets qui parsent de l'entree reseau. Repasser en session Opus pour la phase patch.
-- Tiers: `low` = un chercheur sur tout le repo + panel; `medium` = jusqu'a 24 composants x 4 lentilles; `high` = jusqu'a 48 composants et 2 chercheurs par cellule, ~4x medium.
-- RTK ne rattrape pas ce cout: son hook ne filtre que `Bash`, pas les tools `Read`/`Grep`/`Glob`.
+- Default combo: Sonnet 5 session, `--effort medium`, `focus attack-surface`, `--scope` on the packages that parse network input. Switch back to an Opus session for the patch phase.
+- Tiers: `low` = one researcher over the whole repo plus the panel; `medium` = up to 24 components x 4 category lenses; `high` = up to 48 components and 2 researchers per cell, roughly 4x medium.
+- RTK does not offset this cost: its hook only filters `Bash`, never the `Read`/`Grep`/`Glob` tools.
 
 ## Output Expectations
 
