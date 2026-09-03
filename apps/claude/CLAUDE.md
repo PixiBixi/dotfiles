@@ -19,6 +19,14 @@ Tokens cost real money and the budget is the user's.
 - Before a multi-step task: propose the plan and the model split, wait for approval, then execute what was approved, no silent upgrade mid-task.
 - For current model IDs and pricing, read the `claude-api` skill, never answer from memory.
 
+## Scans /claude-security
+
+Les agents `scan-researcher`, `scan-verifier`, `patch-generator` et `patch-verifier` sont `model: inherit`: ils heritent du modele de la session. Un `medium` en session Opus lance ~48 chercheurs a ~90k tokens chacun.
+
+- Combo par defaut: session Sonnet 5, `--effort medium`, `focus attack-surface`, `--scope` sur les paquets qui parsent de l'entree reseau. Repasser en session Opus pour la phase patch.
+- Tiers: `low` = un chercheur sur tout le repo + panel; `medium` = jusqu'a 24 composants x 4 lentilles; `high` = jusqu'a 48 composants et 2 chercheurs par cellule, ~4x medium.
+- RTK ne rattrape pas ce cout: son hook ne filtre que `Bash`, pas les tools `Read`/`Grep`/`Glob`.
+
 ## Output Expectations
 
 - **Always use absolute paths**: `/path/to/file.txt`, never `./file.txt`
