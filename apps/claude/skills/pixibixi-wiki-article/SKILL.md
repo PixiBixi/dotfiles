@@ -25,14 +25,15 @@ Ce skill capture la procédure complète *et les pièges qui cassent la CI ou la
 ## Workflow
 
 1. **Explorer** la section cible et **lire un article voisin** pour caler le style (frontmatter, ton, structure).
-2. **Rédiger** l'article. Ancrer sur du réel (code, mesures, repos existants), pas du tuto générique.
+2. **Rédiger** l'article. Ancrer sur du réel (code, mesures, repos existants), pas du tuto générique. Une valeur par défaut, un chiffre de perf ou un nom de métrique s'écrit **avec sa source sous les yeux** : sinon on ne l'écrit pas, on va la chercher. Sur 9 articles relus, ces 2 familles pesaient 17 erreurs sur 49.
 3. **Passer la voix au filtre** - invoquer le skill `humanizer` pour que ça sonne comme l'auteur, pas comme un bot.
 4. **Cross-linker** les articles liés (dans les deux sens) via une admonition `!!! tip` ou un lien inline.
 5. **Schéma** si un *flux* le mérite (voir "Schémas SVG"). Sinon un tableau suffit.
 6. **⚠️ Wirer les DEUX index** (voir Gotcha 1) - l'étape le plus souvent oubliée.
 7. **Build + vérifier** : `mkdocs build --strict` préfixé du `DYLD_FALLBACK_LIBRARY_PATH` (Gotcha 4), puis relint markdown (Gotchas 2 et 3). Contrôler que le SVG est copié et la balise `<img>` résolue.
-8. **Committer par scope** (Conventional Commits, un commit par portée), rebase sur `origin/master`, push.
-9. **Watcher la CI** : `gh run watch <id> --repo PixiBixi/pixibixi.github.io --exit-status`. Ne pas considérer le travail fini avant que `lint` **et** `deploy` soient verts.
+8. **Vérifier l'exactitude** - invoquer le skill `wiki-fact-check`. L'étape 7 prouve que l'article s'affiche, pas qu'il dit vrai. Sur un article neuf ou une réécriture de fond, c'est non négociable. Le rapport passe par l'auteur avant correction.
+9. **Committer par scope** (Conventional Commits, un commit par portée), rebase sur `origin/master`, push.
+10. **Watcher la CI** : `gh run watch <id> --repo PixiBixi/pixibixi.github.io --exit-status`. Ne pas considérer le travail fini avant que `lint` **et** `deploy` soient verts.
 
 ## Conventions MkDocs Material
 
