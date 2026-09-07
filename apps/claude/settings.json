@@ -121,7 +121,9 @@
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "ansible-skills@ansible-skills-marketplace": true,
-    "openwiki@openwiki-cc": true
+    "openwiki@openwiki-cc": true,
+    "security-guidance@claude-plugins-official": true,
+    "claude-security@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "samber": {
@@ -143,13 +145,13 @@
       }
     }
   },
+  "outputStyle": "Concise",
   "effortLevel": "high",
   "companyAnnouncements": [
     "Coucou Jerem pense à déconnecter"
   ],
+  "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "autoUpdatesChannel": "latest",
-  "outputStyle": "Concise"
+  "skipAutoPermissionPrompt": true
 }
