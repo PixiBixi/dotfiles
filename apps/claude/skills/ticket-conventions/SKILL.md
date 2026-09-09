@@ -1,6 +1,6 @@
 ---
 name: ticket-conventions
-description: Conventions and API gotchas for writing to a tracker - creating a Jira issue or a GitLab issue, posting a comment on an existing ticket. Load BEFORE any tracker write, and on "crée un ticket", "ouvre une issue", "commente le ticket", "poste ça sur PE-xxxx", "le ticket est prêt / à tester". Covers the approval gate, the Jira markdown trap, custom field id discovery, and the glab flags that hang. Not for jira-cli command syntax (that is jira-cli) and not for MR descriptions.
+description: Conventions and API gotchas for writing to a tracker - creating a Jira issue or a GitLab issue, posting a comment on an existing ticket. Load BEFORE any tracker write, and on "crée un ticket", "ouvre une issue", "commente le ticket", "poste ça sur PE-xxxx", "le ticket est prêt / à tester". Covers the approval gate, the length ceiling on descriptions and comments, the Jira markdown trap, custom field id discovery, and the glab flags that hang. Not for jira-cli command syntax (that is jira-cli) and not for MR descriptions.
 ---
 
 # Ticket conventions
@@ -31,6 +31,16 @@ Pass `contentFormat: "markdown"` and write plain markdown. Jira wiki markup (`h2
 - `- ` for bullets, `1. ` for numbered lists, `[text](url)` for links.
 - Default to short and scannable: one or two sentences of context, then a bulleted list, then the must-know note. Skip headings entirely unless the comment genuinely has several sections.
 - Never paste credentials, tokens, or internal hostnames into a ticket.
+
+## Length: the description too, not just the comment
+
+**60 lines is the hard ceiling for a ticket description, and it is a ceiling, not a target.** The real rule is proportionality: the description matches the size of the change, never the size of the investigation. Resizing a PVC is three lines - what, on which cluster, why now. It is not 60, and it is not 20. Only a ticket that genuinely carries a root-cause analysis, several linked changes and an open decision gets near the ceiling.
+
+A description is read by someone deciding whether to pick the ticket up. Keep the problem in a sentence, the root cause with its one decisive number, what changed with its links, the open risk, the decision criterion.
+
+Cut everything you needed to measure to get there. Per-metric tables, enumerations of what you scanned, the list of every artefact you touched, measurement traps you hit on the way, corrections of your own earlier numbers. That material belongs in the MR, where it serves the review, or in the dashboard you built. A section title taken from your investigation rather than from the problem is the tell that the section should go.
+
+Same restraint on an edit: re-read the whole description after amending it and cut, rather than appending a section each time something new is learned.
 
 ## Jira: never invent a custom field id
 
