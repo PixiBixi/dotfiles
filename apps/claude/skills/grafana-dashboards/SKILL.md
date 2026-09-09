@@ -1,6 +1,6 @@
 ---
 name: grafana-dashboards
-description: Use when creating or editing a Grafana dashboard or PromQL query against a Thanos or Prometheus datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99).
+description: Use when creating or editing a Grafana dashboard or PromQL query against a Thanos, Prometheus or Google Cloud Monitoring (GCM/stackdriver) datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99). Also for migrating panels off a stackdriver-exporter onto GCM PromQL, or when a GCM panel reads No data, falls back to the Builder query type, or errors on monitored_resource or a JSON parse.
 ---
 
 # Authoring Grafana dashboards and PromQL
@@ -123,6 +123,58 @@ The same trap bites `max_over_time(<metric>{pod="X"}[24h])` returning two series
 ## Caching note
 The Thanos query-frontend response cache (memcached, or Dragonfly speaking the memcached protocol) caches **`query_range` only**, **instant queries (`/api/v1/query`) are never cached**. So a heavy table panel (instant) will not benefit from the cache; reduce its cost via the cluster filter and range-vector recording rules instead. Note that `dragonfly_evicted_keys_total` ships nothing until its first eviction, so an empty panel there is not proof the cache is not evicting, see § Absence is not zero.
 
+## Google Cloud Monitoring (GCM) datasource, PromQL mode
+Grafana's `cloud-monitoring` datasource (plugin type `stackdriver`) has a PromQL editor that queries Cloud Monitoring's Prometheus-compatible endpoint, so a Prometheus panel can move onto GCP metrics almost verbatim, ratios and `absent()` fallbacks included. `sort_desc`, `label_replace`, `vector()`, `absent()` and `last_over_time` all work. What makes it fail is never the PromQL.
+
+**Metric names.** Take the Cloud Monitoring metric type, turn the first `/` into `:` and every other special character into `_`: `cloudsql.googleapis.com/database/cpu/utilization` -> `cloudsql_googleapis_com:database_cpu_utilization`. Label names are the metric and resource labels, unchanged. Converting off a `stackdriver_exporter`: its name is `stackdriver_<resource_type>_<metric_type>`, so strip `stackdriver_` and the resource-type prefix, then put the `:` back at the first `/` boundary. Do not "fix" a name that looks wrong, `container.googleapis.com/quota/quota/nodes_per_cluster/usage` really does carry `quota` twice.
+
+**A JSON-authored target is silently rewritten to the Builder query.** `migrateQuery()` (`grafana/grafana-cloudmonitoring-datasource`, `src/datasource.ts`) short-circuits only when the target already owns one of `metricQuery`, `sloQuery`, `timeSeriesQuery` or `timeSeriesList`. `promQLQuery` is **not** in that list, so a target carrying only `promQLQuery` becomes `queryType: timeSeriesList` with no metric type, and `filterQuery()` then drops it: the panel sends no query at all and reads "No data". It runs from `query()` as well as from the editor, so this bites at render time. Ship a `timeSeriesList` stub alongside, which is what the UI leaves behind anyway:
+```json
+{
+  "queryType": "promQL",
+  "promQLQuery": { "projectName": "$project", "expr": "...", "step": "1m" },
+  "timeSeriesList": {
+    "projectName": "$project", "crossSeriesReducer": "REDUCE_NONE",
+    "alignmentPeriod": "cloud-monitoring-auto", "perSeriesAligner": "ALIGN_MEAN",
+    "filters": [], "groupBys": []
+  }
+}
+```
+That asymmetry is why the mode works when clicked together in the UI and not when authored as JSON. `projectName` is interpolated like any string field, so a dashboard variable belongs there.
+
+**PromQL reads one project, never a metrics scope.** The endpoint is `projects/<project>/location/global/prometheus`, and a scoping project returns an empty vector for metrics owned by the projects in its scope. `projectName` must name the project that **owns** the metric, so a dashboard spanning several (cluster quotas in one project, Cloud SQL in another) needs a different `projectName` per panel group, and a project that no variable can derive needs its own hidden `constant` variable. Widening the metrics scope does not help.
+
+**`monitored_resource` is mandatory when a metric maps to several resource types.** Quota metrics are the usual case, and the API **rejects** the query rather than returning empty, which makes this the easy one to diagnose:
+```text
+must specify a label matcher on the 'monitored_resource' label because multiple
+monitored resource types [consumer_quota producer_quota] are possible
+```
+
+**New-style resources carry the project as `resource_container`, not `project_id`.** `compute.googleapis.com/Location` and `container.googleapis.com/Cluster` are the ones met on quota metrics; a `project_id` matcher there matches nothing and the panel is empty with no error. Legacy resources (`consumer_quota`, `cloudsql_database`, `gce_instance`) do use `project_id`. Read the labels back before filtering rather than assuming either.
+
+**The editor has no `legendFormat` and no instant/table query**, only Project, the expression and a min step. Two consequences:
+- Legends come out as the raw label set. Reduce to a single label in the query (`max by (database_id) (...)`) and add a `renameByRegex` transformation (`.*database_id="([^"]+)".*` -> `$1`). Non-destructive: a display name that does not match is left alone.
+- A table panel cannot use `format: table` + `instant`. Fold the range result with a `reduce` transformation in `seriesToRows` mode, which yields a `Field` column (the label set as text) plus the reducer column. That is one column instead of one per label, so say it in the panel description.
+
+**Quota metrics publish sparsely.** An instant read of a GCP quota metric is routinely empty while `last_over_time(<metric>[6h])` returns the value. Keep the window, and do not read the empty instant panel as a broken query.
+
+**A 403 arrives as a JSON parse error.** The plugin parses the API error body as a result, so a missing `roles/monitoring.viewer` on the target project surfaces as `ReadString: expects " or n, but found {` with the real `"code": 403` truncated at the end of the tooltip. Read the whole string before touching the query.
+
+### Pre-flight, because the Grafana MCP cannot query this datasource
+`query_prometheus` against a `stackdriver` datasource uid returns a bare `404`: the tool builds a Prometheus API path the plugin does not serve. Validate expressions against the Cloud Monitoring API instead. This runs as **your** credentials and not the datasource's service account, so it proves the query and the metric name, never the permissions:
+```bash
+curl -s -G -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  --data-urlencode 'query=count(<metric>) or on() vector(-1)' \
+  "https://monitoring.googleapis.com/v1/projects/<project>/location/global/prometheus/api/v1/query"
+```
+To settle a metric name, list what the project actually exports, which is faster and safer than any doc:
+```bash
+curl -s -G -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  --data-urlencode 'filter=metric.type = starts_with("container.googleapis.com/quota")' \
+  'https://monitoring.googleapis.com/v3/projects/<project>/metricDescriptors'
+```
+Use the descriptors API rather than a regex on the name: `__name__=~"..."` is rejected with `=~ is an unsupported matchtype for the __name__ label`.
+
 ## Common mistakes
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -147,6 +199,12 @@ The Thanos query-frontend response cache (memcached, or Dragonfly speaking the m
 | Event timeseries empty and unreadable when nothing happened | `> 0` drops every series, so no legend and no value | keep the filter; `min: 0` + `hideZeros: false` + table legend with `sum` |
 | "0 restarts" while pods visibly churn | `restarts_total` ignores **recreated** pods | count pod age: `time() - kube_pod_start_time < window` |
 | A cap or limit line is drawn as a filled area | the override sets `lineStyle`/`color` but inherits the panel's `fillOpacity` | add `custom.fillOpacity: 0` to that override, a ceiling is a reference, not a quantity |
+| GCM panel "No data", editor opens on Query type **Builder** | JSON target carried only `promQLQuery`, `migrateQuery` rewrote it | ship a `timeSeriesList` stub next to `promQLQuery` |
+| GCM panel empty, the same expr returns series on another project | `projectName` is a scoping project, PromQL reads one project | point `projectName` at the project owning the metric |
+| GCM quota query rejected outright, not empty | metric maps to several monitored resource types | add `monitored_resource="consumer_quota"` |
+| GCM quota panel empty with no error at all | filtered on `project_id` for a new-style resource | filter on `resource_container` |
+| GCM panel error `ReadString: expects " or n, but found {` | a 403 rendered as a parse failure | grant `roles/monitoring.viewer` to the datasource SA on that project |
+| GCP quota stat empty although the quota exists | quota metrics publish sparsely, the instant read is empty | keep `last_over_time(...[6h])` |
 
 ## One `job` can cover several containers
 A ServiceMonitor with several ports scrapes **every** port under one `job`, so a sidecar becomes an extra `instance`. kube-prometheus-stack does exactly this for Prometheus: `http-web:9090` (prometheus) **and** `reloader-web:8080` (config-reloader), same `job`, same `pod`.
