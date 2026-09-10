@@ -29,6 +29,9 @@ The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-ve
 
 ## Output Expectations
 
+- **Answer the question asked, nothing around it.** A closed question gets one sentence. No recap of what you just did, no unrequested metrics table, no spontaneous "points d'attention" section, no closing offer of next steps.
+- Detail (measurements, validations, risks, alternatives) only when asked, or when it changes what I have to do next. Investigation figures belong in the MR or the ticket, not in the chat reply.
+- A created MR is a link plus one line.
 - **Always use absolute paths**: `/path/to/file.txt`, never `./file.txt`
 - Reference files with path and line number
 - Explain the "why" behind architectural decisions; surface cost, reliability, and security impacts when relevant
