@@ -268,7 +268,7 @@ def report(
     names: dict[str, str],
     stats: Stats,
     base_url: str,
-    verbose: bool,
+    verbose: int,
     count_selectors: bool,
 ) -> int:
     """Print the human-readable report.
@@ -300,14 +300,23 @@ def report(
 
     if verbose:
         for uid in wanted:
-            direct = [r for r in found.get(uid, []) if r.direct]
-            if not direct:
-                continue
-            print(f"\n{names.get(uid, uid)} ({uid}) is read by:")
-            for ref in sorted(direct, key=lambda r: r.title.lower()):
-                print(f"  {ref.title}  [{ref.folder}]")
-                print(f"    {ref.location(base_url)}")
-                print(f"    at {','.join(sorted(ref.sites & DIRECT_SITES))}")
+            refs = found.get(uid, [])
+            direct = [r for r in refs if r.direct]
+            label = names.get(uid, uid)
+            if direct:
+                print(f"\n{label} ({uid}) is read by:")
+                for ref in sorted(direct, key=lambda r: r.title.lower()):
+                    print(f"  {ref.title}  [{ref.folder}]")
+                    print(f"    {ref.location(base_url)}")
+                    print(f"    at {','.join(sorted(ref.sites & DIRECT_SITES))}")
+            # Only on -vv: this list is the long one by construction, hundreds of
+            # dashboards that merely offer the datasource in a dropdown.
+            if verbose > 1:
+                selector = [r for r in refs if not r.direct]
+                if selector:
+                    print(f"\n{label} ({uid}) is selectable, not read, in:")
+                    for ref in sorted(selector, key=lambda r: r.title.lower()):
+                        print(f"  {ref.title}  [{ref.folder}]  {ref.location(base_url)}")
 
     print(
         f"\n{len(wanted)} datasource(s): {len(wanted) - in_use} unused, {in_use} in use"
@@ -330,7 +339,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("-d", "--datasource", action="append", default=[], metavar="UID_OR_NAME",
                    help="datasource uid or name, repeatable")
-    p.add_argument("-v", "--verbose", action="store_true", help="list every dashboard that reads it")
+    p.add_argument("-v", "--verbose", action="count", default=0,
+                   help="list the dashboards that read it; repeat (-vv) to also "
+                        "list the selector-only ones")
     p.add_argument("--count-variable-only", action="store_true",
                    help="count selector-only hits as usage (off by default)")
     p.add_argument("--json", action="store_true", help="machine readable output")
@@ -405,7 +416,10 @@ def main(argv: list[str] | None = None) -> int:
                          "sites": sorted(r.sites & DIRECT_SITES)}
                         for r in found[uid] if r.direct
                     ],
-                    "selector_only": sum(1 for r in found[uid] if not r.direct),
+                    "selector_only": [
+                        {"uid": r.uid, "title": r.title, "folder": r.folder}
+                        for r in found[uid] if not r.direct
+                    ],
                 }
                 for uid in wanted
             },

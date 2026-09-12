@@ -53,7 +53,8 @@ Exits 1 as soon as one metric is still referenced. Results are cached on disk, s
 Same question one level up, before deleting a datasource or leaving one behind in a migration. `grafana_datasource_usage.py` takes a uid **or** a name and shares the dashboard cache with the tool above:
 
 ```bash
-./grafana_datasource_usage.py -d wfWf8AG4k -v          # -v lists the dashboards that read it
+./grafana_datasource_usage.py -d wfWf8AG4k -v          # list the dashboards that read it
+./grafana_datasource_usage.py -d wfWf8AG4k -vv         # also list the selector-only ones
 ./grafana_datasource_usage.py -d wfWf8AG4k --quiet     # exit 1 while something still reads it
 ```
 
