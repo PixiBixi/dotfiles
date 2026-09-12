@@ -110,7 +110,8 @@ class GrafanaError(RuntimeError):
 class Hit:
     """One reference to a metric, found somewhere in Grafana."""
 
-    metric: str
+    metric: str  # the pattern that was asked for
+    matched: str  # the identifier that actually matched it, differs in regex/glob mode
     kind: str  # "dashboard" or "alert-rule"
     uid: str
     title: str
@@ -546,16 +547,17 @@ def scan_dashboard(
     dashboard = payload.get("dashboard") or {}
     fallback = ", ".join(sorted(find_datasources(dashboard))) or "-"
     hits: list[Hit] = []
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, str]] = set()
     for path, value, datasource in walk_strings(dashboard, keys):
         for candidate in identifiers(value):
             pattern = matcher.match(candidate)
-            if pattern is None or (pattern, path) in seen:
+            if pattern is None or (pattern, candidate, path) in seen:
                 continue
-            seen.add((pattern, path))
+            seen.add((pattern, candidate, path))
             hits.append(
                 Hit(
                     metric=pattern,
+                    matched=candidate,
                     kind="dashboard",
                     uid=row["uid"],
                     title=row.get("title", "?"),
@@ -587,16 +589,17 @@ def scan_alert_rules(client: Client, matcher: Matcher) -> list[Hit]:
         return []
     hits: list[Hit] = []
     for rule in rules:
-        seen: set[str] = set()
+        seen: set[tuple[str, str]] = set()
         for path, value, _ in walk_strings(rule.get("data", []), QUERY_KEYS):
             for candidate in identifiers(value):
                 pattern = matcher.match(candidate)
-                if pattern is None or pattern in seen:
+                if pattern is None or (pattern, candidate) in seen:
                     continue
-                seen.add(pattern)
+                seen.add((pattern, candidate))
                 hits.append(
                     Hit(
                         metric=pattern,
+                        matched=candidate,
                         kind="alert-rule",
                         uid=rule.get("uid", "?"),
                         title=rule.get("title", "?"),
@@ -676,12 +679,18 @@ def report(
         verdict = "UNUSED" if not found else "IN USE"
         unused += not found
         print(f"{pattern:{width}}  {dash:>10}  {alert:>6}  {verdict}")
+        # In regex/glob mode the pattern covers many families; say which ones are
+        # actually read, or the caller cannot tell what to keep out of a drop rule.
+        via = sorted({h.matched for h in found if h.matched != pattern})
+        if via:
+            print(f"{'':{width}}  via: {', '.join(via)}")
 
     if verbose and hits:
         print("\nreferences:")
         for pattern in patterns:
             for hit in by_metric[pattern]:
-                print(f"  {pattern}")
+                label = hit.matched if hit.matched == pattern else f"{hit.matched}  (matched {pattern})"
+                print(f"  {label}")
                 print(f"    {hit.kind} {hit.title!r} [{hit.folder}] {hit.location(base_url)}")
                 print(f"    at {hit.where}  ds={describe_datasource(hit.datasource, datasources)}")
 
@@ -786,6 +795,7 @@ def main(argv: list[str] | None = None) -> int:
         for hit in hits:
             found[hit.metric].append(
                 {
+                    "matched": hit.matched,
                     "kind": hit.kind,
                     "uid": hit.uid,
                     "title": hit.title,
