@@ -11,6 +11,8 @@ Renders a dark-themed, Grafana-styled PNG line chart from a PromQL query, fetche
 
 **Why this exists:** many Grafana instances lack the *Image Renderer* plugin, so `get_panel_image` / `/render/...` return a "No image renderer available" placeholder. This rebuilds the chart from raw data instead.
 
+**Get the query right before you draw it.** This skill renders whatever PromQL you hand it, and a wrong query is worse here than in a dashboard: the PNG lands in a ticket as frozen evidence nobody replays, and it looks official. **REQUIRED BACKGROUND for the query itself:** use the `grafana-dashboards` skill, sections *PromQL essentials*, *Aggregation traps* and *Reading distributions and tails*. The ones that bite on a comparison chart: aggregate after `rate` and never before, wrap both sides in `max by (...)` when a rollout leaves two series per pod, never `histogram_quantile` a base-2 exponential histogram, and give every subquery an explicit step.
+
 ## When to use
 
 - Comparing 2+ series: version A vs B, canary vs control, before/after a change.
@@ -49,13 +51,14 @@ Nothing is hardcoded: no host, no address. Set these in your shell profile.
 | Variable | Needed for | Notes |
 |----------|-----------|-------|
 | `GRAFANA_URL` | every run | base URL, or pass `--grafana-url` |
-| `GRAFANA_MCP_SERVER` | token auto-read | MCP server name in `~/.claude.json` (default `grafana`) |
-| `GTOK` | optional | Grafana SA token, bypasses the auto-read; or `--token` |
+| `GRAFANA_TOKEN` | token | first env var tried; the same one the `grafana-dashboards` tools read |
+| `GRAFANA_SERVICE_ACCOUNT_TOKEN` / `GTOK` | token | tried next, in that order |
+| `GRAFANA_MCP_SERVER` | token fallback | MCP server name in `~/.claude.json` (default `grafana`), read last |
 | `JIRA_API_TOKEN` `JIRA_EMAIL` `JIRA_BASE` | `--attach-jira` only | all three, no default |
 
 `GRAFANA_URL` and `GRAFANA_MCP_SERVER` must name the **same** Grafana: the token is read from the MCP server, so a mismatched pair sends instance A's token to instance B and the datasource proxy answers 401. With several instances, override both flags together (`--grafana-url ... --mcp-server ...`), never just one.
 
-Token auto-read order: `--token`, then `GTOK`, then `~/.claude.json`, key `mcpServers.<GRAFANA_MCP_SERVER>.env.GRAFANA_SERVICE_ACCOUNT_TOKEN` (falls back to `GRAFANA_API_KEY`).
+Token order, identical across every Grafana skill so one export covers them all: `--token`, `$GRAFANA_TOKEN`, `$GRAFANA_SERVICE_ACCOUNT_TOKEN`, `$GTOK`, then `~/.claude.json` key `mcpServers.<GRAFANA_MCP_SERVER>.env.GRAFANA_SERVICE_ACCOUNT_TOKEN` (falling back to `GRAFANA_API_KEY`). The resolver is duplicated in each skill on purpose, so either works installed alone.
 
 ## Workflow
 
@@ -88,6 +91,7 @@ $VENV $SKILL/plot_grafana.py \
 
 ## Common mistakes
 
+- **Chart drawn from a query nobody checked** → see the PromQL pointer above; a plausible wrong number is the failure mode, not an error.
 - **401 from the proxy** → SA token missing/wrong. `mcp-grafana` v0.11+ uses `GRAFANA_SERVICE_ACCOUNT_TOKEN`, not `GRAFANA_API_KEY` (the script tries both).
 - **Using system `python3`** → `ModuleNotFoundError: matplotlib`. Use the venv python.
 - **Empty/one flat line where you expect several** → the `--expr` regex matched a single series; widen the label matcher.

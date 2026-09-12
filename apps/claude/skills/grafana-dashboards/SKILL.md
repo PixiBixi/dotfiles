@@ -5,6 +5,8 @@ description: Use when creating or editing a Grafana dashboard or PromQL query ag
 
 # Authoring Grafana dashboards and PromQL
 
+Two tools ship next to this file: `lint_dashboard.py` (schema baseline before saving) and `grafana_metric_usage.py` (is a metric still read anywhere). Both take the token from `$GRAFANA_TOKEN`, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin.
+
 ## Language: dashboards are ALWAYS in English
 Every user-facing string is English: dashboard title/description, row names, panel titles, panel descriptions, `legendFormat`, value-mapping text, variable labels and descriptions, table column `displayName`. **Even when the conversation is in another language.** Dashboards are shared artifacts read by international teams. Same for alert rule names, summaries and annotations.
 

@@ -5,8 +5,9 @@ Fetches a PromQL range query through the Grafana datasource proxy (no direct
 Prometheus access needed), styles it like a Grafana panel, and writes a PNG.
 Optionally attaches the PNG to a Jira issue.
 
-Auth: reads the Grafana SA token from ~/.claude.json, out of the MCP server named
-by --mcp-server / GRAFANA_MCP_SERVER; override with --token or the GTOK env var.
+Auth: --token, then $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK, then the
+token the MCP server named by --mcp-server / GRAFANA_MCP_SERVER carries in
+~/.claude.json. Same chain as the grafana-dashboards skill's tools.
 
 Environment: GRAFANA_URL is required (or --grafana-url). --attach-jira additionally
 needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE. Nothing is hardcoded on purpose:
@@ -28,14 +29,36 @@ PALETTE = ["#73BF69", "#FF9830", "#5794F2", "#F2495C", "#B877D9",
            "#FADE2A", "#37872D", "#E0B400", "#1F60C4", "#8AB8FF"]
 
 
-def read_token(args):
-    if args.token:
-        return args.token
-    if os.environ.get("GTOK"):
-        return os.environ["GTOK"]
-    cfg = json.loads((Path.home() / ".claude.json").read_text())
-    env = cfg["mcpServers"][args.mcp_server]["env"]
-    return env.get("GRAFANA_SERVICE_ACCOUNT_TOKEN") or env["GRAFANA_API_KEY"]
+def resolve_token(explicit="", mcp_server=""):
+    """Resolve the Grafana API token, in the order shared by the Grafana skills.
+
+    The chain is identical in grafana-dashboards and charting-grafana-metrics so
+    one export works for every tool. Deliberately duplicated rather than
+    imported: each skill must stand alone if installed without the other.
+
+    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK, then
+    the token the grafana MCP server carries in ~/.claude.json.
+
+    Args:
+        explicit: Value passed on the command line, which always wins.
+        mcp_server: MCP server name to read from ~/.claude.json. Defaults to
+            $GRAFANA_MCP_SERVER, else "grafana".
+
+    Returns:
+        The token, or an empty string when nothing is configured.
+    """
+    if explicit:
+        return explicit
+    for name in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK"):
+        if os.environ.get(name):
+            return os.environ[name]
+    server = mcp_server or os.environ.get("GRAFANA_MCP_SERVER", "grafana")
+    try:
+        cfg = json.loads((Path.home() / ".claude.json").read_text())
+        env = cfg["mcpServers"][server]["env"]
+    except (OSError, KeyError, json.JSONDecodeError):
+        return ""
+    return env.get("GRAFANA_SERVICE_ACCOUNT_TOKEN") or env.get("GRAFANA_API_KEY") or ""
 
 
 def resolve_time(t, now):
@@ -112,7 +135,7 @@ def main():
         sys.exit("no Grafana URL: pass --grafana-url or export GRAFANA_URL")
 
     rename = json.loads(args.rename)
-    token = read_token(args)
+    token = resolve_token(args.token, args.mcp_server)
     result = fetch(args, token)
 
     plt.rcParams.update({"font.size": 11, "text.color": "#ccc",

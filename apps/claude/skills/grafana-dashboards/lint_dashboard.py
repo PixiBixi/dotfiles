@@ -13,7 +13,7 @@ Examples:
 
 Environment (only for --uid and --folder):
     GRAFANA_URL    base URL, e.g. https://grafana.example.com
-    GRAFANA_TOKEN  API token with dashboard read access
+    GRAFANA_TOKEN  API token; see grafana_metric_usage.resolve_token for the full chain
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from grafana_metric_usage import Client, GrafanaError, list_dashboards  # noqa: E402  # type: ignore[import-not-found]
+from grafana_metric_usage import Client, GrafanaError, list_dashboards, resolve_token  # noqa: E402  # type: ignore[import-not-found]
 
 # Panel types that carry no query and therefore no datasource.
 CHROME_PANELS = frozenset({"row", "text", "dashlist", "news", "welcome"})
@@ -374,7 +374,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="datasource variable name the folder standardises on; with --folder, defaults to the majority form",
     )
     parser.add_argument("--url", help="Grafana base URL [$GRAFANA_URL]")
-    parser.add_argument("--token", help="API token [$GRAFANA_TOKEN]")
+    parser.add_argument("--token", default="", help="API token; same lookup order as the other Grafana tools")
+    parser.add_argument("--mcp-server", default="", help="MCP server in ~/.claude.json to read the token from")
     parser.add_argument("--warnings-as-errors", action="store_true", help="exit 1 on warnings too")
     parser.add_argument("--json", action="store_true", help="emit JSON instead of text")
     return parser
@@ -399,9 +400,9 @@ def collect(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
         return out
 
     url = args.url or os.environ.get("GRAFANA_URL", "")
-    token = args.token or os.environ.get("GRAFANA_TOKEN", "")
+    token = resolve_token(args.token, args.mcp_server)
     if not url or not token:
-        raise SystemExit("GRAFANA_URL and GRAFANA_TOKEN must be set for --uid/--folder")
+        raise SystemExit("no Grafana URL or token: set GRAFANA_URL and GRAFANA_TOKEN for --uid/--folder")
     client = Client(url, token)
     uids = list(args.uid)
     if args.folder:

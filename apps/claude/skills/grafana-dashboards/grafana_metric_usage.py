@@ -20,7 +20,9 @@ Examples:
 
 Environment:
     GRAFANA_URL    base URL, e.g. https://grafana.example.com
-    GRAFANA_TOKEN  API token with dashboard read access
+    GRAFANA_TOKEN  API token with dashboard read access. GRAFANA_SERVICE_ACCOUNT_TOKEN,
+                   GTOK and the grafana MCP server in ~/.claude.json are also read,
+                   in that order, same as the charting-grafana-metrics skill.
 """
 
 from __future__ import annotations
@@ -66,6 +68,38 @@ PROMQL_KEYWORDS = frozenset(
     start end atan2 inf nan
     """.split()
 )
+
+
+def resolve_token(explicit: str = "", mcp_server: str = "") -> str:
+    """Resolve the Grafana API token, in the order shared by the Grafana skills.
+
+    The chain is identical in grafana-dashboards and charting-grafana-metrics so
+    one export works for every tool. Deliberately duplicated rather than
+    imported: each skill must stand alone if installed without the other.
+
+    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK, then
+    the token the grafana MCP server carries in ~/.claude.json.
+
+    Args:
+        explicit: Value passed on the command line, which always wins.
+        mcp_server: MCP server name to read from ~/.claude.json. Defaults to
+            $GRAFANA_MCP_SERVER, else "grafana".
+
+    Returns:
+        The token, or an empty string when nothing is configured.
+    """
+    if explicit:
+        return explicit
+    for name in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK"):
+        if os.environ.get(name):
+            return os.environ[name]
+    server = mcp_server or os.environ.get("GRAFANA_MCP_SERVER", "grafana")
+    try:
+        cfg = json.loads((Path.home() / ".claude.json").read_text())
+        env = cfg["mcpServers"][server]["env"]
+    except (OSError, KeyError, json.JSONDecodeError):
+        return ""
+    return env.get("GRAFANA_SERVICE_ACCOUNT_TOKEN") or env.get("GRAFANA_API_KEY") or ""
 
 
 class GrafanaError(RuntimeError):
@@ -699,7 +733,8 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--regex", action="store_true", help="treat inputs as fully anchored regexes, like a relabel rule")
     mode.add_argument("--glob", action="store_true", help="treat inputs as glob patterns")
     parser.add_argument("--url", default=os.environ.get("GRAFANA_URL", ""), help="Grafana base URL [$GRAFANA_URL]")
-    parser.add_argument("--token", default=os.environ.get("GRAFANA_TOKEN", ""), help="API token [$GRAFANA_TOKEN]")
+    parser.add_argument("--token", default="", help="API token; see resolve_token for the lookup order")
+    parser.add_argument("--mcp-server", default="", help="MCP server in ~/.claude.json to read the token from")
     parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE, help=f"cache directory [{DEFAULT_CACHE}]")
     parser.add_argument("--max-age", type=float, default=DEFAULT_MAX_AGE, help="cache entry lifetime in seconds")
     parser.add_argument("--refresh", action="store_true", help="ignore the cache and refetch every dashboard")
@@ -722,15 +757,16 @@ def main(argv: list[str] | None = None) -> int:
         0 when every pattern is unused, 1 when at least one is still referenced.
     """
     args = build_parser().parse_args(argv)
-    if not args.url or not args.token:
-        raise SystemExit("GRAFANA_URL and GRAFANA_TOKEN must be set (or passed with --url/--token)")
+    token = resolve_token(args.token, args.mcp_server)
+    if not args.url or not token:
+        raise SystemExit("no Grafana URL or token: set GRAFANA_URL and GRAFANA_TOKEN, or pass --url/--token")
 
     patterns = load_patterns(args)
     mode = "regex" if args.regex else "glob" if args.glob else "exact"
     matcher = Matcher(patterns, mode)
     keys = QUERY_KEYS | TEXT_KEYS if args.include_text else QUERY_KEYS
 
-    client = Client(args.url, args.token)
+    client = Client(args.url, token)
     cache = Cache(args.cache_dir, args.max_age, args.refresh)
     stats = Stats()
 
