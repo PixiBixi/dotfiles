@@ -18,23 +18,34 @@ Set these without asking, they are schema baseline, not per-dashboard choices:
 - **Every panel needs a unique `id`.** JSON authored without them saves with none at all, which silently breaks panel permalinks (`?viewPanel=`) *and* the `panel_id` label in the query-frontend slow log, i.e. it disables the debugging procedure in § Pre-flight on exactly the dashboards you will need it for.
 - **One name for the datasource variable, across the whole folder.** Three names for the same thing (`ds`, `datasource`, `Source`) makes dashboard URLs non-transposable and breaks copy-paste between panels. When standardising, align on whatever is already the majority form rather than on what a doc says: every rename breaks the `?var-<name>=` in existing bookmarks and tickets.
 
-## Before you save (run this list)
-The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. Check them explicitly rather than trusting that you applied them:
+## Before you save (run the linter)
+The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. `lint_dashboard.py`, next to this file, decides them from the JSON and descends into collapsed rows, which a flat `$.panels[*]` read misses:
 
-| Check | JSONPath |
-|---|---|
-| Everything in English: title, panels, descriptions, `legendFormat` | `$.title`, `$..title`, `$..description` |
-| Shared crosshair present | `$.graphTooltip` -> must be `1` |
-| UTC, not the reader's locale | `$.timezone` -> `utc` |
-| Dashboard-level description exists | `$.description` |
-| Panels carry unique ids | `$.panels[*].id` -> **not** `[]` |
-| Datasource variable name matches the folder's convention | `$.templating.list[*].name` |
+```bash
+./lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
+```
 
-Collapsed rows hide panels from a flat `$.panels[*]` read: nested ones live under `$.panels[*].panels[*]`. Check both, or you will audit a third of the dashboard and call it clean.
+Errors exit 1, so it gates a commit. Run `--help` for the flags. Two caveats: its language check is a heuristic that surfaces candidates, so read what it reports rather than trusting the count, and on a folder it aligns the datasource variable on the **majority** form already in use, because every rename breaks the `?var-<name>=` in existing bookmarks.
+
+Two things it cannot decide for you:
 
 **An empty `[]` from a JSONPath is not proof of absence.** It also means "you asked for the wrong shape". `$.panels[*].targets[*].datasource.uid` returns `[]` both when no target carries a datasource *and* when every target carries one as a plain string, the two are indistinguishable. Query the parent (`.datasource`) and look at what comes back before concluding anything is missing.
 
 **`get_dashboard_panel_queries` reads only `expr`, so it is blind to every GCM panel.** A fully migrated Cloud Monitoring dashboard comes back with no queries at all, which reads as "these panels were abandoned" when they are in fact working: the query lives in `promQLQuery.expr` (PromQL mode) or `timeSeriesQuery.query` (MQL mode). Any audit that answers "which dashboards still use metric X" has to read all three paths, and the same holds for a `$.panels[*].targets[*].expr` sweep. Cross-check the target count with `$.panels[*].targets[*].queryType` before reading an empty result as an empty dashboard.
+
+## Is anything still reading this metric?
+Before dropping a metric at scrape time, or before deleting a recording rule, prove nothing reads it. `grafana_metric_usage.py`, next to this file, sweeps every dashboard and every Grafana-managed alert rule, reading all three query paths above plus template variables and collapsed rows:
+
+```bash
+./grafana_metric_usage.py -m kube_pod_tolerations -v     # -v lists each reference
+./grafana_metric_usage.py --regex -f drop-regexes.txt    # feed it the relabel regexes verbatim
+```
+
+Exits 1 as soon as one metric is still referenced. Results are cached on disk, so a second run is seconds. Three traps it exists to avoid, all met for real:
+
+- **A substring grep lies in both directions.** `grep container_threads` matches `container_threads_max`, a different family that a chart may already drop. The tool matches whole PromQL identifiers, and skips tokens followed by `(` so a function is never mistaken for a metric.
+- **A hit is not a consumer.** Read the datasource the tool prints next to each hit: an unresolved import variable (`${DS_SOMETHING}`) or a uid that no longer resolves means the panel has been dead for years. It attributes each hit to the target's own datasource, not to the dashboard's union.
+- **Ask where the data actually comes from.** A metric absent from a filtered global store can still be served by a proxy that queries the per-cluster Prometheus directly, in which case a scrape-time drop removes it from both. Resolve the datasource URL before concluding the blast radius.
 
 ## Renaming a template variable
 Grafana does not rewrite references, so a rename is a manual sweep. Miss one and the panel silently falls back to the default datasource instead of erroring.
@@ -257,7 +268,6 @@ curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 | Quantile line is a smooth constant, identical on every stack | `histogram_quantile` interpolating inside a base-2 bucket | heatmap of the raw `le` buckets |
 | Latency panel looks healthy, users report 20s queries | slow population ~0.1%, invisible below p99 | plot p999 / p9999 too |
 | Panel empty forever once filtered per stack | metric exported by one component only | pre-flight `count()` **with the panel's own filters** |
-| `?viewPanel=` links dead, slow log's `panel_id` unresolvable | panels saved without an `id` | give every panel a unique `id` |
 | Panels query the default datasource after a variable rename | reference missed at `targets` level (most numerous) | sweep all 3 levels, then re-read |
 | JSONPath audit says a field is absent, it is actually everywhere | queried `.datasource.uid` on string-shaped refs | query the parent and inspect the shape |
 | Event timeseries empty and unreadable when nothing happened | `> 0` drops every series, so no legend and no value | keep the filter; `min: 0` + `hideZeros: false` + table legend with `sum` |
