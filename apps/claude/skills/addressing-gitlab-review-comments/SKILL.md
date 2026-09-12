@@ -69,6 +69,22 @@ reply_resolve() {  # $1=discussion-id  $2=reply text
 }
 ```
 
+## Writing the reply
+
+Keep it to what changed and why. A reviewer wants the delta, not the investigation.
+
+- **Applied**: one or two sentences. What you changed, anything you widened beyond the cited line, the commit sha. `Done, block style everywhere: all six components, not just this line. Rendered output unchanged. f6511f29`
+- **Disagreed or deferred**: the decisive fact first, the option second, the ball back in their court. Two short paragraphs is the ceiling. Cut the retention aside, the third supporting argument, the "happy to discuss" closer.
+- Never narrate the sequence of your own corrections, and never restate the reviewer's comment back at them.
+
+## Which threads to resolve
+
+Resolve only the ones you actually closed out.
+
+- **Applied the change** -> reply + resolve.
+- **Answered a question and the answer settles it** -> reply + resolve.
+- **A decision that is not yours** (target environment, scope, priority) -> reply, **do not resolve**. Resolving a thread the reviewer still has to arbitrate reads as brushing it aside, and it drops off their review list.
+
 ## Quick Reference
 
 | Step | Command |
@@ -84,3 +100,6 @@ reply_resolve() {  # $1=discussion-id  $2=reply text
 - **Reading `old_line` instead of `new_line`**: for a comment on a changed line, the current code is at `new_line`.
 - **Force-pushing to address review**: you're adding a commit on a pushed branch; a plain `git push` is enough (force only if you rebased).
 - **Applying comments blindly**: evaluate first (receiving-code-review). Reply with what you actually changed, then resolve.
+- **Truncating the discussion id when listing threads**: the API wants the full 40-char id, an 8-char prefix returns `404 Discussion Not Found`. Print `d["id"]` whole.
+- **Over-explaining in the reply**: see "Writing the reply". The reasoning belongs in the MR description or the ticket.
+- **Resolving a deferred decision**: if the reviewer still has to choose, leave the thread open.
