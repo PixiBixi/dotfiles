@@ -97,7 +97,7 @@ Pick the smallest metric that carries the label: `kube_node_info` is ~100 series
 2. **Wrap the query in `max by (namespace, pod) (...)` AFTER the over_time func** (not inside, which would create a subquery). Without it, `format: table` leaks every external and federation label as a column and pushes the value off-screen. Typically `k8s_cluster_name`, `receive_prometheus`, `dc`, `env`, `prometheus`, `tenant_id`.
 3. Transformation `organize`: exclude `Time`, index `namespace`=0 `pod`=1.
 4. Override `byType: number`: `displayName`, `unit: percentunit`, `custom.cellOptions: {type: color-background, mode: basic}`, thresholds (green / orange@0.85 / red@0.95).
-5. Panel `options.sortBy`: `[{displayName: "<value col>", desc: true}]`.
+5. Panel `options.sortBy`: `[{displayName: "<value col>", desc: true}]`. **Not cosmetic:** Prometheus sorts `matrix` results but not instant `vector` results, so an instant table arrives in arbitrary order. Sort in the panel's own transform rather than relying on the query, and note that `sort_by_label()` is blocked on Grafana Cloud tenants.
 6. Pin the datasource to the `${ds}` variable, never hardcode a datasource uid. Recurring bug: panels left stuck on one cluster's uid while the rest of the dashboard follows the variable.
 
 ## Healthy / empty-state panels
@@ -122,6 +122,8 @@ Every recipe above leans on `absent()` or `vector()`, so **none of them port to 
 - **Dividing two series that both roll.** During a pod rollout the departing series is still inside its 5-minute staleness window while its replacement already reports, so there are two series for one `(namespace, pod)` and the division fails with many-to-many. Wrap **both sides** in `max by (namespace, pod) (...)`; that guarantees one series per key on each side. Required, not cosmetic.
 - **A limit enforced per pod is read with MAX across pods, never SUM.** A per-pod setting such as `--store.grpc.series-max-concurrency` summed over a namespace reads 300 while no single pod is near its cap. Same for cache fill: a stack aggregating to 75% can have its hottest pod pinned at 100% and evicting. The aggregate view answers "over/under-provisioned", MAX-per-pod answers "is it about to die"; label the panel with which one it is.
 - **Draw a ceiling from the metric that exports it, never from a literal.** A reference line built on the exported `*_max` metric (e.g. `thanos_bucket_store_series_gate_queries_max`) follows the configured value; a hardcoded `100` keeps drawing 100 after someone halves the setting to 50, and the panel lies with no visible symptom.
+- **A ratio over a window is a ratio of sums, never a mean of per-step ratios.** `sum(successes) / sum(total)` over the window is the availability; a stat panel computing `avg(rate(sum[$__rate_interval]) / rate(count[$__rate_interval]))` and reducing with `mean` weights every step equally whatever number of executions it contained, which is a different quantity. The useful corollary: with evenly occupied buckets the two agree *exactly*, so a visible gap between them is evidence of something else, usually an inflated denominator, and not of clustering.
+- **Reduce an `increase(x[$__range])` panel with `lastNotNull`, never `mean`.** In a range query every step looks back a full dashboard range, so averaging blends windows that predate the event you are looking at. The last non-null point is the only one that means what the panel title claims.
 - **Deduplicate node-identity metrics before joining.** `node_uname_info` and friends outlive node-IP reuse across a migration, giving many-to-many or, worse, silent mis-attribution to the wrong node. `topk by (instance)` first.
 
 ## Reading distributions and tails
@@ -268,6 +270,7 @@ curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 | Saturation graph sits far below the cap, yet pods get OOMKilled | a per-pod limit summed across the namespace's pods | MAX across pods, not SUM |
 | Reference line still shows the old limit after a config change | ceiling hardcoded as a literal | read the exported `*_max` metric |
 | Quantile line is a smooth constant, identical on every stack | `histogram_quantile` interpolating inside a base-2 bucket | heatmap of the raw `le` buckets |
+| A totals panel drifts from the same figure computed by hand | `increase(x[$__range])` reduced with `mean` blends overlapping windows | reduce with `lastNotNull` |
 | Latency panel looks healthy, users report 20s queries | slow population ~0.1%, invisible below p99 | plot p999 / p9999 too |
 | Panel empty forever once filtered per stack | metric exported by one component only | pre-flight `count()` **with the panel's own filters** |
 | Panels query the default datasource after a variable rename | reference missed at `targets` level (most numerous) | sweep all 3 levels, then re-read |
