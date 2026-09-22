@@ -302,7 +302,6 @@ setup_dotfiles() {
         "config/.config/git/allowed_signers"
         "config/.config/git/ignore"
         "config/.local/bin/tg-run"
-        "config/.local/bin/slack-restart.sh"
     )
 
     for src_rel in "${symlink_files[@]}"; do
@@ -310,8 +309,11 @@ setup_dotfiles() {
     done
 
     # Machine-specific: copy (do not symlink, differs per machine)
+    # slack-restart.sh is here for another reason: a launchd agent has no TCC
+    # rights on ~/Documents, so a symlink into the repo exits 126. Keep it a copy.
     local copy_files=(
         "config/.gitconfig_work"
+        "config/.local/bin/slack-restart.sh"
     )
 
     for src_rel in "${copy_files[@]}"; do

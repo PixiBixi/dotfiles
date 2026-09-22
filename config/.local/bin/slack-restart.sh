@@ -12,7 +12,9 @@ log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "${LOG}"; }
 
 mkdir -p "$(dirname "${LOG}")"
 
-slack_pid="$(pgrep -x Slack | head -1)"
+# The || true matters: pgrep exits 1 when Slack is down and pipefail would kill
+# the script here, before it ever logs why.
+slack_pid="$(pgrep -x Slack | head -1 || true)"
 if [[ -z "${slack_pid}" ]]; then
     log "skip: Slack not running"
     exit 0
@@ -20,7 +22,11 @@ fi
 
 # Three daily slots means three chances to catch an away-from-keyboard window.
 # This keeps it to one restart a day instead of three.
-uptime_s="$(ps -o etimes= -p "${slack_pid}" 2> /dev/null | tr -d ' ')"
+# BSD ps has no etimes, only etime as [[dd-]hh:]mm:ss, hence the awk.
+uptime_s="$(ps -o etime= -p "${slack_pid}" 2> /dev/null | tr -d ' ' | awk -F'[-:]' '
+    NF == 4 {print (($1 * 24 + $2) * 60 + $3) * 60 + $4}
+    NF == 3 {print ($1 * 60 + $2) * 60 + $3}
+    NF == 2 {print $1 * 60 + $2}')"
 if [[ -n "${uptime_s:-}" ]] && ((uptime_s < MIN_UPTIME)); then
     log "skip: Slack started ${uptime_s}s ago (< ${MIN_UPTIME}s)"
     exit 0
