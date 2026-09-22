@@ -3,9 +3,12 @@
 # Cmd+R reloads the webview but reuses the process, so only a fresh process reclaims it.
 set -euo pipefail
 
-readonly IDLE_THRESHOLD=600
-readonly MIN_UPTIME=21600
-readonly QUIT_TIMEOUT=30
+# Overridable so the restart path can be exercised on demand, both guards would
+# otherwise skip any run made while sitting at the machine.
+IDLE_THRESHOLD="${IDLE_THRESHOLD:-600}"
+MIN_UPTIME="${MIN_UPTIME:-21600}"
+QUIT_TIMEOUT="${QUIT_TIMEOUT:-30}"
+readonly IDLE_THRESHOLD MIN_UPTIME QUIT_TIMEOUT
 readonly LOG="${HOME}/Library/Logs/slack-restart.log"
 
 log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "${LOG}"; }
@@ -34,7 +37,9 @@ fi
 
 # Never kill Slack while someone is at the keyboard: a restart mid on-call page is worse
 # than the RAM it frees. Skipped runs just wait for the next night.
-idle=$(ioreg -c IOHIDSystem 2> /dev/null | awk '/HIDIdleTime/ {print int($NF / 1000000000); exit}')
+# awk exits on the first match, which SIGPIPEs ioreg: pipefail would make that
+# a 141 and set -e would kill the script right before the restart it exists for.
+idle="$(ioreg -c IOHIDSystem 2> /dev/null | awk '/HIDIdleTime/ {print int($NF / 1000000000); exit}' || true)"
 if [[ -n "${idle:-}" ]] && ((idle < IDLE_THRESHOLD)); then
     log "skip: user active (idle ${idle}s < ${IDLE_THRESHOLD}s)"
     exit 0
