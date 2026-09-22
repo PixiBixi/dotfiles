@@ -46,9 +46,15 @@ dotfiles/
 │   │   └── config
 │   ├── .kube/
 │   │   └── switch-config.yaml
-│   └── .config/
-│       ├── git/                 # allowed_signers, ignore
-│       └── nvim/
+│   ├── .config/
+│   │   ├── git/                 # allowed_signers, ignore
+│   │   └── nvim/
+│   ├── .local/
+│   │   └── bin/                 # Commandes déployées sur le $PATH
+│   │       ├── tg-run           # Runner Terragrunt à sortie lisible
+│   │       └── slack-restart.sh # Redémarrage nocturne de Slack
+│   └── Library/
+│       └── LaunchAgents/        # Agents launchd, rendus depuis __HOME__
 ├── packages/                    # Listes de paquets à installer
 │   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
 │   ├── krew-indexes.txt         # Index krew custom, ajoutés avant le Brewfile
@@ -67,9 +73,6 @@ dotfiles/
 │   └── vscode/
 │       ├── settings.json
 │       └── extensions.txt
-│   └── .local/
-│       └── bin/
-│           └── tg-run           # Runner Terragrunt à sortie lisible, déployé sur le $PATH
 ├── scripts/
 │   ├── init_mac.sh              # Script d'installation principal
 │   ├── check-drift.sh           # Diff entre config/ et les fichiers déployés
@@ -205,6 +208,25 @@ brew uninstall <package>
 | `-h`, `--help` | Aide |
 
 Ce n'est pas un remplacement de `tg plan` : chaque unité passe par `run --all --queue-include-dir`, ce qui embarque aussi ses dépendances. `--non-interactive` n'est ajouté que si `$CI` est défini, pour qu'un `apply` local garde sa confirmation.
+
+## Agents launchd
+
+`config/Library/LaunchAgents/*.plist` est rendu vers `~/Library/LaunchAgents/` par l'étape `launchagents` de `init_mac.sh`, qui substitue `__HOME__` puis charge l'agent. Les plists ne sont pas symlinkés : launchd n'interprète aucune variable.
+
+| Agent | Déclenchement | Fait |
+|-------------------------------|---------------|--------------------------------------------------|
+| `fr.jdelgado.slack-restart` | 04h30 | Quitte Slack via AppleScript et le relance masqué |
+
+`slack-restart.sh` sort sans rien faire si Slack ne tourne pas, ou si le clavier a été utilisé dans les 600 dernières secondes. Le quit est laissé 30 secondes avant `pkill`. Journal dans `~/Library/Logs/slack-restart.log`, stderr dans `slack-restart.err`.
+
+```bash
+./scripts/init_mac.sh --only launchagents        # (re)déployer et charger
+launchctl list | grep fr.jdelgado                # état
+launchctl kickstart -k gui/$(id -u)/fr.jdelgado.slack-restart   # forcer un run
+launchctl bootout gui/$(id -u)/fr.jdelgado.slack-restart        # décharger
+```
+
+Le premier déclenchement demande l'autorisation d'automatiser Slack (Réglages, Confidentialité, Automatisation).
 
 ## Pre-commit
 
