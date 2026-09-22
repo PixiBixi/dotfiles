@@ -221,6 +221,12 @@ Trois créneaux et non un seul : le Mac dort à 04h30, et un `StartCalendarInter
 
 `slack-restart.sh` sort sans rien faire dans trois cas : Slack ne tourne pas, Slack a démarré il y a moins de 21600 secondes, ou le clavier a été utilisé dans les 600 dernières secondes. Le premier créneau où tu es absent l'emporte, les deux autres ne font rien. Le quit est laissé 30 secondes avant `pkill`. Journal dans `~/Library/Logs/slack-restart.log`, stderr dans `slack-restart.err`.
 
+Les trois seuils sont surchargeables par l'environnement, ce qui permet de tester le redémarrage sans attendre un créneau :
+
+```bash
+IDLE_THRESHOLD=0 MIN_UPTIME=0 ~/.local/bin/slack-restart.sh
+```
+
 `slack-restart.sh` est déployé en **copie** et non en symlink : un agent launchd n'a pas de droits TCC sur `~/Documents`, donc un lien vers le repo échoue en exit 126 (`Operation not permitted`). Après modification du script, redéployer avec `./scripts/init_mac.sh --only dotfiles`.
 
 ```bash
