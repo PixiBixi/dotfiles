@@ -162,6 +162,14 @@ check_file "config/.kube/switch-config.yaml" "${HOME}/.kube/switch-config.yaml" 
 check_file "config/.config/git/allowed_signers" "${HOME}/.config/git/allowed_signers" symlink
 check_file "config/.config/git/ignore" "${HOME}/.config/git/ignore" symlink
 check_file "config/.local/bin/tg-run" "${HOME}/.local/bin/tg-run" symlink
+check_file "config/.local/bin/slack-restart.sh" "${HOME}/.local/bin/slack-restart.sh" symlink
+
+# Agents are rendered from a __HOME__ template, so they never match the repo by md5.
+for agent in "${REPO_DIR}/config/Library/LaunchAgents/"*.plist; do
+    [[ -f "${agent}" ]] || continue
+    name="$(basename "${agent}")"
+    check_file "config/Library/LaunchAgents/${name}" "${HOME}/Library/LaunchAgents/${name}" machine
+done
 
 # ── apps/claude/ ───────────────────────────────────────────────────────────
 echo

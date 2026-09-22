@@ -60,6 +60,7 @@ STEPS=(
     "claude:setup_claude"
     "claude-skills:install_claude_skills"
     "rtk:setup_rtk"
+    "launchagents:setup_launchagents"
 )
 
 ONLY_STEPS=()
@@ -301,6 +302,7 @@ setup_dotfiles() {
         "config/.config/git/allowed_signers"
         "config/.config/git/ignore"
         "config/.local/bin/tg-run"
+        "config/.local/bin/slack-restart.sh"
     )
 
     for src_rel in "${symlink_files[@]}"; do
@@ -328,6 +330,48 @@ setup_rtk() {
 
     rtk init --global
     log_success "RTK hook configured ($(rtk --version))"
+}
+
+# Render and load the launchd user agents from config/Library/LaunchAgents/.
+# Rendered, not symlinked: launchd resolves no variable, so __HOME__ has to be
+# substituted per machine before bootstrap.
+setup_launchagents() {
+    log_info "Setting up launchd agents..."
+
+    local src_dir="${REPO_DIR}/config/Library/LaunchAgents"
+    local dest_dir="${HOME}/Library/LaunchAgents"
+    local uid
+    uid="$(id -u)"
+
+    if [[ ! -d "${src_dir}" ]]; then
+        log_warning "No launchd agents in repo, skipping"
+        return 0
+    fi
+
+    mkdir -p "${dest_dir}"
+
+    local template label dest
+    for template in "${src_dir}"/*.plist; do
+        [[ -e "${template}" ]] || continue
+        label="$(basename "${template}" .plist)"
+        dest="${dest_dir}/${label}.plist"
+
+        sed "s|__HOME__|${HOME}|g" "${template}" > "${dest}"
+
+        if ! plutil -lint "${dest}" &> /dev/null; then
+            log_error "${label}.plist is malformed, not loading it"
+            rm -f "${dest}"
+            continue
+        fi
+
+        # bootout first: bootstrap on an already-loaded label is an error, not a reload.
+        launchctl bootout "gui/${uid}/${label}" &> /dev/null || true
+        if launchctl bootstrap "gui/${uid}" "${dest}" &> /dev/null; then
+            log_success "Agent ${label} loaded"
+        else
+            log_error "Failed to load agent ${label}"
+        fi
+    done
 }
 
 # Install Claude Code from the native installer: the Homebrew cask lags the
@@ -694,15 +738,16 @@ main() {
     run_step "claude" setup_claude
     run_step "claude-skills" install_claude_skills
     run_step "rtk" setup_rtk
+    run_step "launchagents" setup_launchagents
 
     echo
     log_success "macOS initialization complete!"
     echo
     log_info "Next steps:"
-    echo "  • Split your kubeconfig file using: kubectl konfig split"
-    echo "  • Restart your terminal or run: source ~/.zshrc"
-    echo "  • Configure your git identity in ~/.gitconfig_perso and ~/.gitconfig_work"
-    echo "  • Open Neovim and verify LSP servers with :Mason"
+    echo "  - Split your kubeconfig file using: kubectl konfig split"
+    echo "  - Restart your terminal or run: source ~/.zshrc"
+    echo "  - Configure your git identity in ~/.gitconfig_perso and ~/.gitconfig_work"
+    echo "  - Open Neovim and verify LSP servers with :Mason"
 }
 
 main "$@"
