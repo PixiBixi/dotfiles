@@ -214,10 +214,12 @@ Ce n'est pas un remplacement de `tg plan` : chaque unité passe par `run --all -
 `config/Library/LaunchAgents/*.plist` est rendu vers `~/Library/LaunchAgents/` par l'étape `launchagents` de `init_mac.sh`, qui substitue `__HOME__` puis charge l'agent. Les plists ne sont pas symlinkés : launchd n'interprète aucune variable.
 
 | Agent | Déclenchement | Fait |
-|-------------------------------|---------------|--------------------------------------------------|
-| `fr.jdelgado.slack-restart` | 04h30 | Quitte Slack via AppleScript et le relance masqué |
+|-----------------------------|------------------------|---------------------------------------------------|
+| `fr.jdelgado.slack-restart` | 04h30, 12h30 et 19h30 | Quitte Slack via AppleScript et le relance masqué |
 
-`slack-restart.sh` sort sans rien faire si Slack ne tourne pas, ou si le clavier a été utilisé dans les 600 dernières secondes. Le quit est laissé 30 secondes avant `pkill`. Journal dans `~/Library/Logs/slack-restart.log`, stderr dans `slack-restart.err`.
+Trois créneaux et non un seul : le Mac dort à 04h30, et un `StartCalendarInterval` manqué ne part qu'au réveil, quand le garde-fou d'inactivité l'annulerait.
+
+`slack-restart.sh` sort sans rien faire dans trois cas : Slack ne tourne pas, Slack a démarré il y a moins de 21600 secondes, ou le clavier a été utilisé dans les 600 dernières secondes. Le premier créneau où tu es absent l'emporte, les deux autres ne font rien. Le quit est laissé 30 secondes avant `pkill`. Journal dans `~/Library/Logs/slack-restart.log`, stderr dans `slack-restart.err`.
 
 ```bash
 ./scripts/init_mac.sh --only launchagents        # (re)déployer et charger
