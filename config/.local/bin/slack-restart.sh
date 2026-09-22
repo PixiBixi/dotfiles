@@ -4,6 +4,7 @@
 set -euo pipefail
 
 readonly IDLE_THRESHOLD=600
+readonly MIN_UPTIME=21600
 readonly QUIT_TIMEOUT=30
 readonly LOG="${HOME}/Library/Logs/slack-restart.log"
 
@@ -11,10 +12,19 @@ log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "${LOG}"; }
 
 mkdir -p "$(dirname "${LOG}")"
 
-pgrep -x Slack > /dev/null 2>&1 || {
+slack_pid="$(pgrep -x Slack | head -1)"
+if [[ -z "${slack_pid}" ]]; then
     log "skip: Slack not running"
     exit 0
-}
+fi
+
+# Three daily slots means three chances to catch an away-from-keyboard window.
+# This keeps it to one restart a day instead of three.
+uptime_s="$(ps -o etimes= -p "${slack_pid}" 2> /dev/null | tr -d ' ')"
+if [[ -n "${uptime_s:-}" ]] && ((uptime_s < MIN_UPTIME)); then
+    log "skip: Slack started ${uptime_s}s ago (< ${MIN_UPTIME}s)"
+    exit 0
+fi
 
 # Never kill Slack while someone is at the keyboard: a restart mid on-call page is worse
 # than the RAM it frees. Skipped runs just wait for the next night.
