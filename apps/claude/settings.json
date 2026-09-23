@@ -43,7 +43,7 @@
       "Edit(CLAUDE.md)",
       "Bash(zsh -l -c 'jira:*)",
       "Bash(zsh -l -c \"jira:*)",
-      "Bash(zsh -l -c '~/.claude/jira-amend.sh:*)"
+      "Bash(~/.claude/build-adf.py:*)"
     ],
     "deny": [
       "Bash(git reset --hard)",
