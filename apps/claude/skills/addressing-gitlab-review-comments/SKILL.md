@@ -15,21 +15,22 @@ Inline review comments on a GitLab MR live in **discussions** (threads anchored 
 
 ```bash
 MR=511                                          # the MR iid
-PROJ="smartadserver%2Fprivate%2Finfra%2Fk8s%2Fargocd-pl-tooling"   # URL-encoded full path
+PROJ="<group>%2F<subgroup>%2F<project>"         # URL-encoded full path
 API="projects/$PROJ/merge_requests/$MR"
 ```
 URL-encode the path (`/` → `%2F`). Get it from `glab repo view` if unsure.
 
 ## 1. Fetch comments WITH position
 
-`glab mr view $MR --comments` does NOT include line positions, so don't use it for inline comments. Hit the discussions API and parse `position`:
+`glab mr view $MR --comments` does NOT include line positions, so don't use it for inline comments. Hit the discussions API and parse `position`. `--paginate` is mandatory: the endpoint returns 20 threads per page, and without it the rest are dropped with no error. Already-resolved threads are skipped:
 
 ```bash
-glab api "$API/discussions" | python3 -c '
+glab api --paginate --output ndjson "$API/discussions" | python3 -c '
 import sys, json
-for d in json.load(sys.stdin):
+for line in sys.stdin:
+    d = json.loads(line)
     n = d["notes"][0]
-    if n.get("system"): continue
+    if n.get("system") or n.get("resolved"): continue
     p = n.get("position") or {}
     print(d["id"], "|", n["author"]["username"], "|", n["body"])
     if p: print("   ->", p.get("new_path"), "new_line:", p.get("new_line"), "old_line:", p.get("old_line"))
@@ -45,8 +46,9 @@ for d in json.load(sys.stdin):
 Open the file at the cited line so the comment makes sense in context. Apply the fix only after evaluating it (see receiving-code-review). Commit as one review-fix commit and push:
 
 ```bash
-git commit -am "PE-XXXX: address review on <thing>"
-git push        # plain push, adding a commit, no force needed
+git commit -am "fix(<scope>): address review on <thing>"   # Conventional Commits, ticket id in the body
+git fetch origin <target> && git rebase origin/<target>
+git push --force-with-lease   # a plain `git push` is enough only if the rebase was a no-op
 ```
 
 ## 3. Reply to and resolve each thread
@@ -89,7 +91,7 @@ Resolve only the ones you actually closed out.
 
 | Step | Command |
 |------|---------|
-| List inline comments + position | `glab api "$API/discussions"` → parse `.notes[].position.{new_path,new_line,old_line}` |
+| List inline comments + position | `glab api --paginate --output ndjson "$API/discussions"` → parse `.notes[].position.{new_path,new_line,old_line}` |
 | Reply to a thread | `glab api -X POST "$API/discussions/<id>/notes" -f "body=..."` |
 | Resolve a thread | `glab api -X PUT "$API/discussions/<id>?resolved=true"` |
 
@@ -98,7 +100,8 @@ Resolve only the ones you actually closed out.
 - **Using `glab mr view --comments` for inline comments**: gives text without file/line; you can't locate them. Use the discussions API.
 - **Inventing `glab mr note resolve`**: resolve via `glab api -X PUT ".../discussions/<id>?resolved=true"`.
 - **Reading `old_line` instead of `new_line`**: for a comment on a changed line, the current code is at `new_line`.
-- **Force-pushing to address review**: you're adding a commit on a pushed branch; a plain `git push` is enough (force only if you rebased).
+- **Forgetting `--paginate`**: past 20 threads the discussions API silently returns only the first page.
+- **Bare `--force` after the rebase**: use `--force-with-lease`, so a commit the reviewer pushed meanwhile is not overwritten.
 - **Applying comments blindly**: evaluate first (receiving-code-review). Reply with what you actually changed, then resolve.
 - **Truncating the discussion id when listing threads**: the API wants the full 40-char id, an 8-char prefix returns `404 Discussion Not Found`. Print `d["id"]` whole.
 - **Over-explaining in the reply**: see "Writing the reply". The reasoning belongs in the MR description or the ticket.
