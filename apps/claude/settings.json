@@ -58,7 +58,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-opus-5",
   "fallbackModel": [
     "claude-sonnet-5"
   ],
