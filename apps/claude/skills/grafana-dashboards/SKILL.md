@@ -5,7 +5,7 @@ description: Use when creating or editing a Grafana dashboard or PromQL query ag
 
 # Authoring Grafana dashboards and PromQL
 
-Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). They take the token from `$GRAFANA_TOKEN`, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin.
+Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=~/.claude/skills/grafana-dashboards` as in the examples below. They take the token from `$GRAFANA_TOKEN`, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin.
 
 ## Language: dashboards are ALWAYS in English
 Every user-facing string is English: dashboard title/description, row names, panel titles, panel descriptions, `legendFormat`, value-mapping text, variable labels and descriptions, table column `displayName`. **Even when the conversation is in another language.** Dashboards are shared artifacts read by international teams. Same for alert rule names, summaries and annotations.
@@ -24,7 +24,8 @@ Set these without asking, they are schema baseline, not per-dashboard choices:
 The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. `lint_dashboard.py`, next to this file, decides them from the JSON and descends into collapsed rows, which a flat `$.panels[*]` read misses:
 
 ```bash
-./lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
+SKILL=~/.claude/skills/grafana-dashboards
+$SKILL/lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
 ```
 
 Errors exit 1, so it gates a commit. Run `--help` for the flags. Two caveats: its language check is a heuristic that surfaces candidates, so read what it reports rather than trusting the count, and on a folder it aligns the datasource variable on the **majority** form already in use, because every rename breaks the `?var-<name>=` in existing bookmarks.
@@ -39,8 +40,8 @@ Two things it cannot decide for you:
 Before dropping a metric at scrape time, or before deleting a recording rule, prove nothing reads it. `grafana_metric_usage.py`, next to this file, sweeps every dashboard and every Grafana-managed alert rule, reading all three query paths above plus template variables and collapsed rows:
 
 ```bash
-./grafana_metric_usage.py -m kube_pod_tolerations -v     # -v lists each reference
-./grafana_metric_usage.py --regex -f drop-regexes.txt    # feed it the relabel regexes verbatim
+$SKILL/grafana_metric_usage.py -m kube_pod_tolerations -v     # -v lists each reference
+$SKILL/grafana_metric_usage.py --regex -f drop-regexes.txt    # feed it the relabel regexes verbatim
 ```
 
 Exits 1 as soon as one metric is still referenced. Results are cached on disk, so a second run is seconds. Three traps it exists to avoid, all met for real:
@@ -53,9 +54,9 @@ Exits 1 as soon as one metric is still referenced. Results are cached on disk, s
 Same question one level up, before deleting a datasource or leaving one behind in a migration. `grafana_datasource_usage.py` takes a uid **or** a name and shares the dashboard cache with the tool above:
 
 ```bash
-./grafana_datasource_usage.py -d wfWf8AG4k -v          # list the dashboards that read it
-./grafana_datasource_usage.py -d wfWf8AG4k -vv         # also list the selector-only ones
-./grafana_datasource_usage.py -d wfWf8AG4k --quiet     # exit 1 while something still reads it
+$SKILL/grafana_datasource_usage.py -d wfWf8AG4k -v          # list the dashboards that read it
+$SKILL/grafana_datasource_usage.py -d wfWf8AG4k -vv         # also list the selector-only ones
+$SKILL/grafana_datasource_usage.py -d wfWf8AG4k --quiet     # exit 1 while something still reads it
 ```
 
 **The verdict is the direct / selector split, never the raw hit count.** A `type: datasource` variable selects by plugin type, so every datasource of that type appears in every dashboard carrying such a variable, without anyone having pointed at it. Measured on a 1294-dashboard instance: `GKE cluster ads.txt production` showed up in 294 dashboards and had **1** real consumer. A grep on the uid answers 294 and gets the decision wrong in the expensive direction, which is the datasource-level form of the *a hit is not a consumer* rule above.
