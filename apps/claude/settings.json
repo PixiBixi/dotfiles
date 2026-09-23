@@ -58,6 +58,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "claude-opus-5-5",
   "fallbackModel": [
     "claude-sonnet-5"
   ],
@@ -152,6 +153,5 @@
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "model": "claude-opus-5-5"
+  "skipAutoPermissionPrompt": true
 }
