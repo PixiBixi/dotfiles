@@ -42,7 +42,7 @@ python3 -m venv ~/.claude/skills/charting-grafana-metrics/.venv
 | Per-series mean/min/max | printed to stdout after saving (no extra query needed) |
 | Callout on the peak | `--annotate-max "text"` |
 | Which Grafana | `--grafana-url` (default `$GRAFANA_URL`, required) |
-| Attach to Jira | `--attach-jira ABC-123` (see the env vars below) |
+| Attach to Jira | `--attach-jira ABC-123` (see the env vars below, and the approval gate in Workflow) |
 
 ## Environment
 
@@ -65,7 +65,7 @@ Token order, identical across every Grafana skill so one export covers them all:
 1. Get the datasource UID + PromQL from the dashboard (`get_dashboard_panel_queries`) or write the query yourself.
 2. Run the script (via the venv python). Colors auto-assign from the Grafana palette in series order; legend shows mean/max per series.
 3. Read the PNG back to eyeball it before sharing.
-4. Optionally attach to Jira with `--attach-jira`.
+4. Optionally attach to Jira with `--attach-jira`. It is a tracker write visible to the whole team: follow the approval gate of the `ticket-conventions` skill first (show the ticket id and the PNG, wait for an explicit yes). A failed upload exits non-zero.
 
 ## Example (the canonical one: HAProxy 3.2 vs 2.7 node memory)
 
@@ -97,4 +97,4 @@ $VENV $SKILL/plot_grafana.py \
 - **Empty/one flat line where you expect several** → the `--expr` regex matched a single series; widen the label matcher.
 - **Series unnamed / all "series"** → `--legend-key` points at a label the metric doesn't have; pick one it does (check the raw query result).
 - **`:9100` (or any `:port`) in legend names** → auto-stripped from the derived series name, so `--rename` targets the clean host (e.g. `lb-edge-dc1-1`, not `lb-edge-dc1-1:9100`). No need to list both forms.
-- **`now-90m` style** not supported: units are s/m/h/d only (e.g. `now-6h`).
+- **Relative times take one number and one unit**, s/m/h/d (`now-90m`, `now-6h`, `now-2d`). Compound (`now-1h30m`), weeks (`now-1w`) and rounding (`now/d`) are not supported: convert them (`now-90m`, `now-7d`).

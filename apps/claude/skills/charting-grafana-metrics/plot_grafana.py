@@ -205,17 +205,20 @@ def attach_to_jira(key, img):
         base = os.environ["JIRA_BASE"].rstrip("/")
     except KeyError as e:
         sys.exit(f"--attach-jira needs {e.args[0]} in the environment")
+    # Credentials go through a curl config on stdin: on argv they would show in `ps`.
+    cred = f"{email}:{tok}".replace("\\", "\\\\").replace('"', '\\"')
     out = subprocess.run(
-        ["curl", "-s", "-u", f"{email}:{tok}", "-X", "POST",
+        ["curl", "-sS", "--fail-with-body", "-K", "-", "-X", "POST",
          f"{base}/rest/api/3/issue/{key}/attachments",
          "-H", "X-Atlassian-Token: no-check",
          "-F", f"file=@{img};type=image/png;filename={Path(img).name}"],
-        capture_output=True, text=True)
+        input=f'user = "{cred}"\n', capture_output=True, text=True)
     try:
         data = json.loads(out.stdout)
         print(f"attached to {key}: {data[0]['filename']} ({data[0]['size']} bytes)")
     except Exception:
-        print(f"jira attach failed: {out.stdout[:300]}")
+        sys.exit(f"jira attach failed (curl exit {out.returncode}): "
+                 f"{(out.stdout or out.stderr)[:300]}")
 
 
 if __name__ == "__main__":
