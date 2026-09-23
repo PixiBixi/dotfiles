@@ -1,6 +1,6 @@
 ---
 name: incident-response
-description: Use when a production issue is happening or suspected (an alert fired, a service is down or degraded, error rate or latency spiked, users report breakage, a deploy or config change looks like the trigger), or when writing the postmortem or runbook that follows. Triggers - "on a un incident", "c'est down en prod", "alerte", "ça déconne en prod", "postmortem", "runbook".
+description: Use when a production issue is happening or suspected (an alert fired, a service is down or degraded, error rate or latency spiked, users report breakage, a deploy or config change looks like the trigger), or when writing the postmortem or runbook that follows. Triggers - "on a un incident", "c'est down en prod", "une alerte a sonné", "ça déconne en prod", "postmortem", "runbook". Not for creating or editing an alert rule (that is equativ-add-alert).
 ---
 
 # Incident Response
