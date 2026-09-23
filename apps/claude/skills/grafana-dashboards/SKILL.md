@@ -122,6 +122,13 @@ Pick the smallest metric that carries the label: `kube_node_info` is ~100 series
 5. Panel `options.sortBy`: `[{displayName: "<value col>", desc: true}]`. **Not cosmetic:** Prometheus sorts `matrix` results but not instant `vector` results, so an instant table arrives in arbitrary order. Sort in the panel's own transform rather than relying on the query, and note that `sort_by_label()` is blocked on Grafana Cloud tenants.
 6. Pin the datasource to the `${ds}` variable, never hardcode a datasource uid. Recurring bug: panels left stuck on one cluster's uid while the rest of the dashboard follows the variable.
 
+## Large fleets (DaemonSets): never one series per pod
+A DaemonSet on a 1000-node cluster draws 1000 lines per `by (pod)` panel and 1000 tiles per `up` stat: nothing is readable, and a real failure hides in the noise (a wall of 1182 green tiles was hiding 11 pods down). Ask "what does the fleet look like, and who is the outlier", not "what does each pod do":
+- **Health**: one stat `count(up{...} == 0) or on() vector(0)` mapped to green "healthy", next to a table of the failing pods (`max by (pod, instance) (up{...} == 0)`, `noValue` saying all pods answer).
+- **Resources**: `max`, `quantile(0.99, ...)` and `quantile(0.5, ...)` across pods (the distribution, dashed max/p99, solid median), plus the top outliers by name.
+- **Pin the top N to the end of the range with `@ end()`**: `x and on(pod) topk($topk, max_over_time(x[$__range] @ end()))`. A bare `topk` in a range query re-ranks at every step, so the set of pods changes along the graph and draws more than N series. For a counter, rank on `increase(c[$__range] @ end())`.
+- **N is a `custom` variable (3, 5, 10, 20, default 5), not a share of the fleet.** Readability caps at about 10 lines whatever the pod count; scaling N with the fleet (1% of 1182 = 12) brings the unreadable panel back. The pod variable stays for drill-down.
+
 ## Healthy / empty-state panels
 An "absence of problems" query returns empty, so the panel shows **"No data"**, which reads as *broken*, not *healthy*. Force a healthy state:
 - **Stat** (a count of OOMKills / errors / down pods): `<expr> or on() vector(0)` plus a value mapping `0` -> green "healthy" text with `colorMode: background`.
@@ -195,6 +202,8 @@ Two things worth knowing from here: a GCM datasource cannot serve `label_values(
 | Event timeseries empty and unreadable when nothing happened | `> 0` drops every series, so no legend and no value | keep the filter; `min: 0` + `hideZeros: false` + table legend with `sum` |
 | "0 restarts" while pods visibly churn | `restarts_total` ignores **recreated** pods | count pod age: `time() - kube_pod_start_time < window` |
 | A cap or limit line is drawn as a filled area | the override sets `lineStyle`/`color` but inherits the panel's `fillOpacity` | add `custom.fillOpacity: 0` to that override, a ceiling is a reference, not a quantity |
+| Panel of a DaemonSet unreadable, hundreds of lines or tiles | one series per pod on a large fleet | distribution (max / p99 / median) + `topk($topk, ... @ end())`, see § Large fleets |
+| Top-N panel shows more than N series | `topk` in a range query re-ranks at every step | pin the ranking with `@ end()` |
 | Pre-flight `count()` says `-1`, the metric is right there in the descriptors | `-1` is "no sample now", not "no such metric" | re-run as `count(last_over_time(<metric>[6h]))` |
 
 ## One `job` can cover several containers
