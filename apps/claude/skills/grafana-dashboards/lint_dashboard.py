@@ -70,6 +70,8 @@ WORD = re.compile(r"[a-zà-ÿ]+", re.IGNORECASE)
 TITLE_KINDS_NO_NAME = frozenset({"0 Start here", "1 SLA"})
 TITLE_KINDS_WITH_NAME = frozenset({"Ops", "Sizing", "Deep dive"})
 
+MIXED_DS = "-- Mixed --"
+
 # Jira-style ticket tag, e.g. PE-1622.
 TICKET_TAG = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
 
@@ -245,6 +247,7 @@ def check_panels(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[F
     """
     out: list[Finding] = []
     ids = Counter()
+    pinned: list[tuple[str, str]] = []
     for path, panel in iter_panels(dashboard):
         panel_id = panel.get("id")
         if panel_id is None:
@@ -260,16 +263,30 @@ def check_panels(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[F
         for target_index, target in enumerate(panel.get("targets") or []):
             if not isinstance(target, dict):
                 continue
+            # A '-- Mixed --' panel pins each target on purpose (one query per datacenter, say).
+            if datasource_ref(panel) == MIXED_DS:
+                continue
             ref = datasource_ref(target) or datasource_ref(panel)
             if expect_ds_var and ref and not ref.startswith("$"):
-                out.append(
-                    Finding(
-                        "warn",
-                        "pinned-datasource",
-                        f"{path}.targets[{target_index}].datasource",
-                        f"hardcoded {ref!r}, expected the ${{{expect_ds_var}}} variable",
-                    )
-                )
+                pinned.append((f"{path}.targets[{target_index}].datasource", ref))
+    has_ds_var = any(
+        isinstance(v, dict) and v.get("type") == "datasource"
+        for v in (dashboard.get("templating") or {}).get("list") or []
+    )
+    if pinned and not has_ds_var:
+        out.append(
+            Finding(
+                "warn",
+                "pinned-datasource",
+                "templating.list",
+                f"no datasource variable, {len(pinned)} target(s) pinned to a uid; add ${{{expect_ds_var}}} first",
+            )
+        )
+    elif pinned:
+        out.extend(
+            Finding("warn", "pinned-datasource", where, f"hardcoded {ref!r}, expected the ${{{expect_ds_var}}} variable")
+            for where, ref in pinned
+        )
     for panel_id, count in ids.items():
         if count > 1:
             out.append(Finding("error", "panel-id", "panels[].id", f"id {panel_id} used {count} times"))
@@ -413,7 +430,8 @@ def check_uid(dashboard: dict[str, Any]) -> list[Finding]:
         A warning when the uid has no '-', contains a digit and is long.
     """
     uid = dashboard.get("uid") or ""
-    if "-" not in uid and any(c.isdigit() for c in uid) and len(uid) >= 9:
+    # Grafana-generated uids are 9 or 14 chars, mixed case or with digits (zGcUKcDZz, ffqoyj6rjglj4b).
+    if "-" not in uid and len(uid) >= 9 and any(c.isdigit() or c.isupper() for c in uid):
         return [
             Finding(
                 "warn",
@@ -469,7 +487,8 @@ def lint(dashboard: dict[str, Any], expect_ds_var: str | None, layout: bool = Tr
     Args:
         dashboard: The dashboard object, not the API envelope.
         expect_ds_var: Datasource variable name the folder standardises on.
-        layout: Run the title-format check, off for folders not using the layout.
+        layout: Run the title-format and readable-uid checks, off for folders not
+            using the layout, where a uid can no longer be changed anyway.
 
     Returns:
         Every finding, errors first.
@@ -482,7 +501,7 @@ def lint(dashboard: dict[str, Any], expect_ds_var: str | None, layout: bool = Tr
         + check_language(dashboard)
         + (check_title(dashboard) if layout else [])
         + check_component_tag(dashboard)
-        + check_uid(dashboard)
+        + (check_uid(dashboard) if layout else [])
         + check_deep_dive_ticket(dashboard)
     )
     return sorted(findings, key=lambda f: (f.level != "error", f.rule, f.path))
