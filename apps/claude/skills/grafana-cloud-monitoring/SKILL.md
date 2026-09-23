@@ -46,7 +46,7 @@ monitored resource types [consumer_quota producer_quota] are possible
 
 **The editor has no `legendFormat` and no instant/table query**, only Project, the expression and a min step. Two consequences:
 - Legends come out as the raw label set. Reduce to a single label in the query (`max by (database_id) (...)`) and add a `renameByRegex` transformation (`.*database_id="([^"]+)".*` -> `$1`). Non-destructive: a display name that does not match is left alone.
-- A table panel cannot use `format: table` + `instant`. Folding the range result with a `reduce` transformation in `seriesToRows` mode yields a `Field` column (the label set as text) plus the reducer column, so one column instead of one per label. **Take that fallback only for a throwaway panel.** A table whose point is to be sorted and filtered per label wants the native MQL mode below, which keeps real label columns. Whichever you pick, say it in the panel description.
+- A table panel cannot use `format: table` + `instant`. Fold the range result with a `reduce` transformation in `seriesToRows` mode **with `labelsToFields: true`**: without it you get a single `Field` column (the label set as text) plus the reducer column, with it one column per label. Keep the query reduced to the labels you want as columns (`max by (...)`), and say in the panel description that the table is a reduced range query.
 
 **Quota metrics publish sparsely.** An instant read of a GCP quota metric is routinely empty while `last_over_time(<metric>[6h])` returns the value. Keep the window, and do not read the empty instant panel as a broken query.
 
@@ -57,8 +57,8 @@ monitored resource types [consumer_quota producer_quota] are possible
 - `textbox` defaulting to `.*` for a label filter. It survives a new label value appearing, where a `custom` list with `includeAll` silently hides it: `All` expands to the hardcoded options only, which is the "panel lies with no visible symptom" failure again.
 A regex textbox works unchanged in both languages: `service=~"$service"` in PromQL, `| filter resource.service =~ '$service'` in MQL.
 
-## Native MQL mode, the way out for a table with label columns
-Reach for MQL when the PromQL mode's table limitation costs you something real: it returns **labelled frames**, so label columns survive, and it computes several value columns in one query where PromQL needs one target per value plus a `merge`. A usage/limit/ratio table is 3 PromQL targets or 1 MQL target.
+## Native MQL mode: deprecated, existing panels only
+**Google has deprecated MQL: write every new panel in PromQL**, and when you touch an existing MQL panel, migrate it to PromQL rather than extending it. A usage/limit/ratio table costs 3 PromQL targets plus a `merge` where MQL did it in one, which is the price of staying on the supported language. What follows is here to read and migrate the MQL panels that still exist.
 
 Label placement is not guessable, read it off the descriptors: metric labels are `metric.<key>` (from `metricDescriptors`), resource labels are `resource.<key>` (from `monitoredResourceDescriptors/<type>`). For `consumer_quota` that is `metric.quota_metric` against `resource.project_id` / `resource.service` / `resource.location`.
 
@@ -126,7 +126,7 @@ curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 | GCM panel error `ReadString: expects " or n, but found {` | a 403 rendered as a parse failure | grant `roles/monitoring.viewer` to the datasource SA on that project |
 | GCP quota stat empty although the quota exists | quota metrics publish sparsely, the instant read is empty | keep `last_over_time(...[6h])` |
 | Converted GMP metric absent, other converted names all work | the `:` rule does not apply to `prometheus_target` metrics | use the bare Prometheus name (`apiserver_request_total`) |
-| Migrated dashboard's table lost its Project / Service columns | PromQL mode cannot do `format: table`, `reduce` folds labels into one text column | rewrite that panel in native MQL mode |
+| Migrated dashboard's table lost its Project / Service columns | PromQL mode cannot do `format: table`, `reduce` folds labels into one text column | set `labelsToFields: true` on the `reduce` transformation, never switch the panel to MQL |
 | MQL table reads "No data" and nothing is actually wrong | MQL has no `absent()`, so no healthy-state fallback | set `fieldConfig.defaults.noValue` on the panel |
 | MQL columns come out named `resource.project_id` (or `project_id`) | Grafana's label naming is not guessable | put both spellings in `renameByName`, unmatched renames no-op |
 | Audit reports a GCM dashboard as having no queries | `get_dashboard_panel_queries` reads only `expr` | also read `promQLQuery.expr` and `timeSeriesQuery.query` |
