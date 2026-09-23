@@ -17,7 +17,7 @@ Ce skill capture la procédure complète *et les pièges qui cassent la CI ou la
 |---|---|
 | Repo | `~/Documents/perso/git/pixibixi.github.io` (branche `master`) |
 | Articles | `docs/<section>/<nom>.md` (ex. `docs/ci-cd/github/go-ci.md`) |
-| Build local | `./.venv/bin/mkdocs build` |
+| Build local (repro CI) | `DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:$HOME/lib:/usr/local/lib:/usr/lib" uv run mkdocs build --strict` (Gotcha 4) |
 | Lint markdown (repro CI) | `npx -y markdownlint-cli2@0.23.0 --config .markdownlint.json <fichiers.md>` |
 | Rendu SVG en PNG (contrôle visuel) | `rsvg-convert -b '#0d1117' fichier.svg -o out.png` |
 | Nav | **auto-générée depuis l'arborescence** (pas de bloc `nav:` dans `mkdocs.yml`) |
