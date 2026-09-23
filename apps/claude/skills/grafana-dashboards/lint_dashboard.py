@@ -267,24 +267,27 @@ def check_panels(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[F
             if datasource_ref(panel) == MIXED_DS:
                 continue
             ref = datasource_ref(target) or datasource_ref(panel)
-            if expect_ds_var and ref and not ref.startswith("$"):
+            if ref and not ref.startswith("$"):
                 pinned.append((f"{path}.targets[{target_index}].datasource", ref))
-    has_ds_var = any(
-        isinstance(v, dict) and v.get("type") == "datasource"
+    ds_vars = [
+        v.get("name")
         for v in (dashboard.get("templating") or {}).get("list") or []
-    )
+        if isinstance(v, dict) and v.get("type") == "datasource"
+    ]
+    has_ds_var = bool(ds_vars)
+    wanted = f"${{{expect_ds_var or ds_vars[0]}}}" if (expect_ds_var or ds_vars) else "a datasource"
     if pinned and not has_ds_var:
         out.append(
             Finding(
                 "warn",
                 "pinned-datasource",
                 "templating.list",
-                f"no datasource variable, {len(pinned)} target(s) pinned to a uid; add ${{{expect_ds_var}}} first",
+                f"no datasource variable, {len(pinned)} target(s) pinned to a uid; add {wanted} variable first",
             )
         )
     elif pinned:
         out.extend(
-            Finding("warn", "pinned-datasource", where, f"hardcoded {ref!r}, expected the ${{{expect_ds_var}}} variable")
+            Finding("warn", "pinned-datasource", where, f"hardcoded {ref!r}, expected the {wanted} variable")
             for where, ref in pinned
         )
     for panel_id, count in ids.items():
@@ -530,7 +533,8 @@ def ds_var_majority(dashboards: list[tuple[str, dict[str, Any]]]) -> str | None:
         dashboards: Pairs of (label, dashboard object).
 
     Returns:
-        The most common name, or None when no dashboard has such a variable.
+        The name carried by more than half of the dashboards that have a
+        datasource variable, or None when no name reaches that bar.
     """
     names: Counter[str] = Counter()
     for _, dashboard in dashboards:
@@ -538,7 +542,11 @@ def ds_var_majority(dashboards: list[tuple[str, dict[str, Any]]]) -> str | None:
             if variable.get("type") == "datasource" and variable.get("name"):
                 names[variable["name"]] += 1
                 break  # only the primary (first) var votes, a secondary like dsTooling must not skew it
-    return names.most_common(1)[0][0] if names else None
+    if not names:
+        return None
+    # A plurality is not a convention: on a folder of imported dashboards it elects the vendor's DS_* name.
+    name, count = names.most_common(1)[0]
+    return name if count * 2 > sum(names.values()) else None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -623,6 +631,8 @@ def main(argv: list[str] | None = None) -> int:
         expect = ds_var_majority(dashboards)
         if expect:
             print(f"datasource variable: aligning on the majority form {expect!r}\n")
+        else:
+            print("datasource variable: no name on more than half the dashboards, naming not checked (--expect-ds-var to force)\n")
 
     # A legacy folder would get one title-format warning per dashboard, which buries the real ones.
     layout = not args.folder or any(parse_title(d.get("title") or "") for _, d in dashboards)
