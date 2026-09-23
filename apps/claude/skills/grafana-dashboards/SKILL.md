@@ -1,6 +1,6 @@
 ---
 name: grafana-dashboards
-description: Use when creating or editing a Grafana dashboard or PromQL query against a Thanos or Prometheus datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99). Also when an audit has to find every dashboard still reading a given metric, or every dashboard that really reads a given datasource before deleting it. For panels on a Google Cloud Monitoring (stackdriver) datasource, use grafana-cloud-monitoring instead.
+description: Use when creating or editing a Grafana dashboard or PromQL query against a Thanos or Prometheus datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99). Also when laying out the set of dashboards for a component folder (Start here, SLA, Ops, Sizing, Deep dive), or when an audit has to find every dashboard still reading a given metric, or every dashboard that really reads a given datasource before deleting it. For panels on a Google Cloud Monitoring (stackdriver) datasource, use grafana-cloud-monitoring instead.
 ---
 
 # Authoring Grafana dashboards and PromQL
@@ -18,7 +18,10 @@ Set these without asking, they are schema baseline, not per-dashboard choices:
 - `timezone: "utc"`, `editable: true`, and a dashboard-level `description` (1-2 sentences: what it is for, who reads it). It is what shows up in Grafana search.
 - Panel type `timeseries`/`stat`/`table` only. The `graph` plugin is deprecated; rewrite it when you touch a panel that still uses it.
 - **Every panel needs a unique `id`.** JSON authored without them saves with none at all, which silently breaks panel permalinks (`?viewPanel=`) *and* the `panel_id` label in the query-frontend slow log, i.e. it disables the debugging procedure in § Pre-flight on exactly the dashboards you will need it for.
-- **One name for the datasource variable, across the whole folder.** Three names for the same thing (`ds`, `datasource`, `Source`) makes dashboard URLs non-transposable and breaks copy-paste between panels. When standardising, align on whatever is already the majority form rather than on what a doc says: every rename breaks the `?var-<name>=` in existing bookmarks and tickets.
+- **One name for the datasource variable, across the whole folder.** Three names for the same thing (`ds`, `datasource`, `Source`) makes dashboard URLs non-transposable and breaks copy-paste between panels. When standardising, align on whatever is already the majority form rather than on what a doc says: every rename breaks the `?var-<name>=` in existing bookmarks and tickets. A second datasource variable takes the convention as prefix (`dsTooling`), never a new spelling.
+
+## Folder layout (common dashboard set)
+A component folder holds the same five kinds of dashboard: `<Comp> / 0 Start here`, `<Comp> / 1 SLA`, `<Comp> / Ops / <x>`, `<Comp> / Sizing / <x>`, `<Comp> / Deep dive / <x>`, with readable uids, the component tag and the same variables everywhere. **Read `folder-layout.md` next to this file before creating a dashboard in a platform folder**, or before starting a new one: it gives what each kind contains and the variable block.
 
 ## Before you save (run the linter)
 The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. `lint_dashboard.py`, next to this file, decides them from the JSON and descends into collapsed rows, which a flat `$.panels[*]` read misses:
@@ -28,7 +31,7 @@ SKILL=~/.claude/skills/grafana-dashboards
 $SKILL/lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
 ```
 
-Errors exit 1, so it gates a commit. Run `--help` for the flags. Two caveats: its language check is a heuristic that surfaces candidates, so read what it reports rather than trusting the count, and on a folder it aligns the datasource variable on the **majority** form already in use, because every rename breaks the `?var-<name>=` in existing bookmarks.
+Errors exit 1, so it gates a commit; the folder-layout rules are warnings only, so legacy folders still pass. Run `--help` for the flags. Two caveats: its language check is a heuristic that surfaces candidates, so read what it reports rather than trusting the count, and on a folder it aligns the datasource variable on the **majority** form already in use, because every rename breaks the `?var-<name>=` in existing bookmarks.
 
 Two things it cannot decide for you:
 

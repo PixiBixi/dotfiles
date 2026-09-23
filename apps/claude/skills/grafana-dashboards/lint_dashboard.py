@@ -66,6 +66,13 @@ STEPLESS_SUBQUERY = re.compile(r"\[[0-9]+[smhdwy]:\]")
 
 WORD = re.compile(r"[a-zà-ÿ]+", re.IGNORECASE)
 
+# Segment kinds in the '<Component> / <kind>[ / <name>]' folder title convention.
+TITLE_KINDS_NO_NAME = frozenset({"0 Start here", "1 SLA"})
+TITLE_KINDS_WITH_NAME = frozenset({"Ops", "Sizing", "Deep dive"})
+
+# Jira-style ticket tag, e.g. PE-1622.
+TICKET_TAG = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
+
 
 @dataclass(slots=True)
 class Finding:
@@ -134,6 +141,46 @@ def datasource_ref(node: dict[str, Any]) -> str | None:
     if isinstance(ds, dict) and isinstance(ds.get("uid"), str):
         return ds["uid"]
     return None
+
+
+def parse_title(title: str) -> tuple[str, str, str | None] | None:
+    """Split a dashboard title into (component, kind, name) per the folder convention.
+
+    Args:
+        title: The dashboard title.
+
+    Returns:
+        (component, kind, name) when title matches the convention, else None.
+        name is None for the two fixed kinds ('0 Start here', '1 SLA').
+    """
+    parts = title.split(" / ")
+    if len(parts) == 2:
+        component, kind = parts
+        if component and kind in TITLE_KINDS_NO_NAME:
+            return component, kind, None
+    elif len(parts) == 3:
+        component, kind, name = parts
+        if component and kind in TITLE_KINDS_WITH_NAME and name:
+            return component, kind, name
+    return None
+
+
+def is_secondary_ds_var(name: str, convention: str) -> bool:
+    """Whether name is an accepted secondary datasource var for the folder convention.
+
+    Matches the folder's suffix pattern (`dsTooling`, `ds_tooling`) so a second
+    datasource variable does not get flagged like a rename of the primary one.
+
+    Args:
+        name: The variable name being checked.
+        convention: The folder's primary datasource variable name (e.g. 'ds').
+
+    Returns:
+        True when name extends convention with an uppercase letter or '_'.
+    """
+    if not name.startswith(convention) or len(name) <= len(convention):
+        return False
+    return name[len(convention)] == "_" or name[len(convention)].isupper()
 
 
 def looks_non_english(text: str) -> str | None:
@@ -237,7 +284,9 @@ def check_variables(dashboard: dict[str, Any], expect_ds_var: str | None) -> lis
         expect_ds_var: The expected name, or None to skip.
 
     Returns:
-        Findings for a datasource variable named differently.
+        Findings for a datasource variable named differently. A secondary
+        datasource variable following the convention (`dsTooling`, `ds_tooling`)
+        is accepted and does not count against the primary variable's name.
     """
     if not expect_ds_var:
         return []
@@ -246,15 +295,18 @@ def check_variables(dashboard: dict[str, Any], expect_ds_var: str | None) -> lis
         if variable.get("type") != "datasource":
             continue
         name = variable.get("name")
-        if name != expect_ds_var:
-            out.append(
-                Finding(
-                    "error",
-                    "datasource-var-name",
-                    f"templating.list[{index}].name",
-                    f"{name!r}, folder convention is {expect_ds_var!r} (renaming breaks ?var-{name}= links)",
-                )
+        if name == expect_ds_var:
+            continue
+        if isinstance(name, str) and is_secondary_ds_var(name, expect_ds_var):
+            continue
+        out.append(
+            Finding(
+                "error",
+                "datasource-var-name",
+                f"templating.list[{index}].name",
+                f"{name!r}, folder convention is {expect_ds_var!r} (renaming breaks ?var-{name}= links)",
             )
+        )
     return out
 
 
@@ -305,12 +357,119 @@ def check_language(dashboard: dict[str, Any]) -> list[Finding]:
     return out
 
 
-def lint(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[Finding]:
+def check_title(dashboard: dict[str, Any]) -> list[Finding]:
+    """Check the title against the '<Component> / <kind>[ / <name>]' convention.
+
+    Args:
+        dashboard: The dashboard object.
+
+    Returns:
+        A warning when the title does not match the convention.
+    """
+    title = dashboard.get("title") or ""
+    if parse_title(title) is not None:
+        return []
+    return [
+        Finding(
+            "warn",
+            "title-format",
+            "title",
+            f"{title!r} does not match '<Component> / (0 Start here|1 SLA|"
+            "Ops / <name>|Sizing / <name>|Deep dive / <name>)'",
+        )
+    ]
+
+
+def check_component_tag(dashboard: dict[str, Any]) -> list[Finding]:
+    """Check that a title's Component is also present in tags.
+
+    Args:
+        dashboard: The dashboard object.
+
+    Returns:
+        A warning when the title matches the convention but its lowercased
+        Component is missing from tags.
+    """
+    title = dashboard.get("title") or ""
+    parsed = parse_title(title)
+    if parsed is None:
+        return []
+    component, _, _ = parsed
+    tags = [t for t in (dashboard.get("tags") or []) if isinstance(t, str)]
+    if component.lower() in tags:
+        return []
+    return [
+        Finding("warn", "component-tag", "tags", f"{tags} missing {component.lower()!r} (from title {title!r})")
+    ]
+
+
+def check_uid(dashboard: dict[str, Any]) -> list[Finding]:
+    """Flag a uid that looks randomly generated instead of hand-picked.
+
+    Args:
+        dashboard: The dashboard object.
+
+    Returns:
+        A warning when the uid has no '-', contains a digit and is long.
+    """
+    uid = dashboard.get("uid") or ""
+    if "-" not in uid and any(c.isdigit() for c in uid) and len(uid) >= 9:
+        return [
+            Finding(
+                "warn",
+                "readable-uid",
+                "uid",
+                f"{uid!r} looks random, it appears in every /d/ link and cannot be changed later without breaking them",
+            )
+        ]
+    return []
+
+
+def check_deep_dive_ticket(dashboard: dict[str, Any]) -> list[Finding]:
+    """Check that a Deep dive dashboard carries a ticket tag.
+
+    Args:
+        dashboard: The dashboard object.
+
+    Returns:
+        A warning when the title is a Deep dive and no tag looks like a ticket.
+    """
+    title = dashboard.get("title") or ""
+    parsed = parse_title(title)
+    if parsed is None or parsed[1] != "Deep dive":
+        return []
+    tags = dashboard.get("tags") or []
+    if any(isinstance(t, str) and TICKET_TAG.match(t) for t in tags):
+        return []
+    return [Finding("warn", "deep-dive-ticket", "tags", f"{title!r} has no ticket tag like 'PE-1622'")]
+
+
+def check_folder_start_here(dashboards: list[tuple[str, dict[str, Any]]]) -> Finding | None:
+    """Check a folder using the title convention has a '0 Start here' dashboard.
+
+    Skipped on legacy folders that do not use the layout at all, so it only
+    fires once a folder has opted in via at least one matching title.
+
+    Args:
+        dashboards: Pairs of (label, dashboard object) for one folder.
+
+    Returns:
+        A folder-level warning, or None.
+    """
+    if not any(parse_title(dashboard.get("title") or "") is not None for _, dashboard in dashboards):
+        return None
+    if any((dashboard.get("title") or "").endswith(" / 0 Start here") for _, dashboard in dashboards):
+        return None
+    return Finding("warn", "folder-start-here", "folder", "no dashboard title ends with ' / 0 Start here'")
+
+
+def lint(dashboard: dict[str, Any], expect_ds_var: str | None, layout: bool = True) -> list[Finding]:
     """Run every check against one dashboard.
 
     Args:
         dashboard: The dashboard object, not the API envelope.
         expect_ds_var: Datasource variable name the folder standardises on.
+        layout: Run the title-format check, off for folders not using the layout.
 
     Returns:
         Every finding, errors first.
@@ -321,6 +480,10 @@ def lint(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[Finding]:
         + check_variables(dashboard, expect_ds_var)
         + check_queries(dashboard)
         + check_language(dashboard)
+        + (check_title(dashboard) if layout else [])
+        + check_component_tag(dashboard)
+        + check_uid(dashboard)
+        + check_deep_dive_ticket(dashboard)
     )
     return sorted(findings, key=lambda f: (f.level != "error", f.rule, f.path))
 
@@ -350,12 +513,12 @@ def ds_var_majority(dashboards: list[tuple[str, dict[str, Any]]]) -> str | None:
     Returns:
         The most common name, or None when no dashboard has such a variable.
     """
-    names = Counter(
-        variable.get("name")
-        for _, dashboard in dashboards
-        for variable in dashboard.get("templating", {}).get("list") or []
-        if variable.get("type") == "datasource" and variable.get("name")
-    )
+    names: Counter[str] = Counter()
+    for _, dashboard in dashboards:
+        for variable in dashboard.get("templating", {}).get("list") or []:
+            if variable.get("type") == "datasource" and variable.get("name"):
+                names[variable["name"]] += 1
+                break  # only the primary (first) var votes, a secondary like dsTooling must not skew it
     return names.most_common(1)[0][0] if names else None
 
 
@@ -442,7 +605,11 @@ def main(argv: list[str] | None = None) -> int:
         if expect:
             print(f"datasource variable: aligning on the majority form {expect!r}\n")
 
-    results = {label: lint(dashboard, expect) for label, dashboard in dashboards}
+    # A legacy folder would get one title-format warning per dashboard, which buries the real ones.
+    layout = not args.folder or any(parse_title(d.get("title") or "") for _, d in dashboards)
+    results = {label: lint(dashboard, expect, layout) for label, dashboard in dashboards}
+    if args.folder and (folder_finding := check_folder_start_here(dashboards)):
+        results[f"[folder] {args.folder}"] = [folder_finding]
     errors = sum(1 for f in (x for v in results.values() for x in v) if f.level == "error")
     warnings = sum(1 for f in (x for v in results.values() for x in v) if f.level == "warn")
 
