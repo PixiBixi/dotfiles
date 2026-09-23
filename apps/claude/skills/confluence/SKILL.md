@@ -54,6 +54,7 @@ confluence --version   # verify install
 | `CONFLUENCE_READ_ONLY` | Block all write operations when `true` | `true` |
 | `CONFLUENCE_FORCE_CLOUD` | Force Cloud link format for custom domains | `true` |
 | `CONFLUENCE_LINK_STYLE` | Override link rendering: `smart`, `plain`, or legacy `wiki` | `plain` |
+| `CONFLUENCE_PLANTUML_FORMAT` | PlantUML macro format: `plantuml` (default) or `plantumlcloud` | `plantumlcloud` |
 
 **Global `--profile` flag (use a named profile for any command):**
 
@@ -65,7 +66,7 @@ Config resolution works in two stages:
 - **Direct env config:** If both `CONFLUENCE_DOMAIN` and `CONFLUENCE_API_TOKEN` are set, they are used directly and the config file / profiles are not consulted.
 - **Profile-based config:** Otherwise, a profile is selected in this order: `--profile` flag > `CONFLUENCE_PROFILE` env > `activeProfile` in config > `default`.
 
-For `basic`/`bearer` profiles that omit a stored `token`, the token falls back to a `~/.netrc` entry matched by domain (and email for basic auth) — env/`--token` still take precedence. Override the path with `NETRC`.
+For `basic`/`bearer` profiles that omit a stored `token`, the token falls back to the macOS Keychain (item `confluence-cli:<host>`, account = email or `bearer`; created with `confluence init --keychain`) and then to a `~/.netrc` entry matched by domain (and email for basic auth) — env/`--token` still take precedence. Override the netrc path with `NETRC`; set `CONFLUENCE_KEYCHAIN=off` to skip Keychain lookups.
 
 **Non-interactive init (good for CI/CD scripts):**
 
@@ -176,7 +177,7 @@ confluence read "https://company.atlassian.net/wiki/spaces/MYSPACE/pages/1234567
 Initialize configuration. By default, saves credentials to `~/.config/confluence-cli/config.json`; an existing legacy `~/.confluence-cli/` directory or `CONFLUENCE_CONFIG_DIR` may change the location.
 
 ```sh
-confluence init [--domain <domain>] [--api-path <path>] [--auth-type basic|bearer] [--email <email>] [--token <token>] [--read-only]
+confluence init [--domain <domain>] [--api-path <path>] [--auth-type basic|bearer] [--email <email>] [--token <token>] [--read-only] [--keychain]
 ```
 
 All flags are optional; omitting any flag triggers an interactive prompt for that field. Provide all flags to run fully non-interactive. Use the global `--profile` flag to save to a named profile:
@@ -663,7 +664,7 @@ confluence profile use staging
 Add a new configuration profile. Supports the same options as `init` (interactive, non-interactive, or hybrid).
 
 ```sh
-confluence profile add <name> [--domain <domain>] [--api-path <path>] [--auth-type basic|bearer] [--email <email>] [--token <token>] [--protocol http|https] [--read-only]
+confluence profile add <name> [--domain <domain>] [--api-path <path>] [--auth-type basic|bearer] [--email <email>] [--token <token>] [--protocol http|https] [--read-only] [--keychain]
 ```
 
 Profile names may contain letters, numbers, hyphens, and underscores only.
