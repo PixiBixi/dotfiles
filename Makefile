@@ -5,12 +5,12 @@ SCRIPT     := $(SKILLS_DIR).update-skills.py
 
 .DEFAULT_GOAL := help
 
-.PHONY: help update update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills check
+.PHONY: help update update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills update-claude-plugins check
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-update: update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills ## Update all (brew, krew indexes, npm, gems, skills)
+update: update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills update-claude-plugins ## Update all (brew, krew indexes, npm, gems, skills, Claude plugins)
 
 update-brew: ## Dump installed Homebrew packages → packages/Brewfile
 	@echo "Updating packages/Brewfile..."
@@ -44,6 +44,12 @@ update-claude-skills: ## Update skillfish-managed skills → re-bundle packages/
 	@# skillfish bundle emits no trailing newline: normalize it so the file stops showing up as dirty
 	@[ -z "$$(tail -c 1 "$(PKGS_DIR)skillfish.json")" ] || echo "" >> "$(PKGS_DIR)skillfish.json"
 	@echo "Done."
+
+update-claude-plugins: ## Refresh plugin marketplaces, then update each marketplace-backed Claude plugin
+	@claude plugin marketplace update
+	@claude plugin list --json | python3 -c "import json,sys; [print(p['id']) for p in json.load(sys.stdin) if not p['id'].endswith('@skills-dir')]" | \
+		while read -r id; do claude plugin update "$$id" || echo "WARN: $$id failed to update" >&2; done
+	@echo "Done. Restart Claude Code to load the new versions."
 
 check: ## Show skills diffs without modifying files (dry-run)
 	@python3 $(SCRIPT) --check
