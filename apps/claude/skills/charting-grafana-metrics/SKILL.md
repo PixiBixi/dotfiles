@@ -48,8 +48,8 @@ python3 -m venv ~/.claude/skills/charting-grafana-metrics/.venv
 | Prettier names | `--rename '{"raw-value":"Nice Name"}'` |
 | Per-series mean/min/max | printed to stdout after saving (no extra query needed) |
 | Callout on the peak | `--annotate-max "text"` |
-| Which Grafana | `--grafana-url` (default `$GRAFANA_URL`; auto-detected from the gcx context when no static token is set) |
-| Which gcx context | `--gcx-context` (default `$GCX_CONTEXT`, else gcx's current-context) |
+| Which Grafana | `--grafana-url https://<host>`: uses the gcx context whose server has that host (default: gcx's current context) |
+| Which gcx context | `--gcx-context <name>` (default `$GCX_CONTEXT`); for an instance named without a URL, pick it from `gcx config list-contexts` |
 | Attach to Jira | `--attach-jira ABC-123` (see the env vars below, and the approval gate in Workflow) |
 
 ## Environment
@@ -58,13 +58,11 @@ Nothing is hardcoded: no host, no address. Set these in your shell profile.
 
 | Variable | Needed for | Notes |
 |----------|-----------|-------|
-| `GRAFANA_URL` | direct HTTP only | base URL, or pass `--grafana-url`; not needed when the gcx fallback applies |
-| `GRAFANA_TOKEN` | token | first env var tried; the same one the `grafana-dashboards` tools read |
-| `GRAFANA_SERVICE_ACCOUNT_TOKEN` / `GTOK` | token | tried next, in that order |
-| `GCX_CONTEXT` | gcx fallback | gcx context to use when no static token is set |
+| `GRAFANA_URL` + `GRAFANA_TOKEN` | static token | the token is only sent to the host of `GRAFANA_URL` (then `GRAFANA_SERVICE_ACCOUNT_TOKEN`, `GTOK`) |
+| `GCX_CONTEXT` | gcx | gcx context to force, same as `--gcx-context` |
 | `JIRA_API_TOKEN` `JIRA_EMAIL` `JIRA_BASE` | `--attach-jira` only | all three, no default |
 
-Token order, identical across every Grafana skill so one export covers them all: `--token`, `$GRAFANA_TOKEN`, `$GRAFANA_SERVICE_ACCOUNT_TOKEN`, `$GTOK`. When none of these is set, requests go through `gcx api` instead, so gcx's own OAuth refresh (or its static token, for a non-OAuth context) applies and this script never reads or caches a credential itself. The resolver is duplicated in each skill on purpose, so either works installed alone.
+Resolution order, identical across every Grafana skill: `--token`; `--gcx-context` / `$GCX_CONTEXT`; `--grafana-url` (the env token for the host of `$GRAFANA_URL`, else the gcx context serving that host, else exit with the `gcx login` to run); gcx's current context; the env token when gcx is missing. Through gcx, its own OAuth refresh applies and this script never reads or caches a credential itself. The resolver is duplicated in each skill on purpose, so either works installed alone.
 
 ## Workflow
 
@@ -78,7 +76,6 @@ Token order, identical across every Grafana skill so one export covers them all:
 ```bash
 VENV=~/.claude/skills/charting-grafana-metrics/.venv/bin/python
 SKILL=~/.claude/skills/charting-grafana-metrics
-export GRAFANA_URL=https://grafana.example.com
 export JIRA_API_TOKEN=$(zsh -l -c 'echo $JIRA_API_TOKEN')   # only if attaching
 export JIRA_EMAIL=you@example.com JIRA_BASE=https://example.atlassian.net
 DS_UID=abc123XYZ            # from `gcx datasources list`
@@ -91,6 +88,7 @@ $VENV $SKILL/plot_grafana.py \
   --ylabel "Memory used %" --ymin 0 --ymax 45 \
   --rename '{"lb-edge-dc1-1":"HAProxy 3.2.20 (dc1-1)","lb-edge-dc1-4":"HAProxy 2.7.11 (dc1-4, control)"}' \
   --annotate-max "reload: old+new worker coexist → node mem ~2x" \
+  --grafana-url https://grafana.example.com \
   --out /tmp/mem-3.2-vs-2.7.png \
   --attach-jira ABC-123
 ```
@@ -98,7 +96,7 @@ $VENV $SKILL/plot_grafana.py \
 ## Common mistakes
 
 - **Chart drawn from a query nobody checked** → see the PromQL pointer above; a plausible wrong number is the failure mode, not an error.
-- **401 from the proxy** → with a static token, it is missing/wrong (`GRAFANA_TOKEN`/`GRAFANA_SERVICE_ACCOUNT_TOKEN`/`GTOK`); with the gcx fallback, the context's session expired, run `gcx login`.
+- **401 from the proxy** → with a static token, it does not belong to that host; through gcx, the refresh token expired (about monthly), run `gcx login <context>`.
 - **Using system `python3`** → `ModuleNotFoundError: matplotlib`. Use the venv python.
 - **Empty/one flat line where you expect several** → the `--expr` regex matched a single series; widen the label matcher.
 - **Series unnamed / all "series"** → `--legend-key` points at a label the metric doesn't have; pick one it does (check the raw query result).

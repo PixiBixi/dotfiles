@@ -5,15 +5,14 @@ Fetches a PromQL range query through the Grafana datasource proxy (no direct
 Prometheus access needed), styles it like a Grafana panel, and writes a PNG.
 Optionally attaches the PNG to a Jira issue.
 
-Auth: --token, then $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK. When none
-of these is set, requests go through `gcx api` instead (--gcx-context / $GCX_CONTEXT
-selects the context), so gcx's own OAuth refresh applies. Same chain as the
-grafana-dashboards skill's tools.
+Auth (see resolve_target): --grafana-url picks the gcx context whose server has
+that host, default gcx's current context; --gcx-context / $GCX_CONTEXT forces one.
+$GRAFANA_TOKEN (then $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK) is used only for the
+host of $GRAFANA_URL, or when gcx is missing. Same chain as the grafana-dashboards
+skill's tools.
 
-Environment: GRAFANA_URL (or --grafana-url) is required when a static token is used;
-with the gcx fallback it defaults to the current gcx context's server. --attach-jira
-additionally needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE. Nothing is hardcoded on
-purpose: this repo is public, so no host and no address belong in the source.
+--attach-jira additionally needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE. Nothing is
+hardcoded on purpose: this repo is public, so no host and no address belong in the source.
 
 Run with --help for all options. See SKILL.md for usage patterns.
 """
@@ -31,29 +30,20 @@ PALETTE = ["#73BF69", "#FF9830", "#5794F2", "#F2495C", "#B877D9",
            "#FADE2A", "#37872D", "#E0B400", "#1F60C4", "#8AB8FF"]
 
 
-def resolve_token(explicit=""):
-    """Resolve the Grafana API token, in the order shared by the Grafana skills.
+STATIC_TOKEN_VARS = ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK")
 
-    The chain is identical in grafana-dashboards and charting-grafana-metrics so
-    one export works for every tool. Deliberately duplicated rather than
-    imported: each skill must stand alone if installed without the other.
 
-    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK. When
-    none of these is set, the caller falls back to `gcx api` (see
-    gcx_api_json), so an empty return here is expected, not an error.
-
-    Args:
-        explicit: Value passed on the command line, which always wins.
-
-    Returns:
-        The token, or an empty string when nothing is configured.
-    """
-    if explicit:
-        return explicit
-    for name in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK"):
+def env_token():
+    """Return the first static token set in the environment, or ""."""
+    for name in STATIC_TOKEN_VARS:
         if os.environ.get(name):
             return os.environ[name]
     return ""
+
+
+def url_host(url):
+    """Lowercased host[:port] of a URL, tolerating a missing scheme."""
+    return urllib.parse.urlparse(url if "://" in url else f"https://{url}").netloc.lower()
 
 
 def gcx_context(explicit=""):
@@ -64,18 +54,78 @@ def gcx_context(explicit=""):
     return explicit or os.environ.get("GCX_CONTEXT", "")
 
 
-def require_grafana_auth(token):
-    """Exit with a clear message when nothing can authenticate a request.
+def gcx_context_for_url(url):
+    """Name of the gcx context whose server has the host of `url`, or "".
 
-    A static token always works; otherwise gcx must be installed, since it is
-    the only remaining path (OAuth refresh is gcx's job, not this script's).
+    The current context wins when several contexts point at the same host.
     """
-    if token or shutil.which("gcx"):
-        return
+    try:
+        proc = subprocess.run(["gcx", "config", "view", "-o", "json"], capture_output=True,
+                              text=True, timeout=10, check=False, env=gcx_env())
+        cfg = json.loads(proc.stdout) if proc.returncode == 0 else {}
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return ""
+    host = url_host(url)
+    stacks = cfg.get("stacks") or {}
+    matches = [
+        name for name, ctx in (cfg.get("contexts") or {}).items()
+        if url_host(((stacks.get((ctx or {}).get("stack", "")) or {}).get("grafana") or {}).get("server", "")) == host
+    ]
+    current = cfg.get("current-context", "")
+    return current if current in matches else (matches[0] if matches else "")
+
+
+def resolve_target(url="", token="", context=""):
+    """Pick the Grafana base URL, static token and gcx context for a run.
+
+    Shared by the Grafana skills, deliberately duplicated so each one stands
+    alone. A token from the environment belongs to $GRAFANA_URL and is never
+    sent to another host: that is what answered 401 on every other instance.
+
+    Order: --token (with --grafana-url or $GRAFANA_URL); --gcx-context / $GCX_CONTEXT;
+    --grafana-url (the env token when its host is $GRAFANA_URL's, else the gcx context
+    serving that host); gcx's current context; env token + $GRAFANA_URL when
+    gcx is not installed.
+
+    Args:
+        url: --grafana-url as passed on the command line, "" when absent.
+        token: --token as passed on the command line, "" when absent.
+        context: --gcx-context as passed on the command line, "" when absent.
+
+    Returns:
+        (base_url, static_token, gcx_context). An empty token means every
+        request goes through `gcx api`; base_url may then be "".
+    """
+    env_url = os.environ.get("GRAFANA_URL", "")
+    if token:
+        if not (url or env_url):
+            sys.exit("no Grafana URL: pass --grafana-url or set GRAFANA_URL (required with --token)")
+        return url or env_url, token, ""
+    have_gcx = shutil.which("gcx") is not None
+    ctx = gcx_context(context)
+    if ctx:
+        if not have_gcx:
+            sys.exit(f"gcx context {ctx!r} requested but gcx is not on PATH (brew install gcx)")
+        return gcx_default_url(ctx), "", ctx
+    static = env_token()
+    if url:
+        if static and env_url and url_host(url) == url_host(env_url):
+            return url, static, ""
+        ctx = gcx_context_for_url(url) if have_gcx else ""
+        if ctx:
+            return url, "", ctx
+        sys.exit(
+            f"no credentials for {url_host(url)}: no gcx context points at it "
+            f"(see `gcx config list-contexts`).\n"
+            f"Run `gcx login <name> --server {url.rstrip('/')}`, or pass --token."
+        )
+    if have_gcx:
+        return gcx_default_url(""), "", ""
+    if static and env_url:
+        return env_url, static, ""
     sys.exit(
-        "no Grafana token configured and gcx is not on PATH.\n"
-        "Install it (brew install gcx), then run `gcx login`,\n"
-        "or export GRAFANA_TOKEN."
+        "no Grafana credentials: gcx is not on PATH and GRAFANA_TOKEN/GRAFANA_URL are unset.\n"
+        "Install gcx (brew install gcx) and run `gcx login`."
     )
 
 
@@ -201,9 +251,9 @@ def main():
                    help='JSON map to prettify series names, e.g. \'{"raw":"Nice"}\'')
     p.add_argument("--annotate-max", default="",
                    help="annotate the global-max point with this text")
-    p.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", ""),
-                   help="Grafana base URL (default: $GRAFANA_URL; with the gcx "
-                        "fallback, defaults to the current gcx context's server)")
+    p.add_argument("--grafana-url", default="",
+                   help="Grafana base URL; picks the matching gcx context "
+                        "(default: gcx current context)")
     p.add_argument("--gcx-context", default="",
                    help="gcx context for the gcx-api fallback (default: $GCX_CONTEXT, "
                         "else gcx's current-context)")
@@ -213,13 +263,7 @@ def main():
     args = p.parse_args()
 
     rename = json.loads(args.rename)
-    token = resolve_token(args.token)
-    require_grafana_auth(token)
-    gcx_ctx = gcx_context(args.gcx_context)
-    if not args.grafana_url:
-        if token:
-            sys.exit("no Grafana URL: pass --grafana-url or export GRAFANA_URL")
-        args.grafana_url = gcx_default_url(gcx_ctx)  # only used for direct HTTP; gcx api resolves its own target
+    args.grafana_url, token, gcx_ctx = resolve_target(args.grafana_url, args.token, args.gcx_context)
     result = fetch(args, token, gcx_ctx)
 
     plt.rcParams.update({"font.size": 11, "text.color": "#ccc",

@@ -11,17 +11,15 @@ Examples:
     ./lint_dashboard.py --folder "K8S" --expect-ds-var ds
     ./lint_dashboard.py mydash.json --json
 
-Environment (only for --uid and --folder):
-    GRAFANA_URL    base URL, e.g. https://grafana.example.com
-    GRAFANA_TOKEN  API token; see grafana_metric_usage.resolve_token for the full chain.
-                   When unset, --uid/--folder route through `gcx api` instead.
+Auth (only for --uid and --folder): same as grafana_metric_usage.resolve_target.
+    --url picks the gcx context serving that host, default gcx's current context;
+    GRAFANA_TOKEN is used only for the host of $GRAFANA_URL.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 from collections import Counter
@@ -33,11 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grafana_metric_usage import (  # noqa: E402  # type: ignore[import-not-found]
     Client,
     GrafanaError,
-    gcx_context,
-    gcx_default_url,
     list_dashboards,
-    require_grafana_auth,
-    resolve_token,
+    resolve_target,
 )
 
 # Panel types that carry no query and therefore no datasource.
@@ -572,7 +567,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--expect-ds-var",
         help="datasource variable name the folder standardises on; with --folder, defaults to the majority form",
     )
-    parser.add_argument("--url", help="Grafana base URL [$GRAFANA_URL] (optional when gcx resolves it)")
+    parser.add_argument("--url", default="", help="Grafana base URL; picks the matching gcx context (default: gcx current context)")
     parser.add_argument("--token", default="", help="API token; same lookup order as the other Grafana tools")
     parser.add_argument("--gcx-context", default="", help="gcx context for the gcx-api fallback [$GCX_CONTEXT]")
     parser.add_argument("--warnings-as-errors", action="store_true", help="exit 1 on warnings too")
@@ -598,12 +593,7 @@ def collect(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
             raise SystemExit("nothing to lint: pass a file, --uid or --folder")
         return out
 
-    token = resolve_token(args.token)
-    require_grafana_auth(token)
-    ctx = gcx_context(args.gcx_context)
-    url = args.url or os.environ.get("GRAFANA_URL", "") or (gcx_default_url(ctx) if not token else "")
-    if token and not url:
-        raise SystemExit("no Grafana URL: set GRAFANA_URL or pass --url (required with a static token)")
+    url, token, ctx = resolve_target(args.url, args.token, args.gcx_context)
     client = Client(url, token, ctx)
     uids = list(args.uid)
     if args.folder:

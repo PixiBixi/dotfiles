@@ -5,14 +5,24 @@ description: Use when creating or editing a Grafana dashboard or PromQL query ag
 
 # Authoring Grafana dashboards and PromQL
 
-Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=~/.claude/skills/grafana-dashboards` as in the examples below. They take the token from `$GRAFANA_TOKEN`, the same chain as the sibling skill; with none set, they route through `gcx api` instead (`--gcx-context` / `$GCX_CONTEXT`), so gcx's own OAuth refresh applies. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin (`gcx dashboards snapshot` errors out).
+Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=~/.claude/skills/grafana-dashboards` as in the examples below. They route through `gcx api`, so gcx's own OAuth refresh applies; the target is picked as in § Which instance, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin (`gcx dashboards snapshot` errors out).
 
 ## Pre-flight
 Every Grafana call in this skill's tools goes through `gcx`. Check it once per session:
 ```bash
 command -v gcx >/dev/null || { echo "install: brew install gcx"; exit 1; }
-gcx config check || { echo "not ready: gcx login"; exit 1; }
+env -u GRAFANA_TOKEN -u GRAFANA_SERVICE_ACCOUNT_TOKEN -u GRAFANA_URL gcx config check || { echo "not ready: gcx login"; exit 1; }
 ```
+**Call gcx directly with the same `env -u ...` prefix.** gcx treats those variables as an auth override of every context: a context shown as `token (environment override)` answers 401 however fresh its OAuth login is. The tools strip them on their own.
+
+## Which instance
+| Request | Pass |
+|---|---|
+| A URL (`https://<host>/d/<uid>`) | `--url https://<host>`: the tool uses the gcx context whose server has that host |
+| An instance named without a URL | `gcx config list-contexts`, then `--gcx-context <name>` |
+| Neither | nothing: gcx's current context |
+
+`$GRAFANA_TOKEN` (then `$GRAFANA_SERVICE_ACCOUNT_TOKEN`, `$GTOK`) is only sent to the host of `$GRAFANA_URL`, or used when gcx is missing; `--token` forces a static token. A host no gcx context serves exits with the `gcx login` command to run. The dashboard cache is kept per host.
 
 ## Language: dashboards are ALWAYS in English
 Every user-facing string is English: dashboard title/description, row names, panel titles, panel descriptions, `legendFormat`, value-mapping text, variable labels and descriptions, table column `displayName`. **Even when the conversation is in another language.** Dashboards are shared artifacts read by international teams. Same for alert rule names, summaries and annotations.

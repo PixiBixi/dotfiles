@@ -32,21 +32,15 @@ Examples:
     # include the selector-only hits in the count (off by default)
     ./grafana_datasource_usage.py -d wfWf8AG4k --count-variable-only
 
-Environment:
-    GRAFANA_URL    base URL, e.g. https://grafana.example.com. Optional when
-                   gcx resolves it (see below).
-    GRAFANA_TOKEN  API token with dashboard read access. GRAFANA_SERVICE_ACCOUNT_TOKEN
-                   and GTOK are also read, in that order, same as the
-                   charting-grafana-metrics skill. When none is set, requests go
-                   through `gcx api` instead (--gcx-context / $GCX_CONTEXT selects
-                   the context), so gcx's own OAuth refresh applies.
+Auth: same as grafana_metric_usage.resolve_target. --url picks the gcx context
+serving that host, default gcx's current context; GRAFANA_TOKEN is used only
+for the host of $GRAFANA_URL.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from dataclasses import dataclass
@@ -65,14 +59,12 @@ from grafana_metric_usage import (  # noqa: E402
     Cache,
     Client,
     Stats,
+    cache_namespace,
     fetch_dashboards,
-    gcx_context,
-    gcx_default_url,
     list_dashboards,
     GrafanaError,
-    require_grafana_auth,
     resolve_datasources,
-    resolve_token,
+    resolve_target,
 )
 
 
@@ -352,8 +344,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="count selector-only hits as usage (off by default)")
     p.add_argument("--json", action="store_true", help="machine readable output")
     p.add_argument("--quiet", action="store_true", help="no report, exit code only")
-    p.add_argument("--url", default=os.environ.get("GRAFANA_URL", ""),
-                    help="Grafana base URL [$GRAFANA_URL] (optional when gcx resolves it)")
+    p.add_argument("--url", default="",
+                    help="Grafana base URL; picks the matching gcx context (default: gcx current context)")
     p.add_argument("--token", default="")
     p.add_argument("--gcx-context", default="",
                     help="gcx context for the gcx-api fallback [$GCX_CONTEXT]")
@@ -375,12 +367,7 @@ def main(argv: list[str] | None = None) -> int:
         0 when every datasource is unused, 1 when at least one is still read.
     """
     args = build_parser().parse_args(argv)
-    token = resolve_token(args.token)
-    require_grafana_auth(token)
-    ctx = gcx_context(args.gcx_context)
-    url = args.url or (gcx_default_url(ctx) if not token else "")
-    if token and not url:
-        raise SystemExit("no Grafana URL: set GRAFANA_URL or pass --url (required with a static token)")
+    url, token, ctx = resolve_target(args.url, args.token, args.gcx_context)
     if not args.datasource:
         raise SystemExit("nothing to check: pass at least one -d/--datasource")
 
@@ -401,7 +388,7 @@ def main(argv: list[str] | None = None) -> int:
             alias.add(given)
         aliases[uid] = alias
 
-    cache = Cache(args.cache_dir, args.max_age, args.refresh)
+    cache = Cache(args.cache_dir / cache_namespace(url, ctx), args.max_age, args.refresh)
     stats = Stats()
     started = time.monotonic()
     rows = list_dashboards(client)
