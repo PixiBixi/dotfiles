@@ -19,10 +19,13 @@ Examples:
     ./grafana_metric_usage.py -f metrics.txt --quiet || echo "still in use"
 
 Environment:
-    GRAFANA_URL    base URL, e.g. https://grafana.example.com
-    GRAFANA_TOKEN  API token with dashboard read access. GRAFANA_SERVICE_ACCOUNT_TOKEN,
-                   GTOK and the grafana MCP server in ~/.claude.json are also read,
-                   in that order, same as the charting-grafana-metrics skill.
+    GRAFANA_URL    base URL, e.g. https://grafana.example.com. Optional when
+                   gcx resolves it (see below).
+    GRAFANA_TOKEN  API token with dashboard read access. GRAFANA_SERVICE_ACCOUNT_TOKEN
+                   and GTOK are also read, in that order, same as the
+                   charting-grafana-metrics skill. When none is set, requests go
+                   through `gcx api` instead (--gcx-context / $GCX_CONTEXT selects
+                   the context), so gcx's own OAuth refresh applies.
 """
 
 from __future__ import annotations
@@ -33,7 +36,9 @@ import gzip
 import json
 import os
 import re
+import shutil
 import ssl
+import subprocess
 import sys
 import threading
 import time
@@ -70,20 +75,19 @@ PROMQL_KEYWORDS = frozenset(
 )
 
 
-def resolve_token(explicit: str = "", mcp_server: str = "") -> str:
+def resolve_token(explicit: str = "") -> str:
     """Resolve the Grafana API token, in the order shared by the Grafana skills.
 
     The chain is identical in grafana-dashboards and charting-grafana-metrics so
     one export works for every tool. Deliberately duplicated rather than
     imported: each skill must stand alone if installed without the other.
 
-    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK, then
-    the token the grafana MCP server carries in ~/.claude.json.
+    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK. When
+    none of these is set, the caller falls back to `gcx api` (see
+    gcx_api_json), so an empty return here is expected, not an error.
 
     Args:
         explicit: Value passed on the command line, which always wins.
-        mcp_server: MCP server name to read from ~/.claude.json. Defaults to
-            $GRAFANA_MCP_SERVER, else "grafana".
 
     Returns:
         The token, or an empty string when nothing is configured.
@@ -93,13 +97,114 @@ def resolve_token(explicit: str = "", mcp_server: str = "") -> str:
     for name in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK"):
         if os.environ.get(name):
             return os.environ[name]
-    server = mcp_server or os.environ.get("GRAFANA_MCP_SERVER", "grafana")
+    return ""
+
+
+def gcx_context(explicit: str = "") -> str:
+    """Resolve the gcx context to use for the gcx-api fallback.
+
+    Order: --gcx-context, $GCX_CONTEXT, else "" (gcx's own current-context).
+    """
+    return explicit or os.environ.get("GCX_CONTEXT", "")
+
+
+def require_grafana_auth(token: str) -> None:
+    """Exit with a clear message when nothing can authenticate a request.
+
+    A static token always works; otherwise gcx must be installed, since it is
+    the only remaining path (OAuth refresh is gcx's job, not this script's).
+
+    Args:
+        token: The resolved static token, empty when none is configured.
+    """
+    if token or shutil.which("gcx"):
+        return
+    sys.exit(
+        "no Grafana token configured and gcx is not on PATH.\n"
+        "Install it (brew install gcx), then run `gcx login`,\n"
+        "or export GRAFANA_TOKEN."
+    )
+
+
+def gcx_env():
+    """Environment for gcx without the static-token variables.
+
+    gcx treats GRAFANA_TOKEN and friends as an auth override, which silently
+    replaces the context's OAuth login and answers 401.
+    """
+    return {k: v for k, v in os.environ.items()
+            if k not in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GRAFANA_URL")}
+
+
+def gcx_api_json(path: str, params: dict[str, Any] | None, context: str, timeout: float = 60.0) -> Any:
+    """GET a Grafana API path through `gcx api`, so OAuth refresh stays gcx's job.
+
+    Used when no static token is configured: gcx resolves auth (OAuth or a
+    static token, per its own context) instead of this script reading or
+    caching a credential itself.
+
+    Args:
+        path: API path, starting with "/".
+        params: Optional query string parameters.
+        context: gcx context name, or "" for gcx's current-context.
+        timeout: Subprocess timeout, in seconds.
+
+    Returns:
+        The decoded JSON body, or None on a 404.
+
+    Raises:
+        GrafanaError: On a non-2xx response, a timeout, or an unparseable reply.
+    """
+    url = f"{path}?{urlencode(params)}" if params else path
+    cmd = ["gcx", "api", url, "-o", "json"]
+    if context:
+        cmd += ["--context", context]
     try:
-        cfg = json.loads((Path.home() / ".claude.json").read_text())
-        env = cfg["mcpServers"][server]["env"]
-    except (OSError, KeyError, json.JSONDecodeError):
-        return ""
-    return env.get("GRAFANA_SERVICE_ACCOUNT_TOKEN") or env.get("GRAFANA_API_KEY") or ""
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False, env=gcx_env())
+    except FileNotFoundError:
+        raise GrafanaError("gcx not found on PATH: install it or set GRAFANA_TOKEN")
+    except subprocess.TimeoutExpired:
+        raise GrafanaError(f"gcx api {path} timed out after {timeout:.0f}s")
+    if proc.returncode != 0:
+        try:
+            summary = json.loads(proc.stdout)["error"]["summary"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            summary = (proc.stdout or proc.stderr or "").strip()[:300]
+        if "404" in summary:
+            return None
+        raise GrafanaError(f"gcx api {path} failed: {summary}")
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise GrafanaError(f"gcx api {path}: unparseable response: {exc}")
+
+
+def gcx_default_url(context: str = "") -> str:
+    """Ask gcx for the current context's Grafana base URL, best effort.
+
+    Used only when --url/$GRAFANA_URL is unset and gcx is doing the auth, so
+    the URL still comes from gcx's own config, never a hardcoded default
+    (this repo is public: no host belongs in the source).
+
+    Args:
+        context: gcx context name, or "" for gcx's current-context.
+
+    Returns:
+        The base URL, or "" if it could not be determined.
+    """
+    cmd = [
+        "gcx", "config", "view", "--minify", "--jq",
+        ".stacks | to_entries[0].value.grafana.server", "-o", "json",
+    ]
+    if context:
+        cmd += ["--context", context]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False, env=gcx_env())
+        if proc.returncode == 0:
+            return json.loads(proc.stdout) or ""
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        pass
+    return ""
 
 
 class GrafanaError(RuntimeError):
@@ -143,14 +248,30 @@ class Client:
     dominates the wall clock when fetching a thousand small JSON documents.
     """
 
-    def __init__(self, base_url: str, token: str, timeout: float = 30.0) -> None:
+    def __init__(self, base_url: str, token: str, gcx_ctx: str = "", timeout: float = 30.0) -> None:
         """Initialise the client.
 
         Args:
-            base_url: Grafana base URL, scheme included.
-            token: Bearer token sent on every request.
+            base_url: Grafana base URL, scheme included. May be "" when
+                `token` is also "": every request then goes through `gcx api`,
+                which resolves its own target from the gcx context.
+            token: Bearer token sent on every request. Empty routes requests
+                through `gcx api` instead, so OAuth refresh stays gcx's job.
+            gcx_ctx: gcx context to use when `token` is empty.
             timeout: Per-request socket timeout, in seconds.
         """
+        self._token = token
+        self._gcx_ctx = gcx_ctx
+        self._use_gcx = not token
+        self._timeout = timeout
+        self._local = threading.local()
+        if not base_url:
+            if not self._use_gcx:
+                raise GrafanaError("no Grafana URL: set GRAFANA_URL or pass --url")
+            self.base_url = ""
+            self._host = self._prefix = ""
+            self._https = False
+            return
         parsed = urlparse(base_url.rstrip("/"))
         if parsed.scheme not in ("http", "https"):
             raise GrafanaError(f"unsupported scheme in GRAFANA_URL: {base_url!r}")
@@ -158,9 +279,6 @@ class Client:
         self._host = parsed.netloc
         self._https = parsed.scheme == "https"
         self._prefix = parsed.path.rstrip("/")
-        self._token = token
-        self._timeout = timeout
-        self._local = threading.local()
 
     def _connection(self) -> HTTPConnection | HTTPSConnection:
         """Return this thread's connection, creating it on first use."""
@@ -198,6 +316,8 @@ class Client:
         Raises:
             GrafanaError: On a non-retryable HTTP error or exhausted retries.
         """
+        if self._use_gcx:
+            return gcx_api_json(path, params, self._gcx_ctx, timeout=self._timeout)
         url = f"{self._prefix}{path}"
         if params:
             url = f"{url}?{urlencode(params)}"
@@ -741,9 +861,11 @@ def build_parser() -> argparse.ArgumentParser:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--regex", action="store_true", help="treat inputs as fully anchored regexes, like a relabel rule")
     mode.add_argument("--glob", action="store_true", help="treat inputs as glob patterns")
-    parser.add_argument("--url", default=os.environ.get("GRAFANA_URL", ""), help="Grafana base URL [$GRAFANA_URL]")
+    parser.add_argument("--url", default=os.environ.get("GRAFANA_URL", ""),
+                         help="Grafana base URL [$GRAFANA_URL] (optional when gcx resolves it)")
     parser.add_argument("--token", default="", help="API token; see resolve_token for the lookup order")
-    parser.add_argument("--mcp-server", default="", help="MCP server in ~/.claude.json to read the token from")
+    parser.add_argument("--gcx-context", default="",
+                         help="gcx context for the gcx-api fallback [$GCX_CONTEXT]")
     parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE, help=f"cache directory [{DEFAULT_CACHE}]")
     parser.add_argument("--max-age", type=float, default=DEFAULT_MAX_AGE, help="cache entry lifetime in seconds")
     parser.add_argument("--refresh", action="store_true", help="ignore the cache and refetch every dashboard")
@@ -766,16 +888,19 @@ def main(argv: list[str] | None = None) -> int:
         0 when every pattern is unused, 1 when at least one is still referenced.
     """
     args = build_parser().parse_args(argv)
-    token = resolve_token(args.token, args.mcp_server)
-    if not args.url or not token:
-        raise SystemExit("no Grafana URL or token: set GRAFANA_URL and GRAFANA_TOKEN, or pass --url/--token")
+    token = resolve_token(args.token)
+    require_grafana_auth(token)
+    ctx = gcx_context(args.gcx_context)
+    url = args.url or (gcx_default_url(ctx) if not token else "")
+    if token and not url:
+        raise SystemExit("no Grafana URL: set GRAFANA_URL or pass --url (required with a static token)")
 
     patterns = load_patterns(args)
     mode = "regex" if args.regex else "glob" if args.glob else "exact"
     matcher = Matcher(patterns, mode)
     keys = QUERY_KEYS | TEXT_KEYS if args.include_text else QUERY_KEYS
 
-    client = Client(args.url, token)
+    client = Client(url, token, ctx)
     cache = Cache(args.cache_dir, args.max_age, args.refresh)
     stats = Stats()
 

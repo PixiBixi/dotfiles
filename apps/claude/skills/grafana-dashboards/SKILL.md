@@ -5,7 +5,14 @@ description: Use when creating or editing a Grafana dashboard or PromQL query ag
 
 # Authoring Grafana dashboards and PromQL
 
-Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=~/.claude/skills/grafana-dashboards` as in the examples below. They take the token from `$GRAFANA_TOKEN`, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin.
+Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=~/.claude/skills/grafana-dashboards` as in the examples below. They take the token from `$GRAFANA_TOKEN`, the same chain as the sibling skill; with none set, they route through `gcx api` instead (`--gcx-context` / `$GCX_CONTEXT`), so gcx's own OAuth refresh applies. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin (`gcx dashboards snapshot` errors out).
+
+## Pre-flight
+Every Grafana call in this skill's tools goes through `gcx`. Check it once per session:
+```bash
+command -v gcx >/dev/null || { echo "install: brew install gcx"; exit 1; }
+gcx config check || { echo "not ready: gcx login"; exit 1; }
+```
 
 ## Language: dashboards are ALWAYS in English
 Every user-facing string is English: dashboard title/description, row names, panel titles, panel descriptions, `legendFormat`, value-mapping text, variable labels and descriptions, table column `displayName`. **Even when the conversation is in another language.** Dashboards are shared artifacts read by international teams. Same for alert rule names, summaries and annotations.
@@ -37,7 +44,7 @@ Two things it cannot decide for you:
 
 **An empty `[]` from a JSONPath is not proof of absence.** It also means "you asked for the wrong shape". `$.panels[*].targets[*].datasource.uid` returns `[]` both when no target carries a datasource *and* when every target carries one as a plain string, the two are indistinguishable. Query the parent (`.datasource`) and look at what comes back before concluding anything is missing.
 
-**`get_dashboard_panel_queries` reads only `expr`, so it is blind to every GCM panel.** A fully migrated Cloud Monitoring dashboard comes back with no queries at all, which reads as "these panels were abandoned" when they are in fact working: the query lives in `promQLQuery.expr` (PromQL mode) or `timeSeriesQuery.query` (MQL mode). Any audit that answers "which dashboards still use metric X" has to read all three paths, and the same holds for a `$.panels[*].targets[*].expr` sweep. Cross-check the target count with `$.panels[*].targets[*].queryType` before reading an empty result as an empty dashboard.
+**A `$.panels[*].targets[*].expr` sweep is blind to every GCM panel.** A fully migrated Cloud Monitoring dashboard comes back with no queries at all under that path, which reads as "these panels were abandoned" when they are in fact working: the query lives in `promQLQuery.expr` (PromQL mode) or `timeSeriesQuery.query` (MQL mode) instead. Any audit that answers "which dashboards still use metric X" has to read all three paths; `grafana_metric_usage.py` next to this file already does (see below). Cross-check the target count with `$.panels[*].targets[*].queryType` before reading an empty result as an empty dashboard.
 
 ## Is anything still reading this metric?
 Before dropping a metric at scrape time, or before deleting a recording rule, prove nothing reads it. `grafana_metric_usage.py`, next to this file, sweeps every dashboard and every Grafana-managed alert rule, reading all three query paths above plus template variables and collapsed rows:
@@ -174,9 +181,9 @@ The same trap bites `max_over_time(<metric>{pod="X"}[24h])` returning two series
 The Thanos query-frontend response cache (memcached, or Dragonfly speaking the memcached protocol) caches **`query_range` only**, **instant queries (`/api/v1/query`) are never cached**. So a heavy table panel (instant) will not benefit from the cache; reduce its cost via the cluster filter and range-vector recording rules instead. Note that `dragonfly_evicted_keys_total` ships nothing until its first eviction, so an empty panel there is not proof the cache is not evicting, see § Absence is not zero.
 
 ## Google Cloud Monitoring datasources
-A panel on the `cloud-monitoring` datasource (plugin type `stackdriver`), in PromQL or MQL mode, is covered by the **`grafana-cloud-monitoring`** skill: metric name conversion, the `migrateQuery` rewrite that empties a JSON-authored panel, `monitored_resource`, MQL tables, and the pre-flight that does not go through the Grafana MCP.
+A panel on the `cloud-monitoring` datasource (plugin type `stackdriver`), in PromQL or MQL mode, is covered by the **`grafana-cloud-monitoring`** skill: metric name conversion, the `migrateQuery` rewrite that empties a JSON-authored panel, `monitored_resource`, MQL tables, and the pre-flight query validation via `gcx datasources cloudmonitoring query`.
 
-Two things worth knowing from here: a GCM datasource cannot serve `label_values()`, so migrating panels onto it kills the dashboard's `type: query` variables, and `get_dashboard_panel_queries` reads only `expr`, so a GCM dashboard looks queryless to an audit.
+Two things worth knowing from here: a GCM datasource cannot serve `label_values()`, so migrating panels onto it kills the dashboard's `type: query` variables, and a bare `expr` sweep reads only PromQL-mode targets, so a GCM dashboard in MQL mode looks queryless unless `promQLQuery.expr` and `timeSeriesQuery.query` are also read (see § Before you save above).
 
 ## Common mistakes
 | Symptom | Cause | Fix |

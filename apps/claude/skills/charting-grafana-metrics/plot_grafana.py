@@ -5,17 +5,19 @@ Fetches a PromQL range query through the Grafana datasource proxy (no direct
 Prometheus access needed), styles it like a Grafana panel, and writes a PNG.
 Optionally attaches the PNG to a Jira issue.
 
-Auth: --token, then $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK, then the
-token the MCP server named by --mcp-server / GRAFANA_MCP_SERVER carries in
-~/.claude.json. Same chain as the grafana-dashboards skill's tools.
+Auth: --token, then $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK. When none
+of these is set, requests go through `gcx api` instead (--gcx-context / $GCX_CONTEXT
+selects the context), so gcx's own OAuth refresh applies. Same chain as the
+grafana-dashboards skill's tools.
 
-Environment: GRAFANA_URL is required (or --grafana-url). --attach-jira additionally
-needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE. Nothing is hardcoded on purpose:
-this repo is public, so no host and no address belong in the source.
+Environment: GRAFANA_URL (or --grafana-url) is required when a static token is used;
+with the gcx fallback it defaults to the current gcx context's server. --attach-jira
+additionally needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE. Nothing is hardcoded on
+purpose: this repo is public, so no host and no address belong in the source.
 
 Run with --help for all options. See SKILL.md for usage patterns.
 """
-import argparse, json, os, re, sys, time, urllib.parse, urllib.request
+import argparse, json, os, re, shutil, subprocess, sys, time, urllib.parse, urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -29,20 +31,19 @@ PALETTE = ["#73BF69", "#FF9830", "#5794F2", "#F2495C", "#B877D9",
            "#FADE2A", "#37872D", "#E0B400", "#1F60C4", "#8AB8FF"]
 
 
-def resolve_token(explicit="", mcp_server=""):
+def resolve_token(explicit=""):
     """Resolve the Grafana API token, in the order shared by the Grafana skills.
 
     The chain is identical in grafana-dashboards and charting-grafana-metrics so
     one export works for every tool. Deliberately duplicated rather than
     imported: each skill must stand alone if installed without the other.
 
-    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK, then
-    the token the grafana MCP server carries in ~/.claude.json.
+    Order: --token, $GRAFANA_TOKEN, $GRAFANA_SERVICE_ACCOUNT_TOKEN, $GTOK. When
+    none of these is set, the caller falls back to `gcx api` (see
+    gcx_api_json), so an empty return here is expected, not an error.
 
     Args:
         explicit: Value passed on the command line, which always wins.
-        mcp_server: MCP server name to read from ~/.claude.json. Defaults to
-            $GRAFANA_MCP_SERVER, else "grafana".
 
     Returns:
         The token, or an empty string when nothing is configured.
@@ -52,13 +53,89 @@ def resolve_token(explicit="", mcp_server=""):
     for name in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK"):
         if os.environ.get(name):
             return os.environ[name]
-    server = mcp_server or os.environ.get("GRAFANA_MCP_SERVER", "grafana")
+    return ""
+
+
+def gcx_context(explicit=""):
+    """Resolve the gcx context to use for the gcx-api fallback.
+
+    Order: --gcx-context, $GCX_CONTEXT, else "" (gcx's own current-context).
+    """
+    return explicit or os.environ.get("GCX_CONTEXT", "")
+
+
+def require_grafana_auth(token):
+    """Exit with a clear message when nothing can authenticate a request.
+
+    A static token always works; otherwise gcx must be installed, since it is
+    the only remaining path (OAuth refresh is gcx's job, not this script's).
+    """
+    if token or shutil.which("gcx"):
+        return
+    sys.exit(
+        "no Grafana token configured and gcx is not on PATH.\n"
+        "Install it (brew install gcx), then run `gcx login`,\n"
+        "or export GRAFANA_TOKEN."
+    )
+
+
+def gcx_env():
+    """Environment for gcx without the static-token variables.
+
+    gcx treats GRAFANA_TOKEN and friends as an auth override, which silently
+    replaces the context's OAuth login and answers 401.
+    """
+    return {k: v for k, v in os.environ.items()
+            if k not in ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GRAFANA_URL")}
+
+
+def gcx_api_json(path, params, context, timeout=60):
+    """GET a Grafana API path through `gcx api`, so OAuth refresh stays gcx's job.
+
+    Used when no static token is configured: gcx resolves auth (OAuth or a
+    static token, per its own context) instead of this script reading or
+    caching a credential itself.
+    """
+    url = f"{path}?{urllib.parse.urlencode(params)}" if params else path
+    cmd = ["gcx", "api", url, "-o", "json"]
+    if context:
+        cmd += ["--context", context]
     try:
-        cfg = json.loads((Path.home() / ".claude.json").read_text())
-        env = cfg["mcpServers"][server]["env"]
-    except (OSError, KeyError, json.JSONDecodeError):
-        return ""
-    return env.get("GRAFANA_SERVICE_ACCOUNT_TOKEN") or env.get("GRAFANA_API_KEY") or ""
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False, env=gcx_env())
+    except subprocess.TimeoutExpired:
+        sys.exit(f"gcx api timed out after {timeout:.0f}s")
+    if proc.returncode != 0:
+        try:
+            summary = json.loads(proc.stdout)["error"]["summary"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            summary = (proc.stdout or proc.stderr or "").strip()[:300]
+        sys.exit(f"gcx api failed: {summary}")
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        sys.exit(f"gcx api: unparseable response: {exc}")
+
+
+def gcx_default_url(context=""):
+    """Ask gcx for the current context's Grafana base URL, best effort.
+
+    Used only when --grafana-url/$GRAFANA_URL is unset and gcx is doing the
+    auth, so the URL still comes from gcx's own config, never a hardcoded
+    default (this repo is public: no host belongs in the source).
+    """
+    cmd = [
+        "gcx", "config", "view", "--minify", "--jq",
+        ".stacks | to_entries[0].value.grafana.server", "-o", "json",
+    ]
+    if context:
+        cmd += ["--context", context]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False, env=gcx_env())
+        if proc.returncode == 0:
+            return json.loads(proc.stdout) or ""
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        pass
+    return ""
 
 
 def resolve_time(t, now):
@@ -75,18 +152,21 @@ def resolve_time(t, now):
         return int(datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp())
 
 
-def fetch(args, token):
+def fetch(args, token, gcx_ctx):
     now = int(time.time())
     start, end = resolve_time(args.start, now), resolve_time(args.end, now)
-    url = (f"{args.grafana_url.rstrip('/')}/api/datasources/proxy/uid/"
-           f"{args.datasource_uid}/api/v1/query_range")
-    q = urllib.parse.urlencode({"query": args.expr, "start": start,
-                                "end": end, "step": args.step})
-    req = urllib.request.Request(f"{url}?{q}",
-                                 headers={"Authorization": f"Bearer {token}"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        payload = json.load(r)
-    if payload.get("status") != "success":
+    path = f"/api/datasources/proxy/uid/{args.datasource_uid}/api/v1/query_range"
+    params = {"query": args.expr, "start": start, "end": end, "step": args.step}
+    if token:
+        url = f"{args.grafana_url.rstrip('/')}{path}"
+        q = urllib.parse.urlencode(params)
+        req = urllib.request.Request(f"{url}?{q}",
+                                     headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            payload = json.load(r)
+    else:
+        payload = gcx_api_json(path, params, gcx_ctx)
+    if not payload or payload.get("status") != "success":
         sys.exit(f"Prometheus query failed: {payload}")
     res = payload["data"]["result"]
     if not res:
@@ -122,21 +202,25 @@ def main():
     p.add_argument("--annotate-max", default="",
                    help="annotate the global-max point with this text")
     p.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", ""),
-                   help="Grafana base URL (default: $GRAFANA_URL)")
-    p.add_argument("--mcp-server", default=os.environ.get("GRAFANA_MCP_SERVER", "grafana"),
-                   help="MCP server name in ~/.claude.json to read the token from "
-                        "(default: $GRAFANA_MCP_SERVER, else 'grafana')")
+                   help="Grafana base URL (default: $GRAFANA_URL; with the gcx "
+                        "fallback, defaults to the current gcx context's server)")
+    p.add_argument("--gcx-context", default="",
+                   help="gcx context for the gcx-api fallback (default: $GCX_CONTEXT, "
+                        "else gcx's current-context)")
     p.add_argument("--token", default="")
     p.add_argument("--attach-jira", default="",
                    help="Jira issue key to attach the PNG to (e.g. ABC-123)")
     args = p.parse_args()
 
-    if not args.grafana_url:
-        sys.exit("no Grafana URL: pass --grafana-url or export GRAFANA_URL")
-
     rename = json.loads(args.rename)
-    token = resolve_token(args.token, args.mcp_server)
-    result = fetch(args, token)
+    token = resolve_token(args.token)
+    require_grafana_auth(token)
+    gcx_ctx = gcx_context(args.gcx_context)
+    if not args.grafana_url:
+        if token:
+            sys.exit("no Grafana URL: pass --grafana-url or export GRAFANA_URL")
+        args.grafana_url = gcx_default_url(gcx_ctx)  # only used for direct HTTP; gcx api resolves its own target
+    result = fetch(args, token, gcx_ctx)
 
     plt.rcParams.update({"font.size": 11, "text.color": "#ccc",
                          "axes.labelcolor": "#ccc", "xtick.color": "#999",
@@ -198,7 +282,6 @@ def attach_to_jira(key, img):
     Needs JIRA_API_TOKEN, JIRA_EMAIL and JIRA_BASE in the environment. No default:
     an email address and a Jira host are org-identifying, and this repo is public.
     """
-    import subprocess
     try:
         email = os.environ["JIRA_EMAIL"]
         tok = os.environ["JIRA_API_TOKEN"]

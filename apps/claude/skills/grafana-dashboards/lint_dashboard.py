@@ -13,7 +13,8 @@ Examples:
 
 Environment (only for --uid and --folder):
     GRAFANA_URL    base URL, e.g. https://grafana.example.com
-    GRAFANA_TOKEN  API token; see grafana_metric_usage.resolve_token for the full chain
+    GRAFANA_TOKEN  API token; see grafana_metric_usage.resolve_token for the full chain.
+                   When unset, --uid/--folder route through `gcx api` instead.
 """
 
 from __future__ import annotations
@@ -29,7 +30,15 @@ from pathlib import Path
 from typing import Any, Iterator
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from grafana_metric_usage import Client, GrafanaError, list_dashboards, resolve_token  # noqa: E402  # type: ignore[import-not-found]
+from grafana_metric_usage import (  # noqa: E402  # type: ignore[import-not-found]
+    Client,
+    GrafanaError,
+    gcx_context,
+    gcx_default_url,
+    list_dashboards,
+    require_grafana_auth,
+    resolve_token,
+)
 
 # Panel types that carry no query and therefore no datasource.
 CHROME_PANELS = frozenset({"row", "text", "dashlist", "news", "welcome"})
@@ -563,9 +572,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--expect-ds-var",
         help="datasource variable name the folder standardises on; with --folder, defaults to the majority form",
     )
-    parser.add_argument("--url", help="Grafana base URL [$GRAFANA_URL]")
+    parser.add_argument("--url", help="Grafana base URL [$GRAFANA_URL] (optional when gcx resolves it)")
     parser.add_argument("--token", default="", help="API token; same lookup order as the other Grafana tools")
-    parser.add_argument("--mcp-server", default="", help="MCP server in ~/.claude.json to read the token from")
+    parser.add_argument("--gcx-context", default="", help="gcx context for the gcx-api fallback [$GCX_CONTEXT]")
     parser.add_argument("--warnings-as-errors", action="store_true", help="exit 1 on warnings too")
     parser.add_argument("--json", action="store_true", help="emit JSON instead of text")
     return parser
@@ -589,11 +598,13 @@ def collect(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
             raise SystemExit("nothing to lint: pass a file, --uid or --folder")
         return out
 
-    url = args.url or os.environ.get("GRAFANA_URL", "")
-    token = resolve_token(args.token, args.mcp_server)
-    if not url or not token:
-        raise SystemExit("no Grafana URL or token: set GRAFANA_URL and GRAFANA_TOKEN for --uid/--folder")
-    client = Client(url, token)
+    token = resolve_token(args.token)
+    require_grafana_auth(token)
+    ctx = gcx_context(args.gcx_context)
+    url = args.url or os.environ.get("GRAFANA_URL", "") or (gcx_default_url(ctx) if not token else "")
+    if token and not url:
+        raise SystemExit("no Grafana URL: set GRAFANA_URL or pass --url (required with a static token)")
+    client = Client(url, token, ctx)
     uids = list(args.uid)
     if args.folder:
         uids += [

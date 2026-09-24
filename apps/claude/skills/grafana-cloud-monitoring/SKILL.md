@@ -94,8 +94,19 @@ Two things to expect on the panel side:
 
 Prove a filter actually filters before trusting an empty panel: run it at a threshold you know is crossed (`> 0.3`) and check rows come back.
 
-## Pre-flight, because the Grafana MCP cannot query this datasource
-`query_prometheus` against a `stackdriver` datasource uid returns a bare `404`: the tool builds a Prometheus API path the plugin does not serve. Validate expressions against the Cloud Monitoring API instead. This runs as **your** credentials and not the datasource's service account, so it proves the query and the metric name, never the permissions:
+## Pre-flight
+Check `gcx` before any Grafana call in this skill:
+```bash
+command -v gcx >/dev/null || { echo "install: brew install gcx"; exit 1; }
+gcx config check || { echo "not ready: gcx login"; exit 1; }
+```
+
+`gcx datasources cloudmonitoring query` DOES reach a `stackdriver` datasource (structured project/metric/reducer/aligner query, not PromQL), and is the fastest way to check a metric returns data:
+```bash
+gcx datasources cloudmonitoring query -d <ds-uid> --project <project> \
+  --metric <cloud-monitoring-metric-type> --since 1h
+```
+For a PromQL-syntax pre-flight, or to prove the query as your own credentials rather than the datasource's service account (which proves the query and the metric name, never the permissions), hit the Cloud Monitoring API directly instead:
 ```bash
 curl -s -G -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   --data-urlencode 'query=count(<metric>) or on() vector(-1)' \
@@ -129,7 +140,7 @@ curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 | Migrated dashboard's table lost its Project / Service columns | PromQL mode cannot do `format: table`, `reduce` folds labels into one text column | set `labelsToFields: true` on the `reduce` transformation, never switch the panel to MQL |
 | MQL table reads "No data" and nothing is actually wrong | MQL has no `absent()`, so no healthy-state fallback | set `fieldConfig.defaults.noValue` on the panel |
 | MQL columns come out named `resource.project_id` (or `project_id`) | Grafana's label naming is not guessable | put both spellings in `renameByName`, unmatched renames no-op |
-| Audit reports a GCM dashboard as having no queries | `get_dashboard_panel_queries` reads only `expr` | also read `promQLQuery.expr` and `timeSeriesQuery.query` |
+| Audit reports a GCM dashboard as having no queries | a `$.panels[*].targets[*].expr` sweep misses GCM's own query paths | also read `promQLQuery.expr` and `timeSeriesQuery.query` |
 | Variables dead after moving panels to GCM | a GCM datasource cannot serve `label_values()` | rebuild as `custom` (single-select for `projectName`) or `textbox` regex |
 
 Every one of these returns a plausible wrong answer or an empty panel rather than an error, which is why they cost hours. The PromQL itself is almost never the problem.
