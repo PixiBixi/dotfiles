@@ -159,6 +159,7 @@ make help          # lister les targets
 | `update-gems` | Dump les gems installées vers `packages/gems.txt` |
 | `update-skills` | Récupère les derniers SKILL.md upstream (un commit par skill) |
 | `update-claude-skills` | Met à jour les skills skillfish et re-bundle `packages/skillfish.json` |
+| `update-claude-plugins` | Rafraîchit les marketplaces et met à jour chaque plugin Claude Code installé (redémarrage requis) |
 | `check` | Dry-run : affiche les diffs de skills sans écrire |
 
 ### Vérifier la dérive

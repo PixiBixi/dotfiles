@@ -6,13 +6,14 @@ Guidance for coding agents working in this repository.
 
 ```bash
 # Regenerate package lists + sync skills from upstream (see Makefile)
-make update              # all: brew, krew indexes, npm, gems, skills, Claude skills
+make update              # all: brew, krew indexes, npm, gems, skills, Claude skills, Claude plugins
 make update-brew         # dump installed Homebrew packages → packages/Brewfile
 make update-krew-indexes # custom krew indexes → packages/krew-indexes.txt
 make update-npm          # global npm packages → packages/npm.txt
 make update-gems         # installed gems → packages/gems.txt
 make update-skills       # fetch latest SKILL.md from upstream sources
 make update-claude-skills # skillfish update + re-bundle packages/skillfish.json
+make update-claude-plugins # refresh marketplaces + update every marketplace-backed plugin
 make check               # dry-run: show skill diffs without writing
 make help                # list targets
 
