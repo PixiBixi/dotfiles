@@ -23,7 +23,7 @@ make help                # list targets
 ./scripts/check-drift.sh
 
 # Audit Homebrew packages by binary atime (catches aliases, hooks, LSPs, agents)
-./scripts/brew-usage-audit.sh [--stale-days N] [--leaves-only] [--all] [--json FILE]
+./scripts/brew-usage-audit.sh [--stale-days N] [--leaves-only] [--all] [--history FILE] [--json FILE]
 
 # Run a Terragrunt command per impacted unit, with readable output
 tg-run [<command>] [<unit dir>...]
@@ -110,7 +110,7 @@ Skills owned by their own installer are **never** vendored here, only the proven
 
 | Skill | Installer |
 |-------|-----------|
-| `archify`, `hallmark`, `humanizer`, `linkedin-best-practices-2026`, `python3-development`, `terragrunt-generator` | `npx skillfish install --global` from `packages/skillfish.json` |
+| `archify`, `hallmark`, `humanizer`, `linkedin-best-practices-2026`, `python3-development`, `security-audit`, `terragrunt-generator` | `npx skillfish install --global` from `packages/skillfish.json` |
 | `ui-ux-pro-max` | `uipro init --ai claude --global` (npm `ui-ux-pro-max-cli`) |
 | `seo` | `Bhanunamikaze/Agentic-SEO-Skill` `install.sh --target claude` (also deploys the `seo-*` agents to `~/.claude/agents/`) |
 
@@ -138,7 +138,7 @@ Hooks enforced on every commit:
 - **gitleaks**: secret scanning (hardcoded credentials, tokens, keys)
 - **shellcheck**: shell script linting, severity `warning`. Excludes zsh files matching `(^|/)\.zsh`.
 - **shfmt**: shell formatting, 4-space indent, `-ci -bn -sr`.
-- **markdownlint**: `--fix`, config `config/.markdownlint.json`. Requires H1 as first line, single H1 per file, language on all fenced code blocks (use `text` for file trees), and aligned table pipes (MD060). `--fix` cannot align a table whose cells overflow the header width: shorten the cells or use a list. Excludes `apps/claude/skills/` (upstream-managed).
+- **markdownlint**: `--fix`, config `config/.markdownlint.json`, pinned to `markdownlint-cli` v0.43.0. Requires H1 as first line, single H1 per file, and language on all fenced code blocks (use `text` for file trees). Excludes `apps/claude/skills/` (upstream-managed). Note: the pinned version predates the `MD060` table-column-style rule, so misaligned table pipes are not currently flagged even though `config/.markdownlint.json` sets `MD055` (pipe style).
 - **yamllint**: config in `.yamllint.yaml`
 - **prettier**: JSON formatting, 4-space indent. Excludes `apps/claude/settings.json` and `packages/skillfish.json` (both machine-generated).
 - **conventional-pre-commit**: enforces Conventional Commits on commit messages (`feat:`, `fix:`, `chore:`, `docs:`, `perf:`, `refactor:`)
