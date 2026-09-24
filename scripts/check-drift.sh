@@ -132,7 +132,7 @@ check_dir() {
             ((warn++)) || true
         fi
     else
-        # A real directory means an external installer owns it, see CLAUDE.md
+        # A real directory means an external installer owns it, see AGENTS.md
         printf "  ${YELLOW}⚠ NOT LINKED${NC}  %s  [real dir, run init_mac.sh]\n" "${label}"
         ((warn++)) || true
     fi
