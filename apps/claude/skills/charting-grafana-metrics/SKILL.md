@@ -33,8 +33,8 @@ Not for: interactive exploration (use Grafana), or single-value/table data.
 `matplotlib` is required. If missing, use an isolated venv (don't pollute system Python):
 
 ```bash
-python3 -m venv ~/.claude/skills/charting-grafana-metrics/.venv
-~/.claude/skills/charting-grafana-metrics/.venv/bin/pip install -q matplotlib
+python3 -m venv ${CLAUDE_SKILL_DIR}/.venv
+${CLAUDE_SKILL_DIR}/.venv/bin/pip install -q matplotlib
 ```
 
 ## Quick reference
@@ -74,8 +74,8 @@ Resolution order, identical across every Grafana skill: `--token`; `--gcx-contex
 ## Example (the canonical one: HAProxy 3.2 vs 2.7 node memory)
 
 ```bash
-VENV=~/.claude/skills/charting-grafana-metrics/.venv/bin/python
-SKILL=~/.claude/skills/charting-grafana-metrics
+VENV=${CLAUDE_SKILL_DIR}/.venv/bin/python
+SKILL=${CLAUDE_SKILL_DIR}
 export JIRA_API_TOKEN=$(zsh -l -c 'echo $JIRA_API_TOKEN')   # only if attaching
 export JIRA_EMAIL=you@example.com JIRA_BASE=https://example.atlassian.net
 DS_UID=abc123XYZ            # from `gcx datasources list`

@@ -5,7 +5,7 @@ description: Use when creating or editing a Grafana dashboard or PromQL query ag
 
 # Authoring Grafana dashboards and PromQL
 
-Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=~/.claude/skills/grafana-dashboards` as in the examples below. They route through `gcx api`, so gcx's own OAuth refresh applies; the target is picked as in § Which instance, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin (`gcx dashboards snapshot` errors out).
+Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=${CLAUDE_SKILL_DIR}` as in the examples below. They route through `gcx api`, so gcx's own OAuth refresh applies; the target is picked as in § Which instance, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin (`gcx dashboards snapshot` errors out).
 
 ## Pre-flight
 Every Grafana call in this skill's tools goes through `gcx`. Check it once per session:
@@ -44,7 +44,7 @@ A component folder holds the same five kinds of dashboard: `<Comp> / 0 Start her
 The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. `lint_dashboard.py`, next to this file, decides them from the JSON and descends into collapsed rows, which a flat `$.panels[*]` read misses:
 
 ```bash
-SKILL=~/.claude/skills/grafana-dashboards
+SKILL=${CLAUDE_SKILL_DIR}
 $SKILL/lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
 ```
 
