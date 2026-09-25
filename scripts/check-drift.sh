@@ -177,6 +177,7 @@ printf "${BOLD}apps/claude/ → ~/.claude${NC}\n"
 
 check_file "apps/claude/CLAUDE.md" "${HOME}/.claude/CLAUDE.md" symlink
 check_file "apps/claude/settings.json" "${HOME}/.claude/settings.json" symlink
+check_file "apps/claude/keybindings.json" "${HOME}/.claude/keybindings.json" symlink
 
 for hook in "${REPO_DIR}/apps/claude/hooks/"*.sh; do
     [[ -f "${hook}" ]] || continue

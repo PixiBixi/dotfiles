@@ -76,7 +76,7 @@ Auto memory is native: Claude captures corrections and preferences on its own. S
 
 ## CLAUDE.md & settings versioning
 
-`~/.claude/CLAUDE.md` and `~/.claude/settings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. After editing either, commit in the dotfiles repo with `chore(claude): <description>` and push.
+`~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/keybindings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. After editing any of them, commit in the dotfiles repo with `chore(claude): <description>` and push.
 
 ## RTK (Rust Token Killer)
 

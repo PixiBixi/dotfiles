@@ -77,7 +77,7 @@ It also checks the krew indexes from `packages/krew-indexes.txt` against `kubect
 - `SCRIPT_DIR`: the `scripts/` directory
 - `REPO_DIR`: the repo root (`SCRIPT_DIR/..`)
 
-All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, etc. The script is idempotent: each function checks for existing installations before acting. `setup_claude()` deploys `apps/claude/CLAUDE.md` + `settings.json` to `~/.claude/`; `setup_rtk()` runs `rtk init --global`, which generates `~/.claude/RTK.md` (unversioned on purpose, it tracks the installed rtk version) and wires the PreToolUse hook in `settings.json`. Since rtk 0.44 that hook is the built-in `rtk hook claude`; older versions generated a `~/.claude/hooks/rtk-rewrite.sh` wrapper that no longer exists, so re-run `rtk init --global` after a major rtk upgrade and commit the resulting `settings.json` delta.
+All file references use `${REPO_DIR}/config/...`, `${REPO_DIR}/packages/...`, etc. The script is idempotent: each function checks for existing installations before acting. `setup_claude()` deploys `apps/claude/CLAUDE.md` + `settings.json` + `keybindings.json` to `~/.claude/`; `setup_rtk()` runs `rtk init --global`, which generates `~/.claude/RTK.md` (unversioned on purpose, it tracks the installed rtk version) and wires the PreToolUse hook in `settings.json`. Since rtk 0.44 that hook is the built-in `rtk hook claude`; older versions generated a `~/.claude/hooks/rtk-rewrite.sh` wrapper that no longer exists, so re-run `rtk init --global` after a major rtk upgrade and commit the resulting `settings.json` delta.
 
 ## apps/claude/hooks
 

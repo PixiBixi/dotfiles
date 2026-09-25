@@ -410,6 +410,9 @@ setup_claude() {
         log_warning "apps/claude/settings.json not found, skipping"
     fi
 
+    ln -sf "${REPO_DIR}/apps/claude/keybindings.json" "${HOME}/.claude/keybindings.json"
+    log_success "Symlinked apps/claude/keybindings.json → ${HOME}/.claude/keybindings.json"
+
     # Deploy hooks
     if [[ -d "${REPO_DIR}/apps/claude/hooks" ]]; then
         mkdir -p "${HOME}/.claude/hooks"
