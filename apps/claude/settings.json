@@ -124,7 +124,8 @@
     "openwiki@openwiki-cc": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
-    "gcx@gcx-marketplace": true
+    "gcx@gcx-marketplace": true,
+    "claude-artifacts@equativ-plugins": true
   },
   "extraKnownMarketplaces": {
     "samber": {
