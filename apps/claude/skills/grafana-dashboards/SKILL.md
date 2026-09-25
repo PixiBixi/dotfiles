@@ -56,6 +56,17 @@ Two things it cannot decide for you:
 
 **A `$.panels[*].targets[*].expr` sweep is blind to every GCM panel.** A fully migrated Cloud Monitoring dashboard comes back with no queries at all under that path, which reads as "these panels were abandoned" when they are in fact working: the query lives in `promQLQuery.expr` (PromQL mode) or `timeSeriesQuery.query` (MQL mode) instead. Any audit that answers "which dashboards still use metric X" has to read all three paths; `grafana_metric_usage.py` next to this file already does (see below). Cross-check the target count with `$.panels[*].targets[*].queryType` before reading an empty result as an empty dashboard.
 
+## Every save carries a version note
+Each write to a dashboard lands in Settings > Versions, and the note is the only record of why it changed. Write it in English, ticket key first (`PE-2210: replace the stop-writes boolean with the headroom to each threshold`). Notes cannot be added afterwards: a version is immutable.
+
+- MCP grafana: the `message` argument of the update call.
+- `gcx dashboards update`: set `metadata.annotations["grafana.app/message"]` in the manifest, the command has no flag for it. Without it the version saves with an empty note, and under the gcx token's account rather than yours.
+
+```bash
+jq --arg m "PE-XXXX: <what changed>" 'del(.status) | .metadata.annotations["grafana.app/message"] = $m' dash.json > push.json
+gcx dashboards update <uid> -f push.json
+```
+
 ## Is anything still reading this metric?
 Before dropping a metric at scrape time, or before deleting a recording rule, prove nothing reads it. `grafana_metric_usage.py`, next to this file, sweeps every dashboard and every Grafana-managed alert rule, reading all three query paths above plus template variables and collapsed rows:
 
