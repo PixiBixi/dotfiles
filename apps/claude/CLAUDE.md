@@ -67,7 +67,7 @@ Production issue or suspected incident → use the `incident-response` skill. De
 
 ## Tooling
 
-- Shell: `fd` over `find`, `rg` over `grep`, `eza` over `ls`, `bat` over `cat`
+- Shell: `fd` over `find`, `rg` over `grep`, `lsd` over `ls`, `bat` over `cat`
 - `glab` is always pre-installed, use it without checking first
 - Shell scripts must be defensive and explicit
 - **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Prefer the native Grep/Glob tools; use `command rg` / `command find` when a specific flag matters.
