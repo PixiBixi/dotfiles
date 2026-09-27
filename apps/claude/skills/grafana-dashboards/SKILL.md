@@ -174,6 +174,8 @@ An "absence of problems" query returns empty, so the panel shows **"No data"**, 
   1. *Detection.* `kube_pod_status_ready{condition="true"} == 0` **misses** pods with no ready series at all (pending / unscheduled / terminating), exactly the `number_unavailable` ones. Use `kube_pod_info{...} unless on(namespace,pod) (kube_pod_status_ready{...,condition="true"} == 1)` which also carries the `node` label.
   2. *Fallback row.* `A or B` is a **union**, so the healthy row would show *alongside* real rows. Gate it on emptiness: `A or (label_replace(vector(0), "col", "healthy", "", "") and on() absent(A))`, nesting `label_replace` once per column to fill several (e.g. `node` + `pod`). Then `cellOptions: color-background`, base threshold red, healthy strings mapped green.
 - **Timeseries**, and the fix is NOT the same as for a stat. An event panel needs its `> 0` filter, otherwise it draws dozens of flat lines at zero and nothing is readable; but with the filter, "nothing happened" and "panel broken" both render as an empty graph. Keep the filter and make zero legible on the **display** side instead: `fieldConfig.defaults.min: 0`, `tooltip.hideZeros: false`, and a table legend carrying `calcs: ["sum"]` so each series shows a total. A legend row reading 0 is unambiguous; an absent legend is not.
+- **A total over stacked per-pod bars is a line, never a series hidden with `hideFrom.viz`**: Grafana greys a series it does not draw and its legend entry can no longer be clicked. Draw the total as a line in its own stacking group (`stacking: {group: "B", mode: "none"}`) with `or on() vector(0)`, otherwise an isolated event is a lone point that no line connects.
+- **`noValue` belongs on single-series panels only.** On a multi-series panel it applies to every series with no value at the hovered point, so the tooltip lists every idle pod with the text.
 
 Every recipe above leans on `absent()` or `vector()`, so **none of them port to a query language that has neither**, MQL included. There the healthy state has to come from the panel: `fieldConfig.defaults.noValue` with the text that says it is fine (`"No quota above 80%"`). Same effect, and it is the only option, so do not spend time looking for the query-side trick (see `grafana-cloud-monitoring`).
 
@@ -207,6 +209,8 @@ Three different failures all render as an empty panel, distinguish them before c
 ```promql
 count by (namespace) (time() - kube_pod_start_time{pod=~"<sts>.*"} < 3600)
 ```
+**A ready ratio is not an availability.** `kube_pod_status_ready{condition="true"}` over all pods counts Pending, starting and Failed pods (spot preemptions leave Failed pods until GC) as not ready, so on an HPA or spot fleet the dips follow pod churn: 0 not-ready pods when at most 5 pods were new, 6.8 on average when more than 30 were. Title it "Ready pods ratio" and say so, or restrict the denominator to `kube_pod_status_phase{phase="Running"} == 1`.
+
 The same trap bites `max_over_time(<metric>{pod="X"}[24h])` returning two series for one pod name: a recreated pod carries a different `instance`, so the "pod" is two objects over the window.
 
 ## Caching note
@@ -248,6 +252,9 @@ Two things worth knowing from here: a GCM datasource cannot serve `label_values(
 | Pinned top N shows gaps across the range | churning fleet (spot, HPA): the ranked pods did not all live the whole range | per-step `topk`, see § Fleets |
 | Band does not render on the negated half of a mirrored panel | `fillBelowTo` fills only from the upper series down | put the fill on the series that is upper after negation |
 | Restarts legend total too high, fractional values | overlapping `increase(x[5m])` windows at a step < 5m; extrapolation | `[$__interval]` + min interval 5m + `round()` |
+| Total series greyed in the legend, cannot be clicked | hidden with `hideFrom.viz` | draw it as an unstacked line + `or on() vector(0)` |
+| Tooltip lists every idle pod with a "No ..." text | `noValue` on a multi-series panel | keep `noValue` for stats and single-series panels |
+| "Availability" dips on every HPA scale-up | ready ratio counts Pending/Failed pods | rename to ready ratio, or filter phase Running |
 | Pre-flight `count()` says `-1`, the metric is right there in the descriptors | `-1` is "no sample now", not "no such metric" | re-run as `count(last_over_time(<metric>[6h]))` |
 
 ## One `job` can cover several containers
