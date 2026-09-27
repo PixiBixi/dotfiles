@@ -121,8 +121,9 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "~/.claude/ccline/ccline",
-    "padding": 0
+    "command": "CS_TERM_BG_RGB=\"26;27;37\" CS_STATUSLINE_CAPS=1 CS_STATUSLINE_SEGMENTS=logo,session,git,model,ctx,limits,cost /Users/jeremy/Documents/perso/git/dotfiles/apps/claude/bin/cs-statusline",
+    "padding": 0,
+    "refreshInterval": 1
   },
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,

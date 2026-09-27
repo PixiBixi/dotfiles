@@ -279,7 +279,7 @@ Voir `packages/Brewfile` pour la liste complète. Généralement :
 
 ### Claude Code / AI Tooling
 
-- **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale (`apps/claude/CLAUDE.md`, `settings.json`, `keybindings.json`), hooks et skills déployés par `setup_claude()`
+- **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale (`apps/claude/CLAUDE.md`, `settings.json`, `keybindings.json`), hooks et skills déployés par `setup_claude()`. Statusline : `apps/claude/bin/cs-statusline`, copie de [hex/claude-sessions](https://github.com/hex/claude-sessions/blob/f37b8e7c9d537e71e29f572ac2e9e244cedfdd03/bin/cs-statusline) référencée directement par `settings.json`
 - **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream
 - **RTK** : proxy CLI token-efficient (`rtk init --global` configure le hook et génère `~/.claude/RTK.md`)
 
