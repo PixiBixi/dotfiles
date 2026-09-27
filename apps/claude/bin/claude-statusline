@@ -25,7 +25,7 @@ fail_open() {
 command -v jq > /dev/null 2>&1 || fail_open
 
 # One jq pass. Fields are joined with US (0x1f) so empty values survive the read.
-IFS=$'\x1f' read -r session dir model effort ctx h5 h5_reset wk wk_reset cost < <(
+IFS=$'\x1f' read -r session dir transcript model effort ctx h5 h5_reset wk wk_reset cost < <(
     jq -r '
         def num: if type == "number" then floor | tostring else "" end;
         def epoch: if type == "number" then floor | tostring
@@ -35,6 +35,7 @@ IFS=$'\x1f' read -r session dir model effort ctx h5 h5_reset wk wk_reset cost < 
         | [
             (.session_name // ($dir | split("/") | last) // ""),
             $dir,
+            (.transcript_path // ""),
             (.model.display_name // ""),
             (.effort.level // ""),
             (.context_window.used_percentage | num),
@@ -107,8 +108,20 @@ limit_text() {
     fi
 }
 
+# claude-rename.sh only appends a custom-title entry, which session_name picks up on restart only.
+if [[ -f "$transcript" ]]; then
+    renamed=$(grep -F '"type":"custom-title"' "$transcript" 2> /dev/null | tail -n 1 | jq -r '.customTitle // empty' 2> /dev/null)
+    [[ -n "$renamed" ]] && session="$renamed"
+fi
+
+# A ticket key becomes an OSC 8 link when CLAUDE_STATUSLINE_TICKET_URL (browse URL prefix) is set.
+label="$session"
+if [[ -n "${CLAUDE_STATUSLINE_TICKET_URL:-}" && "$session" =~ ^[A-Z][A-Z0-9]+-[0-9]+$ ]]; then
+    label="${ESC}]8;;${CLAUDE_STATUSLINE_TICKET_URL}${session}${ESC}\\${session}${ESC}]8;;${ESC}\\"
+fi
+
 # Identity: mark, session, branch, model and effort.
-id="${BOLD}${FG_BRAND}✳ ${FG_INK}${session}"
+id="${BOLD}${FG_BRAND}✳ ${FG_INK}${label}"
 
 if [[ -n "$dir" ]] && git_out=$(git --no-optional-locks -C "$dir" status --porcelain=v1 -b 2> /dev/null); then
     branch="" ahead=0 behind=0 staged=0 modified=0
