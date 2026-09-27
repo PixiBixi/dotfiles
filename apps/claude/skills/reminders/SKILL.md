@@ -14,6 +14,8 @@ Every reminder Claude creates goes in the **"Claude"** list of Apple Reminders, 
 | `list` | Every open reminder of the list |
 | `done "<id>"` | Marks it completed |
 
+`add` appends the creating session to the note (from `CLAUDE_CODE_SESSION_ID` and the cwd). `scripts/claude-resume.sh <session-id> [<folder>]` reopens it in WezTerm: focuses the pane if the session still runs, otherwise opens a new tab with `claude --resume`. When a checked reminder needs its original context, offer to run it.
+
 ## Creating
 
 - Resolve relative dates ("demain 9h30") against today's date from the context, in local time.

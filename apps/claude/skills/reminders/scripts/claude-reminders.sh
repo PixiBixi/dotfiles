@@ -25,6 +25,11 @@ case "${cmd}" in
         title="$1"
         due="$2"
         note="${3:-}"
+        # Resume footer, so the reminder can reopen the session that created it.
+        if [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]]; then
+            footer="Session Claude : ${CLAUDE_CODE_SESSION_ID}"$'\n'"Reprendre : ~/.claude/skills/reminders/scripts/claude-resume.sh ${CLAUDE_CODE_SESSION_ID} '${PWD}'"
+            note="${note:+${note}$'\n\n'}${footer}"
+        fi
         if ! [[ "${due}" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})\ ([0-9]{2}):([0-9]{2})$ ]]; then
             echo "error: due date must be 'YYYY-MM-DD HH:MM', got '${due}'" >&2
             exit 2
