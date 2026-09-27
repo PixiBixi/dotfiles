@@ -1,4 +1,3 @@
-@cometix/ccline
 @google/gemini-cli
 aws-cdk
 corepack
