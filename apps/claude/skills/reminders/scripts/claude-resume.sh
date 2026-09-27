@@ -48,6 +48,10 @@ if [[ -n "${live_pid}" ]] && wezterm_running; then
         wezterm cli activate-pane --pane-id "${pane_id}"
         open -a WezTerm
         echo "focused running session ${session_id} (pid ${live_pid}, pane ${pane_id})"
+        # The calling pane only served to launch this: close it, unless it is a Claude session itself.
+        if [[ -n "${WEZTERM_PANE:-}" && "${WEZTERM_PANE}" != "${pane_id}" && -z "${CLAUDECODE:-}" ]]; then
+            wezterm cli kill-pane --pane-id "${WEZTERM_PANE}"
+        fi
         exit 0
     fi
     echo "error: session ${session_id} runs as pid ${live_pid} but not in a WezTerm pane" >&2
