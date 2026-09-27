@@ -38,15 +38,13 @@ repos:
     hooks:
       - id: shellcheck
         args: [--severity=warning]
-        exclude: '((^|/)\.zsh|^apps/claude/bin/cs-statusline$)'
+        exclude: '(^|/)\.zsh'
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.10.0-1
     hooks:
       - id: shfmt
         args: [-i, "4", -ci, -bn, -sr, -w]
-        # Vendored from hex/claude-sessions, kept byte-identical to upstream
-        exclude: '^apps/claude/bin/cs-statusline$'
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint

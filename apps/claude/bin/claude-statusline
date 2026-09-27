@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# Claude Code statusLine: rounded capsules for session, git, model, context, quota and cost.
+# Look adapted from hex/claude-sessions bin/cs-statusline (MIT). Needs bash 4.2+, jq and a Nerd Font.
+set -uo pipefail
+
+# Terminal background as r;g;b: capsules are drawn as a slightly lighter shade of it.
+BG_RGB="${CLAUDE_STATUSLINE_BG_RGB:-26;27;37}"
+CTX_WARN=40
+CTX_CRIT=65
+LIMIT_WARN=70
+LIMIT_CRIT=90
+
+INK="230;230;230"
+INK2="161;162;166"
+BRAND="217;119;87"
+AMBER="253;230;138"
+CRIT="255;69;58"
+CRIT_INK="255;255;255"
+
+fail_open() {
+    printf '%s\n' "${PWD##*/}"
+    exit 0
+}
+
+command -v jq > /dev/null 2>&1 || fail_open
+
+# One jq pass. Fields are joined with US (0x1f) so empty values survive the read.
+IFS=$'\x1f' read -r session dir model effort ctx h5 h5_reset wk wk_reset cost < <(
+    jq -r '
+        def num: if type == "number" then floor | tostring else "" end;
+        def epoch: if type == "number" then floor | tostring
+            elif type == "string" then (sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | try fromdateiso8601 catch "" | tostring)
+            else "" end;
+        (.workspace.current_dir // .cwd // "") as $dir
+        | [
+            (.session_name // ($dir | split("/") | last) // ""),
+            $dir,
+            (.model.display_name // ""),
+            (.effort.level // ""),
+            (.context_window.used_percentage | num),
+            (.rate_limits.five_hour.used_percentage | num),
+            (.rate_limits.five_hour.resets_at | epoch),
+            (.rate_limits.seven_day.used_percentage | num),
+            (.rate_limits.seven_day.resets_at | epoch),
+            (.cost.total_cost_usd // "" | tostring)
+        ]
+        | join("\u001f")
+    ' 2> /dev/null
+) || fail_open
+[[ -n "${session:-}" ]] || fail_open
+
+# Capsule fill: the background lifted 10% toward white.
+IFS=';' read -r r g b <<< "$BG_RGB"
+SURFACE="$((r + (255 - r) / 10));$((g + (255 - g) / 10));$((b + (255 - b) / 10))"
+
+ESC=$'\e'
+fg() { printf -v "$1" '%s[38;2;%sm' "$ESC" "$2"; }
+fg FG_INK "$INK"
+fg FG_INK2 "$INK2"
+fg FG_BRAND "$BRAND"
+fg FG_AMBER "$AMBER"
+fg FG_CRIT_INK "$CRIT_INK"
+BOLD="${ESC}[1m"
+NORM="${ESC}[22m"
+DOT="${NORM}${FG_INK2}  ·  "
+
+out="${ESC}[0m"
+
+# $1 fill r;g;b, $2 content. Caps U+E0B6/U+E0B4 in the fill colour on the terminal background.
+capsule() {
+    out+="${ESC}[49;38;2;${1}m${ESC}[48;2;${1}m${2}${ESC}[49;38;2;${1}m${ESC}[0m "
+}
+
+# Sets LEVEL to rest, warn or crit for value $1 against thresholds $2 and $3.
+level() {
+    LEVEL=rest
+    (($1 >= $3)) && LEVEL=crit && return
+    (($1 >= $2)) && LEVEL=warn
+}
+
+# Sets REST to the time left until epoch $1 (2h14m, 5d16h), empty if unknown or past.
+time_left() {
+    REST=""
+    [[ "$1" =~ ^[0-9]+$ ]] || return 0
+    local now left
+    printf -v now '%(%s)T' -1
+    left=$(($1 - now))
+    ((left > 0)) || return 0
+    if ((left >= 86400)); then
+        REST="$((left / 86400))d$((left % 86400 / 3600))h"
+    elif ((left >= 3600)); then
+        REST="$((left / 3600))h$((left % 3600 / 60))m"
+    else
+        REST="$((left / 60))m"
+    fi
+}
+
+# Text for one quota window: $1 label, $2 percent, $3 reset epoch, $4 percent from which the countdown shows.
+limit_text() {
+    local label="${NORM}${FG_INK2}" ink="${NORM}${FG_INK2}"
+    [[ "$LEVEL" == warn ]] && ink="${BOLD}${FG_AMBER}"
+    [[ "$LEVEL" == crit ]] && label="${BOLD}${FG_CRIT_INK}" ink="$label"
+    LIMIT="${label}${1} ${ink}${2}%"
+    if (($2 >= $4)); then
+        time_left "$3"
+        [[ -n "$REST" ]] && LIMIT+=" · ${REST}"
+    fi
+}
+
+# Identity: mark, session, branch, model and effort.
+id="${BOLD}${FG_BRAND}✳ ${FG_INK}${session}"
+
+if [[ -n "$dir" ]] && git_out=$(git --no-optional-locks -C "$dir" status --porcelain=v1 -b 2> /dev/null); then
+    branch="" ahead=0 behind=0 staged=0 modified=0
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        if [[ "$line" == "## "* ]]; then
+            head="${line#\#\# }"
+            case "$head" in
+                "No commits yet on "*) branch="${head#No commits yet on }" ;;
+                "HEAD (no branch)") branch="HEAD" ;;
+                *) branch="${head%%...*}" ;;
+            esac
+            [[ "$head" =~ ahead\ ([0-9]+) ]] && ahead="${BASH_REMATCH[1]}"
+            [[ "$head" =~ behind\ ([0-9]+) ]] && behind="${BASH_REMATCH[1]}"
+            continue
+        fi
+        [[ "${line:0:1}" != [\ ?] ]] && ((staged++))
+        [[ "${line:1:1}" != [\ ?] ]] && ((modified++))
+    done <<< "$git_out"
+    if [[ -n "$branch" ]]; then
+        id+="${DOT}${BOLD}${FG_INK}⎇ ${branch}"
+        ((ahead)) && id+="↑${ahead}"
+        ((behind)) && id+="↓${behind}"
+        marks=""
+        ((staged)) && marks+="+${staged}"
+        ((modified)) && marks+="!${modified}"
+        [[ -n "$marks" ]] && id+=" ${marks}"
+    fi
+fi
+
+if [[ -n "$model" ]]; then
+    id+="${DOT}${BOLD}${FG_INK}✦ ${model}"
+    case "$effort" in
+        low) id+=" ${NORM}${ESC}[38;2;187;159;109mlow" ;;
+        medium) id+=" ${NORM}${ESC}[38;2;118;169;126mmedium" ;;
+        high) id+=" ${NORM}${ESC}[38;2;146;158;250mhigh" ;;
+        xhigh) id+=" ${NORM}${ESC}[38;2;177;89;255mxhigh" ;;
+        max) id+=" ${NORM}${ESC}[38;2;174;200;232mm${ESC}[38;2;190;174;219ma${ESC}[38;2;219;174;206mx" ;;
+    esac
+fi
+capsule "$SURFACE" "$id"
+
+# Context gauge: the pie fills with the band, the capsule turns red at crit.
+if [[ -n "$ctx" ]]; then
+    level "$ctx" "$CTX_WARN" "$CTX_CRIT"
+    if ((ctx < 13)); then
+        pie="○"
+    elif ((ctx < CTX_WARN)); then
+        pie="◔"
+    elif ((ctx < CTX_CRIT)); then
+        pie="◑"
+    elif ((ctx < 88)); then
+        pie="◕"
+    else
+        pie="●"
+    fi
+    case "$LEVEL" in
+        rest) capsule "$SURFACE" "${FG_INK2}${pie} ctx ${ctx}%" ;;
+        warn) capsule "$SURFACE" "${FG_INK2}${pie} ctx ${BOLD}${FG_AMBER}${ctx}%" ;;
+        crit) capsule "$CRIT" "${BOLD}${FG_CRIT_INK}${pie} ctx ${ctx}%" ;;
+    esac
+fi
+
+# Quota: 5h always, the week once it reaches 50%. The capsule takes the worst window's level.
+if [[ -n "$h5" ]]; then
+    worst=$h5
+    [[ -n "$wk" ]] && ((wk >= 50 && wk > worst)) && worst=$wk
+    level "$worst" "$LIMIT_WARN" "$LIMIT_CRIT"
+    fill="$SURFACE"
+    [[ "$LEVEL" == crit ]] && fill="$CRIT"
+    capsule_level=$LEVEL
+
+    level "$h5" "$LIMIT_WARN" "$LIMIT_CRIT"
+    [[ "$capsule_level" == crit ]] && LEVEL=crit
+    limit_text "◷ 5h" "$h5" "$h5_reset" 70
+    quota="$LIMIT"
+    if [[ -n "$wk" ]] && ((wk >= 50)); then
+        level "$wk" "$LIMIT_WARN" "$LIMIT_CRIT"
+        [[ "$capsule_level" == crit ]] && LEVEL=crit
+        limit_text "◶ wk" "$wk" "$wk_reset" 80
+        quota+="${NORM}${FG_INK2} ⋮ ${LIMIT}"
+    fi
+    capsule "$fill" "$quota"
+fi
+
+if [[ -n "$cost" ]]; then
+    printf -v cost_text '$%.2f' "$cost" 2> /dev/null && capsule "$SURFACE" "${FG_INK2}${cost_text}"
+fi
+
+printf '%s\n' "${out% }"
