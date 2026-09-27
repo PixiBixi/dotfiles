@@ -1,6 +1,6 @@
 ---
 name: reminders
-description: Use when the user asks for a reminder ("mets-moi un reminder", "rappelle-moi demain", "remind me at 9:30"), or asks to check, review or close past reminders ("check les reminders de la veille", "qu'est-ce que j'avais à faire", "c'est fait, coche-le"). Reminders live in the "Claude" list of Apple Reminders, synced to the phone through iCloud.
+description: Use when the user asks for a reminder ("mets-moi un reminder", "rappelle-moi demain", "remind me at 9:30"), or asks to check, review or close past reminders ("check les reminders de la veille", "qu'est-ce que j'avais à faire", "c'est fait, coche-le"). Also right after opening an MR, or after merging or rolling out a change expected to move performance or cost. Reminders live in the "Claude" list of Apple Reminders, synced to the phone through iCloud.
 ---
 
 # Reminders
@@ -21,6 +21,17 @@ Every reminder Claude creates goes in the **"Claude"** list of Apple Reminders, 
 - Resolve relative dates ("demain 9h30") against today's date from the context, in local time.
 - Title: the action, self-contained, readable on a lock screen. Note: the exact command, file path or trigger phrase needed to resume ("puis dire 'compare ws-ports' à Claude"), since the next session has no memory of this one.
 - Confirm in one line: title and date.
+
+## Follow-ups to propose unasked
+
+Offer these in one line at the moment they arise, create on a yes:
+
+| Moment | Reminder | Note carries |
+|---|---|---|
+| An MR was just opened | Two working days later, 10:00: chase the review if still unreviewed | MR URL, reviewer, ticket key |
+| A change expected to move CPU, memory, latency or cost was merged or rolled out | 24h after the end of the rollout (7 days for cost): re-measure against the baseline | The metric or dashboard, the baseline value and when it was taken, where to post the result |
+
+At check time, look at the live state first (`glab mr view`, the metric) so the report says whether the action is still needed.
 
 ## Importing tasks from the calendar
 
