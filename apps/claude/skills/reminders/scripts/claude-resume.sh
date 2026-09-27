@@ -34,6 +34,11 @@ for f in "${HOME}"/.claude/sessions/*.json; do
     fi
 done
 
+# A session launched from inside another Claude session has no registry file: match its command line too.
+if [[ -z "${live_pid}" ]]; then
+    live_pid="$(ps -axo pid=,command= | awk -v id="${session_id}" '$2 == "claude" && $0 ~ ("--resume " id) {print $1; exit}')"
+fi
+
 wezterm_running() { wezterm cli list > /dev/null 2>&1; }
 
 if [[ -n "${live_pid}" ]] && wezterm_running; then
@@ -58,8 +63,11 @@ fi
     exit 1
 }
 
+# Scrub the calling session's markers: an inherited CLAUDE_CODE_CHILD_SESSION turns transcript saving off.
 # Login + interactive shell, so PATH and the user's env match a normal tab.
-resume_cmd=(zsh -lic "claude --resume ${session_id}")
+resume_cmd=(env -u CLAUDECODE -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE_SESSION_ATTENDED
+    -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH -u CLAUDE_CODE_MESSAGING_SOCKET -u CLAUDE_CODE_MESSAGING_TOKEN
+    -u CLAUDE_PID -u CLAUDE_EFFORT zsh -lic "claude --resume ${session_id}")
 if wezterm_running; then
     pane_id="$(wezterm cli spawn --cwd "${folder}" -- "${resume_cmd[@]}")"
     wezterm cli activate-pane --pane-id "${pane_id}"
