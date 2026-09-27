@@ -67,27 +67,28 @@ on run argv
   set seconds of cutoff to 59
   tell application "Reminders"
     if not (exists list listName) then return "no list '" & listName & "'"
-    set rs to (reminders of list listName whose completed is false)
-    set out to ""
-    repeat with r in rs
-      set dd to remind me date of r
-      -- A whose clause on the date fails on undated reminders (-1700): filter here instead.
-      set isDue to (dd is not missing value)
-      if isDue then set isDue to (dd ≤ cutoff)
-      if mode is "list" or isDue then
-        if dd is missing value then
-          set ds to "no date"
-        else
-          set ds to dd as string
-        end if
-        set b to body of r
-        if b is missing value then set b to ""
-        set out to out & (id of r) & tab & ds & tab & (name of r) & tab & b & linefeed
-      end if
-    end repeat
-    if out is "" then return "nothing due"
-    return out
+    -- One Apple event for all properties: reading them per reminder took ~9s for 4 reminders.
+    set {rIds, rNames, rBodies, rDates} to {id, name, body, remind me date} of (reminders of list listName whose completed is false)
   end tell
+  set out to ""
+  repeat with i from 1 to count of rIds
+    set dd to item i of rDates
+    -- A whose clause on the date fails on undated reminders (-1700): filter here instead.
+    set isDue to (dd is not missing value)
+    if isDue then set isDue to (dd ≤ cutoff)
+    if mode is "list" or isDue then
+      if dd is missing value then
+        set ds to "no date"
+      else
+        set ds to dd as string
+      end if
+      set b to item i of rBodies
+      if b is missing value then set b to ""
+      set out to out & (item i of rIds) & tab & ds & tab & (item i of rNames) & tab & b & linefeed
+    end if
+  end repeat
+  if out is "" then return "nothing due"
+  return out
 end run
 EOF
         ;;
