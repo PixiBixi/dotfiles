@@ -141,8 +141,11 @@ if [[ -n "$dir" ]] && git_out=$(git --no-optional-locks -C "$dir" status --porce
         [[ "${line:0:1}" != [\ ?] ]] && ((staged++))
         [[ "${line:1:1}" != [\ ?] ]] && ((modified++))
     done <<< "$git_out"
+    repo=$(basename "$(git --no-optional-locks -C "$dir" rev-parse --show-toplevel 2> /dev/null)")
     if [[ -n "$branch" ]]; then
-        id+="${DOT}${BOLD}${FG_INK}⎇ ${branch}"
+        id+="${DOT}${BOLD}${FG_INK}⎇ "
+        [[ -n "$repo" && "$repo" != "$session" ]] && id+="${repo}:"
+        id+="${branch}"
         ((ahead)) && id+="↑${ahead}"
         ((behind)) && id+="↓${behind}"
         marks=""
@@ -150,6 +153,9 @@ if [[ -n "$dir" ]] && git_out=$(git --no-optional-locks -C "$dir" status --porce
         ((modified)) && marks+="!${modified}"
         [[ -n "$marks" ]] && id+=" ${marks}"
     fi
+elif [[ -n "$dir" && "${dir##*/}" != "$session" ]]; then
+    # A renamed session hides the folder name, so show it when not in a repo.
+    id+="${DOT}${BOLD}${FG_INK}▸ ${dir##*/}"
 fi
 
 if [[ -n "$model" ]]; then
