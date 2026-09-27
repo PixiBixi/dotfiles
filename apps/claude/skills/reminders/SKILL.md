@@ -35,7 +35,7 @@ At check time, look at the live state first (`glab mr view`, the metric) so the 
 
 ## Importing tasks from the calendar
 
-Events the user created alone (no other attendee) that describe an action are tasks: propose them as reminders, copying links and steps into the note, plus any follow-up the description implies (a re-measure 24h later). Once created, delete the source event from Google Calendar with `notificationLevel: NONE`, since both show up in the Calendar app. Meetings stay in the calendar.
+Events the user created alone (no other attendee) that describe an action are tasks: propose them as reminders, copying links and steps into the note, plus any follow-up the description implies (a re-measure 24h later). The footer must point at the session that planned the task, not the importing one: find it with `/usr/bin/grep -rlF --include='*.jsonl' '<event title>' ~/.claude/projects` (excluding the current session), take its `cwd` from the transcript, and pass both as `REMINDER_SESSION_ID=<id> REMINDER_CWD=<dir>` to `add`. No match: keep the current session. Once created, delete the source event from Google Calendar with `notificationLevel: NONE`, since both show up in the Calendar app. Meetings stay in the calendar.
 
 ## Checking ("check les reminders de la veille")
 

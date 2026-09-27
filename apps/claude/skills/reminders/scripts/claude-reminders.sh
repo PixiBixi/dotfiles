@@ -25,9 +25,11 @@ case "${cmd}" in
         title="$1"
         due="$2"
         note="${3:-}"
-        # Resume footer, so the reminder can reopen the session that created it.
-        if [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]]; then
-            footer="Session Claude : ${CLAUDE_CODE_SESSION_ID}"$'\n'"Reprendre : ~/.claude/skills/reminders/scripts/claude-resume.sh ${CLAUDE_CODE_SESSION_ID} '${PWD}'"
+        # Resume footer: the session holding the context, the current one unless REMINDER_SESSION_ID/REMINDER_CWD point elsewhere.
+        sid="${REMINDER_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
+        sdir="${REMINDER_CWD:-${PWD}}"
+        if [[ -n "${sid}" ]]; then
+            footer="Session Claude : ${sid}"$'\n'"Reprendre : ~/.claude/skills/reminders/scripts/claude-resume.sh ${sid} '${sdir}'"
             note="${note:+${note}$'\n\n'}${footer}"
         fi
         if ! [[ "${due}" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})\ ([0-9]{2}):([0-9]{2})$ ]]; then
