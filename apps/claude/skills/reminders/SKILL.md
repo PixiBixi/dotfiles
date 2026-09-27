@@ -20,6 +20,10 @@ Every reminder Claude creates goes in the **"Claude"** list of Apple Reminders, 
 - Title: the action, self-contained, readable on a lock screen. Note: the exact command, file path or trigger phrase needed to resume ("puis dire 'compare ws-ports' à Claude"), since the next session has no memory of this one.
 - Confirm in one line: title and date.
 
+## Importing tasks from the calendar
+
+Events the user created alone (no other attendee) that describe an action are tasks: propose them as reminders, copying links and steps into the note, plus any follow-up the description implies (a re-measure 24h later). Once created, delete the source event from Google Calendar with `notificationLevel: NONE`, since both show up in the Calendar app. Meetings stay in the calendar.
+
 ## Checking ("check les reminders de la veille")
 
 1. Run `check`. It returns every open reminder due today or earlier, not only yesterday's: an unfinished one from three days ago still matters.
