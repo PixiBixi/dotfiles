@@ -21,6 +21,7 @@ Every reminder Claude creates goes in the **"Claude"** list of Apple Reminders, 
 
 - Resolve relative dates ("demain 9h30") against today's date from the context, in local time.
 - Title: the action, self-contained, readable on a lock screen. Never a relative offset ("J+7", "dans 3 jours", "demain"): it loses its anchor once read later. Write the absolute date of the reference point instead ("7 jours après le fix du 28/09"). Note: the exact command, file path or trigger phrase needed to resume ("puis dire 'compare ws-ports' à Claude"), since the next session has no memory of this one.
+- Spacing: run `list` first and keep at least 30 min between two reminders. If the slot is taken, shift the new one to the next free slot and say so in the confirmation.
 - Confirm in one line: title and date.
 - Rescheduling or dropping one: `add` the new one, then `delete` the old. Never `done` for that: a completed reminder reads as work actually done.
 
