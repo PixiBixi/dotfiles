@@ -11,6 +11,7 @@ Usage:
   claude-reminders.sh check     # open reminders due up to the end of today, oldest first
   claude-reminders.sh list      # every open reminder of the list
   claude-reminders.sh done "<id>"
+  claude-reminders.sh delete "<id>"   # obsolete or rescheduled reminder
 EOF
     exit 2
 }
@@ -100,6 +101,19 @@ on run argv
     set r to reminder id (item 1 of argv)
     set completed of r to true
     return "done: " & (name of r)
+  end tell
+end run
+EOF
+        ;;
+    delete)
+        [[ $# -eq 1 ]] || usage
+        osascript - "$1" << 'EOF'
+on run argv
+  tell application "Reminders"
+    set r to reminder id (item 1 of argv)
+    set n to name of r
+    delete r
+    return "deleted: " & n
   end tell
 end run
 EOF
