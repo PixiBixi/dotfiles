@@ -19,7 +19,7 @@ Every reminder Claude creates goes in the **"Claude"** list of Apple Reminders, 
 ## Creating
 
 - Resolve relative dates ("demain 9h30") against today's date from the context, in local time.
-- Title: the action, self-contained, readable on a lock screen. Note: the exact command, file path or trigger phrase needed to resume ("puis dire 'compare ws-ports' à Claude"), since the next session has no memory of this one.
+- Title: the action, self-contained, readable on a lock screen. Never a relative offset ("J+7", "dans 3 jours", "demain"): it loses its anchor once read later. Write the absolute date of the reference point instead ("7 jours après le fix du 28/09"). Note: the exact command, file path or trigger phrase needed to resume ("puis dire 'compare ws-ports' à Claude"), since the next session has no memory of this one.
 - Confirm in one line: title and date.
 
 ## Follow-ups to propose unasked
