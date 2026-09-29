@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# Replace each chart folder below with the latest upstream release (helm pull --untar).
+# Folders named after a pinned version (fluent-bit-0.53.0, rancher-2.8.5...) are left out on purpose.
+# Usage: [HELM_DIR=~/Documents/work/src/helm] [JOBS=10] [RETRIES=3] helm-charts-update [--dry-run]
+set -euo pipefail
+
+HELM_DIR="${HELM_DIR:-$HOME/Documents/work/src/helm}"
+DRY_RUN=false
+[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
+
+BITNAMI="oci://registry-1.docker.io/bitnamicharts"
+PROM="https://prometheus-community.github.io/helm-charts"
+ARGO="https://argoproj.github.io/argo-helm"
+GRAFANA="https://grafana.github.io/helm-charts"
+ELASTIC="https://helm.elastic.co"
+
+# folder | repo URL, or "oci" when the chart field is a full oci:// ref | chart
+CHARTS="
+alertmanager|$PROM|alertmanager
+argo-cd|$ARGO|argo-cd
+argo-rollouts|$ARGO|argo-rollouts
+argo-workflows|$ARGO|argo-workflows
+aws-load-balancer-controller|https://aws.github.io/eks-charts|aws-load-balancer-controller
+cert-manager|https://charts.jetstack.io|cert-manager
+cluster-autoscaler|https://kubernetes.github.io/autoscaler|cluster-autoscaler
+consul|https://helm.releases.hashicorp.com|consul
+descheduler|https://kubernetes-sigs.github.io/descheduler|descheduler
+eck-elasticsearch|$ELASTIC|eck-elasticsearch
+eck-kibana|$ELASTIC|eck-kibana
+eck-stack|$ELASTIC|eck-stack
+external-dns-bitnami|oci|$BITNAMI/external-dns
+external-dns-sigs|https://kubernetes-sigs.github.io/external-dns|external-dns
+fluent-bit|https://fluent.github.io/helm-charts|fluent-bit
+gateway-helm|oci|oci://docker.io/envoyproxy/gateway-helm
+gatus|https://twin.github.io/helm-charts|gatus
+grafana|$GRAFANA|grafana
+hashicorp/vault|https://helm.releases.hashicorp.com|vault
+ingress-nginx|https://kubernetes.github.io/ingress-nginx|ingress-nginx
+kafka-ui|https://provectus.github.io/kafka-ui-charts|kafka-ui
+keda|https://kedacore.github.io/charts|keda
+ksqldb|https://ricardo-aires.github.io/helm-charts|ksqldb
+kube-cleanup-operator|https://charts.lwolf.org|kube-cleanup-operator
+kube-prometheus|oci|$BITNAMI/kube-prometheus
+kube-prometheus-stack|$PROM|kube-prometheus-stack
+kubernetes-ingress|https://haproxytech.github.io/helm-charts|kubernetes-ingress
+matomo|oci|$BITNAMI/matomo
+mongodb/mongodb-community-operator|https://mongodb.github.io/helm-charts|community-operator
+mongodb/mongodb-kubernetes|oci|$BITNAMI/mongodb
+nats|https://nats-io.github.io/k8s/helm/charts|nats
+nginx|oci|$BITNAMI/nginx
+node-problem-detector|https://charts.deliveryhero.io|node-problem-detector
+prometheus|$PROM|prometheus
+prometheus-stackdriver-exporter|$PROM|prometheus-stackdriver-exporter
+quickwit|https://helm.quickwit.io|quickwit
+redis|oci|$BITNAMI/redis
+redis-ha|https://dandydeveloper.github.io/charts|redis-ha
+redis-sentinel|https://ot-container-kit.github.io/helm-charts|redis-sentinel
+spegel|oci|oci://ghcr.io/spegel-org/helm-charts/spegel
+tailscale-operator|https://pkgs.tailscale.com/helmcharts|tailscale-operator
+teleport-cluster|https://charts.releases.teleport.dev|teleport-cluster
+tempo-distributed|$GRAFANA|tempo-distributed
+thanos|oci|$BITNAMI/thanos
+velero|https://vmware-tanzu.github.io/helm-charts|velero
+vmware/velero|https://vmware-tanzu.github.io/helm-charts|velero
+x509-certificate-exporter|https://charts.enix.io|x509-certificate-exporter
+"
+
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_OK=$'\e[32m' C_UP=$'\e[1;36m' C_OLD=$'\e[33m' C_AHEAD=$'\e[35m' C_FAIL=$'\e[1;31m' C_DIM=$'\e[2m' C_RST=$'\e[0m'
+else
+    C_OK="" C_UP="" C_OLD="" C_AHEAD="" C_FAIL="" C_DIM="" C_RST=""
+fi
+
+# status color folder message
+report() { printf '%s%-8s%s %s %s%s%s\n' "$2" "$1" "$C_RST" "$3" "$C_DIM" "$4" "$C_RST"; }
+
+# True when version $1 is strictly lower than $2, ignoring a leading "v".
+version_lt() {
+    local a="${1#v}" b="${2#v}"
+    [[ "$a" != "$b" && "$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -n 1)" == "$a" ]]
+}
+
+# Run "$@" up to RETRIES times, with a growing pause between attempts.
+retry() {
+    local attempt
+    for ((attempt = 1; attempt <= RETRIES; attempt++)); do
+        "$@" && return 0
+        ((attempt < RETRIES)) && sleep $((attempt * 2))
+    done
+    return 1
+}
+
+pull_chart() {
+    local work="$1"
+    shift
+    rm -rf "$work" && mkdir -p "$work" && helm pull "$@" --untar --untardir "$work" > /dev/null 2>&1
+}
+
+# One line of $CHARTS: folder|repo|chart
+update_chart() {
+    local folder repo chart dest current latest work pulled
+    local -a repo_args=()
+    IFS='|' read -r folder repo chart <<< "$1"
+    dest="$HELM_DIR/$folder"
+    [[ "$repo" != "oci" ]] && repo_args=(--repo "$repo")
+
+    current="none"
+    [[ -f "$dest/Chart.yaml" ]] && current="$(yq '.version' "$dest/Chart.yaml")"
+
+    if ! latest="$(retry helm show chart "$chart" "${repo_args[@]}" 2> /dev/null | yq '.version')" || [[ -z "$latest" || "$latest" == "null" ]]; then
+        report FAIL "$C_FAIL" "$folder" "cannot resolve $chart from $repo after $RETRIES tries"
+        return 0
+    fi
+
+    if [[ "${current#v}" == "${latest#v}" ]]; then
+        report OK "$C_OK" "$folder" "$current"
+        return 0
+    fi
+    # A repo index can lag behind what was pulled locally: never downgrade.
+    if [[ "$current" != "none" ]] && ! version_lt "$current" "$latest"; then
+        report AHEAD "$C_AHEAD" "$folder" "local $current, repo latest $latest"
+        return 0
+    fi
+    if [[ "$DRY_RUN" == true ]]; then
+        report OUTDATED "$C_OLD" "$folder" "$current -> $latest"
+        return 0
+    fi
+
+    work="$TMP_ROOT/${folder//\//_}"
+    if ! retry pull_chart "$work" "$chart" "${repo_args[@]}" --version "$latest"; then
+        report FAIL "$C_FAIL" "$folder" "helm pull $chart $latest failed after $RETRIES tries"
+        return 0
+    fi
+    # The tarball holds a single top-level dir named after the chart.
+    pulled="$(command find "$work" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+    rm -rf "$dest"
+    mkdir -p "$(dirname "$dest")"
+    mv "$pulled" "$dest"
+    report UPDATED "$C_UP" "$folder" "$current -> $latest"
+}
+
+JOBS="${JOBS:-10}"
+RETRIES="${RETRIES:-3}"
+TMP_ROOT="$(mktemp -d)"
+trap 'rm -rf "$TMP_ROOT"' EXIT
+
+export -f retry pull_chart update_chart report version_lt
+export HELM_DIR DRY_RUN RETRIES TMP_ROOT C_OK C_UP C_OLD C_AHEAD C_FAIL C_DIM C_RST
+
+# shellcheck disable=SC2016 # $1 must expand inside the child bash, not here.
+printf '%s\n' "$CHARTS" | command sed '/^$/d' | tr '\n' '\0' \
+    | xargs -0 -n 1 -P "$JOBS" bash -c 'update_chart "$1"' _

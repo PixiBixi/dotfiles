@@ -302,6 +302,7 @@ setup_dotfiles() {
         "config/.config/git/allowed_signers"
         "config/.config/git/ignore"
         "config/.local/bin/tg-run"
+        "config/.local/bin/helm-charts-update"
     )
 
     for src_rel in "${symlink_files[@]}"; do

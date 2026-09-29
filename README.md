@@ -52,6 +52,7 @@ dotfiles/
 │   ├── .local/
 │   │   └── bin/                 # Commandes déployées sur le $PATH
 │   │       ├── tg-run           # Runner Terragrunt à sortie lisible
+│   │       ├── helm-charts-update # Charts Helm locaux passés à la dernière version
 │   │       └── slack-restart.sh # Redémarrage nocturne de Slack
 │   └── Library/
 │       └── LaunchAgents/        # Agents launchd, rendus depuis __HOME__
@@ -208,6 +209,18 @@ brew uninstall <package>
 | `tg-run validate` | N'importe quelle commande Terragrunt |
 | `BASE_REF=origin/master tg-run` | Change la branche de référence pour la détection |
 | `-h`, `--help` | Aide |
+
+### Mettre à jour les charts Helm locaux
+
+`helm-charts-update` (déployé depuis `config/.local/bin/`) remplace chaque dossier de chart de `~/Documents/work/src/helm` par la dernière version publiée (`helm pull --untar`). La liste des charts et de leur repo est en tête du script. Il ne fait jamais de downgrade, et les dossiers au nom versionné (`rancher-2.8.5`) n'y figurent pas.
+
+| Invocation | Effet |
+| ------ | ------- |
+| `helm-charts-update` | Met à jour tous les charts en retard |
+| `helm-charts-update --dry-run` | Affiche les versions locale et distante sans rien toucher |
+| `JOBS=16 helm-charts-update` | Parallélisme (défaut 10) |
+| `RETRIES=5 helm-charts-update` | Tentatives par `helm show` / `helm pull` (défaut 3) |
+| `HELM_DIR=<dir> helm-charts-update` | Autre dossier de charts |
 
 Ce n'est pas un remplacement de `tg plan` : chaque unité passe par `run --all --queue-include-dir`, ce qui embarque aussi ses dépendances. `--non-interactive` n'est ajouté que si `$CI` est défini, pour qu'un `apply` local garde sa confirmation.
 
