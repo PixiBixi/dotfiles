@@ -76,6 +76,9 @@ TITLE_KINDS_WITH_NAME = frozenset({"Ops", "Sizing", "Deep dive"})
 
 MIXED_DS = "-- Mixed --"
 
+# v2 `cursorSync` values, mapped to the v1 `graphTooltip` they replace.
+CURSOR_SYNC = {"Off": 0, "Crosshair": 1, "Tooltip": 2}
+
 # Jira-style ticket tag, e.g. PE-1622.
 TICKET_TAG = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
 
@@ -104,7 +107,7 @@ def iter_panels(dashboard: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]
         Tuples of (json path, panel object).
     """
     for index, panel in enumerate(dashboard.get("panels") or []):
-        path = f"panels[{index}]"
+        path = panel.get("_path") or f"panels[{index}]"
         yield path, panel
         for sub_index, nested in enumerate(panel.get("panels") or []):
             yield f"{path}.panels[{sub_index}]", nested
@@ -216,19 +219,29 @@ def check_defaults(dashboard: dict[str, Any]) -> list[Finding]:
         Findings for graphTooltip, timezone, description and editable.
     """
     out: list[Finding] = []
+    v2 = "_v2_spec" in dashboard
     tooltip = dashboard.get("graphTooltip")
     if tooltip != 1:
         explain = {
             0: "0 = no cursor sharing",
             2: "2 = shared tooltip, unreadable past ~10 panels",
         }
-        detail = explain.get(tooltip) if isinstance(tooltip, int) else None
-        out.append(
-            Finding("error", "shared-crosshair", "graphTooltip", f"{detail or repr(tooltip)}, must be 1")
-        )
+        if v2:
+            raw = dashboard["_v2_spec"].get("cursorSync")
+            out.append(Finding("error", "shared-crosshair", "spec.cursorSync", f"{raw!r}, must be 'Crosshair'"))
+        else:
+            detail = explain.get(tooltip) if isinstance(tooltip, int) else None
+            out.append(
+                Finding("error", "shared-crosshair", "graphTooltip", f"{detail or repr(tooltip)}, must be 1")
+            )
     if dashboard.get("timezone") != "utc":
         out.append(
-            Finding("error", "timezone", "timezone", f"{dashboard.get('timezone')!r}, must be 'utc'")
+            Finding(
+                "error",
+                "timezone",
+                "spec.timeSettings.timezone" if v2 else "timezone",
+                f"{dashboard.get('timezone')!r}, must be 'utc'",
+            )
         )
     if not (dashboard.get("description") or "").strip():
         out.append(
@@ -272,7 +285,7 @@ def check_panels(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[F
                 continue
             ref = datasource_ref(target) or datasource_ref(panel)
             if ref and not ref.startswith("$"):
-                pinned.append((f"{path}.targets[{target_index}].datasource", ref))
+                pinned.append((f"{target.get('_path') or f'{path}.targets[{target_index}]'}.datasource", ref))
     ds_vars = [
         v.get("name")
         for v in (dashboard.get("templating") or {}).get("list") or []
@@ -285,7 +298,7 @@ def check_panels(dashboard: dict[str, Any], expect_ds_var: str | None) -> list[F
             Finding(
                 "warn",
                 "pinned-datasource",
-                "templating.list",
+                "spec.variables" if "_v2_spec" in dashboard else "templating.list",
                 f"no datasource variable, {len(pinned)} target(s) pinned to a uid; add {wanted} variable first",
             )
         )
@@ -354,7 +367,7 @@ def check_queries(dashboard: dict[str, Any]) -> list[Finding]:
                     Finding(
                         "error",
                         "stepless-subquery",
-                        f"{path}.targets[{index}].expr",
+                        f"{target.get('_path') or f'{path}.targets[{index}]'}.expr",
                         f"{match.group(0)} re-evaluates at the default step, give it one",
                     )
                 )
@@ -375,7 +388,9 @@ def check_language(dashboard: dict[str, Any]) -> list[Finding]:
         One warning per suspicious string.
     """
     out: list[Finding] = []
-    for path, value in iter_text(dashboard):
+    # On a v2 manifest, walk the raw spec so the paths point into the real file.
+    raw = dashboard.get("_v2_spec")
+    for path, value in iter_text(raw, "spec") if raw else iter_text(dashboard):
         if reason := looks_non_english(value):
             out.append(Finding("warn", "language", path, reason))
     return out
@@ -514,8 +529,108 @@ def lint(dashboard: dict[str, Any], expect_ds_var: str | None, layout: bool = Tr
     return sorted(findings, key=lambda f: (f.level != "error", f.rule, f.path))
 
 
+def v2_datasource(query: dict[str, Any]) -> str | None:
+    """Return a v2 panel query's datasource uid, in the v2beta1 or v2alpha1 shape.
+
+    Args:
+        query: A `PanelQuery` spec.
+
+    Returns:
+        The uid or variable reference, or None when the query declares none.
+    """
+    inner = query.get("query") or {}
+    for ds in (inner.get("datasource"), query.get("datasource")):
+        if isinstance(ds, dict):
+            ref = ds.get("name") or ds.get("uid")
+            if isinstance(ref, str):
+                return ref
+    return None
+
+
+def normalize_v2(spec: dict[str, Any], uid: str | None) -> dict[str, Any]:
+    """Map a `dashboard.grafana.app/v2` spec onto the v1 shape the checks read.
+
+    v2 moves every baseline field (cursorSync, timeSettings, elements, variables),
+    so read raw it fails the defaults and skips every panel check. Each panel and
+    target keeps its v2 location in `_path`, so findings point into the real file.
+
+    Args:
+        spec: The manifest's `spec`.
+        uid: The manifest's `metadata.name`.
+
+    Returns:
+        A v1-shaped dashboard object, with the raw spec under `_v2_spec`.
+    """
+    panels: list[dict[str, Any]] = []
+    for key, element in (spec.get("elements") or {}).items():
+        body = element.get("spec") or {}
+        path = f"spec.elements.{key}.spec"
+        viz = body.get("vizConfig") or {}
+        # v2beta1 carries the plugin id in `group`, v2alpha1 in `kind`.
+        plugin = viz.get("group") or (viz.get("kind") if viz.get("kind") != "VizConfig" else None)
+        targets = []
+        for index, query in enumerate(((body.get("data") or {}).get("spec") or {}).get("queries") or []):
+            q = query.get("spec") or {}
+            targets.append(
+                {
+                    **((q.get("query") or {}).get("spec") or {}),
+                    "refId": q.get("refId"),
+                    "datasource": v2_datasource(q),
+                    "_path": f"{path}.data.spec.queries[{index}].spec.query",
+                }
+            )
+        panels.append(
+            {
+                "id": body.get("id"),
+                "type": "library-panel" if element.get("kind") == "LibraryPanel" else plugin,
+                "title": body.get("title"),
+                "targets": targets,
+                "_path": path,
+            }
+        )
+    variables = [
+        {
+            "type": (v.get("kind") or "").removesuffix("Variable").lower(),
+            "name": (v.get("spec") or {}).get("name"),
+        }
+        for v in spec.get("variables") or []
+    ]
+    return {
+        "uid": uid,
+        "title": spec.get("title"),
+        "description": spec.get("description"),
+        "tags": spec.get("tags"),
+        "editable": spec.get("editable"),
+        "graphTooltip": CURSOR_SYNC.get(spec.get("cursorSync") or ""),
+        "timezone": (spec.get("timeSettings") or {}).get("timezone"),
+        "panels": panels,
+        "templating": {"list": variables},
+        "_v2_spec": spec,
+    }
+
+
+def to_dashboard(payload: dict[str, Any]) -> dict[str, Any]:
+    """Extract the dashboard object from the legacy API envelope, a k8s manifest or a bare dashboard.
+
+    Args:
+        payload: Decoded JSON.
+
+    Returns:
+        The dashboard object, v2 specs normalized to the v1 shape.
+    """
+    if "dashboard" in payload:
+        return payload["dashboard"]
+    spec = payload.get("spec")
+    if not isinstance(spec, dict):
+        return payload
+    uid = (payload.get("metadata") or {}).get("name")
+    if "elements" in spec or "/v2" in (payload.get("apiVersion") or ""):
+        return normalize_v2(spec, uid)
+    return {"uid": uid, **spec}
+
+
 def load_local(path: Path) -> dict[str, Any]:
-    """Load a dashboard from a file, accepting the API envelope or the bare object.
+    """Load a dashboard from a file, accepting the API envelope, a gcx manifest or the bare object.
 
     Args:
         path: Path to a JSON file.
@@ -523,8 +638,7 @@ def load_local(path: Path) -> dict[str, Any]:
     Returns:
         The dashboard object.
     """
-    payload = json.loads(path.read_text())
-    return payload.get("dashboard", payload)
+    return to_dashboard(json.loads(path.read_text()))
 
 
 def ds_var_majority(dashboards: list[tuple[str, dict[str, Any]]]) -> str | None:
@@ -609,7 +723,7 @@ def collect(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
             print(f"warning: {uid} not fetched ({exc})", file=sys.stderr)
             continue
         if payload:
-            dashboard = payload["dashboard"]
+            dashboard = to_dashboard(payload)
             out.append((f"{dashboard.get('title', uid)} [{uid}]", dashboard))
     client.close()
     return out

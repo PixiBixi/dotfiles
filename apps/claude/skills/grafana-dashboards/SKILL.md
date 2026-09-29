@@ -41,7 +41,7 @@ Set these without asking, they are schema baseline, not per-dashboard choices:
 A component folder holds the same five kinds of dashboard: `<Comp> / 0 Start here`, `<Comp> / 1 SLA`, `<Comp> / Ops / <x>`, `<Comp> / Sizing / <x>`, `<Comp> / Deep dive / <x>`, with readable uids, the component tag and the same variables everywhere. **Read `folder-layout.md` next to this file before creating a dashboard in a platform folder**, or before starting a new one: it gives what each kind contains and the variable block.
 
 ## Before you save (run the linter)
-The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. `lint_dashboard.py`, next to this file, decides them from the JSON and descends into collapsed rows, which a flat `$.panels[*]` read misses:
+The rules above are the ones that get skipped, and it is always on the quick dashboard built in twenty minutes, not on the big investigation one. `lint_dashboard.py`, next to this file, decides them from the JSON, reads v1 dashboards and `dashboard.grafana.app/v2` manifests (`gcx dashboards get -o json`) alike, and descends into collapsed rows, which a flat `$.panels[*]` read misses:
 
 ```bash
 SKILL=${CLAUDE_SKILL_DIR}
