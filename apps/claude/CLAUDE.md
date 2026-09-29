@@ -71,6 +71,7 @@ Production issue or suspected incident → use the `incident-response` skill. De
 - `glab` is always pre-installed, use it without checking first
 - Shell scripts must be defensive and explicit
 - **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Prefer the native Grep/Glob tools; use `command rg` / `command find` when a specific flag matters.
+- **Public source code is read from local clones in `~/Documents/work/src`** (and `src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout (the user's branches live there). Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>` (`<org>-<repo>` on a name clash). The `local-source-redirect.sh` hook enforces this on WebFetch for github.com and gitlab.com.
 
 ## Memory
 

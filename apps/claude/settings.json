@@ -83,6 +83,16 @@
             "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx:gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
           }
         ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/local-source-redirect.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
