@@ -1,69 +1,42 @@
 #!/usr/bin/env bash
-# Replace each chart folder below with the latest upstream release (helm pull --untar).
-# Folders named after a pinned version (fluent-bit-0.53.0, rancher-2.8.5...) are left out on purpose.
-# Usage: [HELM_DIR=~/Documents/work/src/helm] [JOBS=10] [RETRIES=3] helm-charts-update [--dry-run]
+# Replace each chart folder listed in $HELM_DIR/.helm-sources with its latest release
+# (helm pull --untar). The index lives beside the charts so their files stay untouched.
+# Usage: helm-charts-update [--dry-run]
+#        helm-charts-update --add <folder> <repo URL> [chart]   (or <folder> <oci://ref>)
+# Env: HELM_DIR (~/Documents/work/src/helm), JOBS (10), RETRIES (3)
 set -euo pipefail
 
 HELM_DIR="${HELM_DIR:-$HOME/Documents/work/src/helm}"
+INDEX="$HELM_DIR/.helm-sources"
 DRY_RUN=false
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
 
-BITNAMI="oci://registry-1.docker.io/bitnamicharts"
-PROM="https://prometheus-community.github.io/helm-charts"
-ARGO="https://argoproj.github.io/argo-helm"
-GRAFANA="https://grafana.github.io/helm-charts"
-ELASTIC="https://helm.elastic.co"
-
-# folder | repo URL, or "oci" when the chart field is a full oci:// ref | chart
-CHARTS="
-alertmanager|$PROM|alertmanager
-argo-cd|$ARGO|argo-cd
-argo-rollouts|$ARGO|argo-rollouts
-argo-workflows|$ARGO|argo-workflows
-aws-load-balancer-controller|https://aws.github.io/eks-charts|aws-load-balancer-controller
-cert-manager|https://charts.jetstack.io|cert-manager
-cluster-autoscaler|https://kubernetes.github.io/autoscaler|cluster-autoscaler
-consul|https://helm.releases.hashicorp.com|consul
-descheduler|https://kubernetes-sigs.github.io/descheduler|descheduler
-eck-elasticsearch|$ELASTIC|eck-elasticsearch
-eck-kibana|$ELASTIC|eck-kibana
-eck-stack|$ELASTIC|eck-stack
-external-dns-bitnami|oci|$BITNAMI/external-dns
-external-dns-sigs|https://kubernetes-sigs.github.io/external-dns|external-dns
-fluent-bit|https://fluent.github.io/helm-charts|fluent-bit
-gateway-helm|oci|oci://docker.io/envoyproxy/gateway-helm
-gatus|https://twin.github.io/helm-charts|gatus
-grafana|$GRAFANA|grafana
-hashicorp/vault|https://helm.releases.hashicorp.com|vault
-ingress-nginx|https://kubernetes.github.io/ingress-nginx|ingress-nginx
-kafka-ui|https://provectus.github.io/kafka-ui-charts|kafka-ui
-keda|https://kedacore.github.io/charts|keda
-ksqldb|https://ricardo-aires.github.io/helm-charts|ksqldb
-kube-cleanup-operator|https://charts.lwolf.org|kube-cleanup-operator
-kube-prometheus|oci|$BITNAMI/kube-prometheus
-kube-prometheus-stack|$PROM|kube-prometheus-stack
-kubernetes-ingress|https://haproxytech.github.io/helm-charts|kubernetes-ingress
-matomo|oci|$BITNAMI/matomo
-mongodb/mongodb-community-operator|https://mongodb.github.io/helm-charts|community-operator
-mongodb/mongodb-kubernetes|oci|$BITNAMI/mongodb
-nats|https://nats-io.github.io/k8s/helm/charts|nats
-nginx|oci|$BITNAMI/nginx
-node-problem-detector|https://charts.deliveryhero.io|node-problem-detector
-prometheus|$PROM|prometheus
-prometheus-stackdriver-exporter|$PROM|prometheus-stackdriver-exporter
-quickwit|https://helm.quickwit.io|quickwit
-redis|oci|$BITNAMI/redis
-redis-ha|https://dandydeveloper.github.io/charts|redis-ha
-redis-sentinel|https://ot-container-kit.github.io/helm-charts|redis-sentinel
-spegel|oci|oci://ghcr.io/spegel-org/helm-charts/spegel
-tailscale-operator|https://pkgs.tailscale.com/helmcharts|tailscale-operator
-teleport-cluster|https://charts.releases.teleport.dev|teleport-cluster
-tempo-distributed|$GRAFANA|tempo-distributed
-thanos|oci|$BITNAMI/thanos
-velero|https://vmware-tanzu.github.io/helm-charts|velero
-vmware/velero|https://vmware-tanzu.github.io/helm-charts|velero
-x509-certificate-exporter|https://charts.enix.io|x509-certificate-exporter
-"
+case "${1:-}" in
+    --dry-run) DRY_RUN=true ;;
+    --add)
+        [[ $# -ge 3 ]] || {
+            echo "usage: helm-charts-update --add <folder> <repo URL> [chart]" >&2
+            exit 2
+        }
+        if [[ -f "$INDEX" ]] && awk -v f="$2" '$1 == f { found = 1 } END { exit !found }' "$INDEX"; then
+            echo "$2 is already in $INDEX" >&2
+            exit 1
+        fi
+        if [[ "$3" == oci://* ]]; then
+            echo "$2 $3" >> "$INDEX"
+        else
+            echo "$2 $3 ${4:-$(basename "$2")}" >> "$INDEX"
+        fi
+        ;;
+    "") ;;
+    *)
+        echo "unknown argument: $1" >&2
+        exit 2
+        ;;
+esac
+[[ -f "$INDEX" ]] || {
+    echo "no index at $INDEX" >&2
+    exit 1
+}
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
     C_OK=$'\e[32m' C_UP=$'\e[1;36m' C_OLD=$'\e[33m' C_AHEAD=$'\e[35m' C_FAIL=$'\e[1;31m' C_DIM=$'\e[2m' C_RST=$'\e[0m'
@@ -96,13 +69,17 @@ pull_chart() {
     rm -rf "$work" && mkdir -p "$work" && helm pull "$@" --untar --untardir "$work" > /dev/null 2>&1
 }
 
-# One line of $CHARTS: folder|repo|chart
+# One index line: "<folder> <repo URL> <chart>" or "<folder> <oci://ref>"
 update_chart() {
     local folder repo chart dest current latest work pulled
     local -a repo_args=()
-    IFS='|' read -r folder repo chart <<< "$1"
+    read -r folder repo chart <<< "$1"
     dest="$HELM_DIR/$folder"
-    [[ "$repo" != "oci" ]] && repo_args=(--repo "$repo")
+    if [[ "$repo" == oci://* ]]; then
+        chart="$repo"
+    else
+        repo_args=(--repo "$repo")
+    fi
 
     current="none"
     [[ -f "$dest/Chart.yaml" ]] && current="$(yq '.version' "$dest/Chart.yaml")"
@@ -147,6 +124,18 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 export -f retry pull_chart update_chart report version_lt
 export HELM_DIR DRY_RUN RETRIES TMP_ROOT C_OK C_UP C_OLD C_AHEAD C_FAIL C_DIM C_RST
 
+# A chart folder missing from the index is reported, never guessed.
+for chart_yaml in "$HELM_DIR"/*/Chart.yaml "$HELM_DIR"/*/*/Chart.yaml; do
+    [[ -f "$chart_yaml" ]] || continue
+    folder="${chart_yaml%/Chart.yaml}"
+    folder="${folder#"$HELM_DIR"/}"
+    # Skip subcharts vendored under another chart (<chart>/charts/<sub>) and git clones.
+    [[ "$folder" == */* && -f "$HELM_DIR/${folder%%/*}/Chart.yaml" ]] && continue
+    [[ -e "$HELM_DIR/${folder%%/*}/.git" ]] && continue
+    awk -v f="$folder" '$1 == f { found = 1 } END { exit !found }' "$INDEX" \
+        || report UNTRACKED "$C_DIM" "$folder" "not in $INDEX"
+done
+
 # shellcheck disable=SC2016 # $1 must expand inside the child bash, not here.
-printf '%s\n' "$CHARTS" | command sed '/^$/d' | tr '\n' '\0' \
+command sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$INDEX" | tr '\n' '\0' \
     | xargs -0 -n 1 -P "$JOBS" bash -c 'update_chart "$1"' _

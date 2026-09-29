@@ -212,12 +212,14 @@ brew uninstall <package>
 
 ### Mettre à jour les charts Helm locaux
 
-`helm-charts-update` (déployé depuis `config/.local/bin/`) remplace chaque dossier de chart de `~/Documents/work/src/helm` par la dernière version publiée (`helm pull --untar`). La liste des charts et de leur repo est en tête du script. Il ne fait jamais de downgrade, et les dossiers au nom versionné (`rancher-2.8.5`) n'y figurent pas.
+`helm-charts-update` (déployé depuis `config/.local/bin/`) remplace chaque dossier de chart de `~/Documents/work/src/helm` par la dernière version publiée (`helm pull --untar`). Les charts suivis et leur repo sont listés dans `~/Documents/work/src/helm/.helm-sources`, une ligne `<dossier> <repo> <chart>` ou `<dossier> <oci://ref>` : les charts eux-mêmes ne sont pas modifiés. Un dossier absent de l'index est signalé `UNTRACKED` et laissé tel quel. Il ne fait jamais de downgrade.
 
 | Invocation | Effet |
 | ------ | ------- |
 | `helm-charts-update` | Met à jour tous les charts en retard |
 | `helm-charts-update --dry-run` | Affiche les versions locale et distante sans rien toucher |
+| `helm-charts-update --add argo-cd https://argoproj.github.io/argo-helm` | Ajoute le chart à l'index (chart = nom du dossier par défaut) puis le pull |
+| `helm-charts-update --add redis oci://registry-1.docker.io/bitnamicharts/redis` | Idem pour un chart OCI |
 | `JOBS=16 helm-charts-update` | Parallélisme (défaut 10) |
 | `RETRIES=5 helm-charts-update` | Tentatives par `helm show` / `helm pull` (défaut 3) |
 | `HELM_DIR=<dir> helm-charts-update` | Autre dossier de charts |
