@@ -15,6 +15,7 @@ make update-skills       # fetch latest SKILL.md from upstream sources
 make update-claude-skills # skillfish update + re-bundle packages/skillfish.json
 make update-claude-plugins # refresh marketplaces + update every marketplace-backed plugin
 make check               # dry-run: show skill diffs without writing
+make drift               # check drift between config/ and deployed $HOME files
 make help                # list targets
 
 # Deploy / provision (idempotent)

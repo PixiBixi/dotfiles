@@ -161,13 +161,14 @@ make help          # lister les targets
 | `update-claude-skills` | Met à jour les skills skillfish et re-bundle `packages/skillfish.json` |
 | `update-claude-plugins` | Rafraîchit les marketplaces et met à jour chaque plugin Claude Code installé (redémarrage requis) |
 | `check` | Dry-run : affiche les diffs de skills sans écrire |
+| `drift` | Lance `scripts/check-drift.sh` |
 
 ### Vérifier la dérive
 
 `scripts/check-drift.sh` compare les fichiers de `config/` et de `apps/claude/` avec ce qui est déployé dans `$HOME`, et vérifie que les index krew de `packages/krew-indexes.txt` sont enregistrés.
 
 ```bash
-./scripts/check-drift.sh
+make drift
 ```
 
 ### Auditer l'usage du Brewfile

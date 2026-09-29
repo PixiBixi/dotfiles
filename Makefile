@@ -5,7 +5,7 @@ SCRIPT     := $(SKILLS_DIR).update-skills.py
 
 .DEFAULT_GOAL := help
 
-.PHONY: help update update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills update-claude-plugins check
+.PHONY: help update update-brew update-krew-indexes update-npm update-gems update-skills update-claude-skills update-claude-plugins check drift
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -53,3 +53,6 @@ update-claude-plugins: ## Refresh plugin marketplaces, then update each marketpl
 
 check: ## Show skills diffs without modifying files (dry-run)
 	@python3 $(SCRIPT) --check
+
+drift: ## Check drift between the repo and the files deployed in ~
+	@"$(ROOT_DIR)scripts/check-drift.sh"
