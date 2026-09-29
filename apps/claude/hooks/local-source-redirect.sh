@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Event: PreToolUse, matcher WebFetch.
-# Denies a WebFetch of public code on github.com or gitlab.com (blob/tree/raw URLs, repo
-# roots) and points Claude at the local clone under $SRC_DIR, or at the clone command when
-# there is none. Issues, PRs, releases and any other page pass through untouched.
+# Denies a WebFetch of code on github.com or gitlab.com (blob/tree/raw URLs, repo roots)
+# and points Claude at the local clone, or at the clone command when there is none.
+# Issues, PRs, releases and any other page pass through untouched.
+#
+# Clones live under $SRC_DIR, except for prefixes listed in $SOURCE_ROOTS_FILE, one
+# "<host/group> <local dir>" per line: those mirror the forge tree and clone over SSH.
 set -euo pipefail
 
 SRC_DIR="${SRC_DIR:-$HOME/Documents/work/src}"
+SOURCE_ROOTS_FILE="${SOURCE_ROOTS_FILE:-$HOME/.config/claude/source-roots}"
 
 url="$(jq -r '.tool_input.url // empty')"
 [[ -z "$url" ]] && exit 0
@@ -43,9 +47,23 @@ normalize() {
 }
 
 want="$(echo "$project" | tr '[:upper:]' '[:lower:]')"
+clone="" clone_url="https://$project"
+
+if [[ -r "$SOURCE_ROOTS_FILE" ]]; then
+    while read -r prefix root _; do
+        [[ -z "$prefix" || "$prefix" == \#* ]] && continue
+        prefix="$(echo "${prefix%/}" | tr '[:upper:]' '[:lower:]')"
+        if [[ "$want" == "$prefix" || "$want" == "$prefix"/* ]]; then
+            clone="${root%/}${project:${#prefix}}"
+            host="${project%%/*}"
+            clone_url="git@$host:${project#*/}.git"
+            break
+        fi
+    done < "$SOURCE_ROOTS_FILE"
+fi
+
 # One rg over every .git/config: a git call per repo costs ~2s on 80 clones.
-clone=""
-while IFS= read -r line; do
+[[ -z "$clone" ]] && while IFS= read -r line; do
     remote="${line#*url = }"
     if [[ "$(normalize "$remote")" == "$want" ]]; then
         clone="${line%%/.git/config:*}"
@@ -54,11 +72,19 @@ while IFS= read -r line; do
 done < <(command rg --no-heading --no-line-number -m 1 '^\s*url = ' "$SRC_DIR"/*/.git/config "$SRC_DIR"/helm/*/.git/config 2> /dev/null || true)
 
 steps=""
+if [[ -d "$clone" && ! -e "$clone/.git" ]]; then
+    # A group page under a source root: the directory holds the group's projects.
+    reason="Source code is read from local clones, not fetched over the web."$'\n'"Local group directory: $clone. List it: lsd $clone, or search it: rg <pattern> $clone"
+    jq -n --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+    exit 0
+fi
 if [[ -z "$clone" ]]; then
     name="${project##*/}"
     [[ -e "$SRC_DIR/$name" ]] && name="$(basename "$(dirname "$project")")-$name"
     clone="$SRC_DIR/$name"
-    steps="Not cloned yet. Clone it first: git clone --filter=blob:none https://$project $clone"$'\n'
+fi
+if [[ ! -e "$clone/.git" ]]; then
+    steps="Not cloned yet. Clone it first: git clone --filter=blob:none $clone_url $clone"$'\n'
 else
     steps="Local clone: $clone. Refresh it first: git -C $clone fetch --quiet --tags origin"$'\n'
 fi
@@ -67,8 +93,11 @@ fi
 target="${ref:-origin/HEAD}"
 if [[ -n "$ref" ]] && git -C "$clone" show-ref --quiet --verify "refs/remotes/origin/$ref" 2> /dev/null; then
     target="origin/$ref"
-elif [[ -n "$ref" && ! -d "$clone" ]]; then
-    target="$ref (use origin/$ref if it is a branch)"
+fi
+note=""
+if [[ -n "$ref" && ! -e "$clone/.git" ]]; then
+    target="origin/$ref"
+    note=$'\n'"If $ref is a tag or a commit rather than a branch, drop the origin/ prefix."
 fi
 
 if [[ "$kind" == "tree" ]]; then
@@ -78,5 +107,5 @@ else
     steps+="Then read it: git -C $clone show ${target}:${path}"
 fi
 
-reason="Public source code is read from local clones in $SRC_DIR, not fetched over the web."$'\n'"$steps"
+reason="Source code is read from local clones, not fetched over the web."$'\n'"$steps$note"
 jq -n --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
