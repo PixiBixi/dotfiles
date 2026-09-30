@@ -108,6 +108,12 @@ Dans votre `.gitconfig` principal, incluez conditionnellement :
     path = ~/.gitconfig_work
 ```
 
+`.gitconfig_work` fait passer tous les remotes gitlab.com en HTTPS (`insteadOf` sur `git@gitlab.com:`), authentifiés par le token de `glab` : un seul secret à renouveler (`glab auth login`), pas de clé SSH à tenir à jour, et aucun reclone nécessaire. Côté `glab`, à faire une fois :
+
+```bash
+glab config set git_protocol https --host gitlab.com
+```
+
 Deux fichiers sous `config/.config/git/` sont symlinkés vers `~/.config/git/` :
 
 - `allowed_signers` : référencé par `gpg.ssh.allowedSignersFile`. Adresse courante en premier, domaines historiques après, séparés par des virgules sur la même ligne

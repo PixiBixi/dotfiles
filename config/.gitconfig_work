@@ -2,5 +2,11 @@
 	email = jdelgado@compagny.com
 	name = Jeremy Delgado
 
-[url "ssh://git@gitlab.com/compagny"]
-	insteadOf = https://gitlab.com/compagny
+# All gitlab.com remotes go over HTTPS, authenticated by the glab keyring token.
+[url "https://gitlab.com/"]
+	insteadOf = git@gitlab.com:
+	insteadOf = ssh://git@gitlab.com/
+
+[credential "https://gitlab.com"]
+	helper =
+	helper = !glab auth git-credential
