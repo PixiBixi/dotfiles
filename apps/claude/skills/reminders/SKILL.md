@@ -17,7 +17,8 @@ Every reminder Claude creates goes through the `tickler` CLI (`~/.local/bin/tick
 | `tickler edit <id> --at "YYYY-MM-DD HH:MM"` | Reschedules it (also `--title`, `--notes`) |
 | `tickler snooze <id> --for 1h` | Pushes it back from now (`15m`, `1h`, `2d`) |
 | `tickler rm <id>` | Deletes an obsolete reminder |
-| `tickler resume <id>` | Reopens the reminder's Claude session in WezTerm |
+| `tickler resume <id>` | Reopens the reminder's Claude session in WezTerm, Ghostty or iTerm2 |
+| `tickler status <id> --json` | Live state of the linked MRs, Jira issues and PRs: pipeline, approvals, ticket status |
 
 `add` records the creating session and folder from `CLAUDE_CODE_SESSION_ID` and the cwd. Pass `--session <uuid> --cwd <dir>` to point at another session. Links in the notes are detected (MR, Jira, Slack, Grafana, PR) and become buttons in the app and in the notification, so put the full URLs in the notes.
 
@@ -38,7 +39,7 @@ Offer these in one line at the moment they arise, create on a yes:
 | An MR was just opened | Two working days later, 10:00: chase the review if still unreviewed | MR URL, reviewer, ticket key |
 | A change expected to move CPU, memory, latency or cost was merged or rolled out | 24h after the end of the rollout (7 days for cost): re-measure against the baseline | The metric or dashboard, the baseline value and when it was taken, where to post the result |
 
-At check time, look at the live state first (`glab mr view`, the metric) so the report says whether the action is still needed.
+At check time, look at the live state first (`tickler status <id> --json` for linked MRs and tickets, the metric for re-measures) so the report says whether the action is still needed.
 
 ## Importing tasks from the calendar
 
