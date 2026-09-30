@@ -8,6 +8,7 @@
       "Bash(detect-secrets scan:*)",
       "Bash(file:*)",
       "Bash(find:*)",
+      "Bash(gcloud logging read:*)",
       "Bash(git --no-pager blame:*)",
       "Bash(git --no-pager diff:*)",
       "Bash(git --no-pager log:*)",
@@ -19,6 +20,10 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(head:*)",
+      "Bash(kubectl * describe:*)",
+      "Bash(kubectl * exec * -- grep:*)",
+      "Bash(kubectl * get:*)",
+      "Bash(kubectl * logs:*)",
       "Bash(ls:*)",
       "Bash(npx prettier:*)",
       "Bash(pre-commit run:*)",
@@ -183,5 +188,6 @@
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "tui": "default"
 }
