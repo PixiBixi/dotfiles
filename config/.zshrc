@@ -174,3 +174,5 @@ export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:$HOME/lib:/usr/local/lib:/u
 export PATH="/Users/jeremy/.claude-code-templates/bin:$PATH"
 
 alias claude-mem='bun "/Users/jeremy/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs"'
+# Tickler CLI completion: reminder ids with their title.
+(( $+commands[tickler] )) && source <(tickler completion zsh)
