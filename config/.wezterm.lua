@@ -245,8 +245,9 @@ if is_nightly then
     config.text_min_contrast_ratio = 4.5
 end
 
--- Tab bar font size
+-- Tab bar font: JetBrains Mono ships with WezTerm, so it always resolves (the default is Roboto).
 config.window_frame = {
+    font = wezterm.font({ family = 'JetBrains Mono', weight = 'Bold' }),
     font_size = 10,
 }
 
