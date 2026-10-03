@@ -1,9 +1,16 @@
 local wezterm = require 'wezterm'
 local mux = wezterm.mux
 
+-- Behind-the-notch fullscreen only exists in nightly: the 20240203 stable rejects the key.
+local has_notch_fullscreen = wezterm.version > '20240203-110809-5046fc22'
+
 wezterm.on("gui-startup", function(cmd)
     local _, _, window = mux.spawn_window(cmd or {})
-    window:gui_window():maximize()
+    if has_notch_fullscreen then
+        window:gui_window():toggle_fullscreen()
+    else
+        window:gui_window():maximize()
+    end
 end)
 
 -- Right status : affiche l'heure avec couleurs Tokyo Night
@@ -31,6 +38,11 @@ config.window_background_opacity = 0.85
 config.macos_window_background_blur = 30
 config.window_decorations = 'RESIZE'
 config.window_padding = { left = 0, right = 0, top = 0, bottom = 0 }
+if has_notch_fullscreen then
+    -- Native fullscreen must stay off, the notch option is ignored with it.
+    config.native_macos_fullscreen_mode = false
+    config.macos_fullscreen_extend_behind_notch = true
+end
 
 -- Fonts
 config.window_frame = {
@@ -64,6 +76,7 @@ end
 
 config.keys = {
     { key = 'm', mods = 'CMD', action = wezterm.action.DisableDefaultAssignment },
+    { key = 'f', mods = 'CMD|CTRL', action = wezterm.action.ToggleFullScreen },
 
     resizePane('LeftArrow', 'Left'),
     resizePane('RightArrow', 'Right'),
