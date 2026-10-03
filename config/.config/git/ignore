@@ -18,3 +18,7 @@
 *.swp
 *.swo
 *~
+
+# Python
+__pycache__/
+*.py[co]
