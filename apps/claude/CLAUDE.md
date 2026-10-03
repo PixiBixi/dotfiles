@@ -55,7 +55,7 @@ The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-ve
 - **Signed commits, always**: `commit.gpgsign` and `tag.gpgsign` are true globally, with an SSH key (`~/.ssh/signing_gitlab`, registered on GitHub and GitLab despite its name). Every commit must come out `G` in `git log --format="%h %G?"`. A repo carrying a local `commit.gpgsign=false`, or commits already made unsigned, gets repaired with `git rebase --exec "git commit --amend --no-edit -S --quiet" <base>`, never with `git reset --hard`
 - **Author identity is per repo**: there is deliberately no global `user.email`. Set it on the repo before the first commit: `PixiBixi@users.noreply.github.com` for anything public, the Equativ address for internal GitLab. Never put the work email on a public commit
 - **Before pushing, opening an MR/PR, or merging**: rebase on the target branch
-- **MR/PR**: update the description after adding commits (`glab mr update`); output the URL in the response and copy it with `echo "<url>" | pbcopy`. After opening an MR, or rolling out a change that should move performance or cost, offer the follow-up reminder in one line (`reminders` skill)
+- **MR/PR**: update the description after adding commits (`glab mr update`); output the URL in the response and copy it with `echo "<url>" | pbcopy`. After opening an MR, or rolling out a change that should move performance or cost, offer the follow-up reminder in one line (`tickler` skill)
 
 ## Validation & Safety
 
