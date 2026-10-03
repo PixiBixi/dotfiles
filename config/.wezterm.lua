@@ -1,7 +1,7 @@
 local wezterm = require 'wezterm'
 local mux = wezterm.mux
 
--- Notch fullscreen, contrast and alignment options only exist in nightly: the 20240203 stable rejects them.
+-- Several options below only exist in nightly: the 20240203 stable rejects them.
 local is_nightly = wezterm.version > '20240203-110809-5046fc22'
 
 wezterm.on("gui-startup", function(cmd)
@@ -12,6 +12,24 @@ wezterm.on("gui-startup", function(cmd)
         window:gui_window():maximize()
     end
 end)
+
+-- New window in the same state as the current one (notch fullscreen or maximized).
+-- The GUI window shows up shortly after the mux window, hence the bounded retry.
+local function spawn_window_like_current(window, _)
+    local fullscreen = window:get_dimensions().is_full_screen
+    local _, _, mux_window = mux.spawn_window {}
+    local attempts = 0
+    local function apply()
+        local gui = mux_window:gui_window()
+        if not gui then
+            attempts = attempts + 1
+            if attempts < 20 then wezterm.time.call_after(0.05, apply) end
+            return
+        end
+        if fullscreen then gui:toggle_fullscreen() else gui:maximize() end
+    end
+    apply()
+end
 
 -- Right status: clock in Tokyo Night colors
 wezterm.on('update-status', function(window, _)
@@ -25,20 +43,39 @@ wezterm.on('update-status', function(window, _)
     })
 end)
 
--- Highlight inactive tabs where any pane reports progress (OSC 9;4), e.g. a working Claude session.
+-- Claude Code prefixes its title with a status glyph: '✳' when idle, a spinner frame while working.
+local function split_claude_glyph(title)
+    local glyph, rest = title:match('^([\128-\255]+)%s+(.*)$')
+    return glyph, rest or title
+end
+
+local function cwd_basename(pane)
+    local cwd = pane.current_working_dir
+    local path = cwd and (cwd.file_path or tostring(cwd)) or ''
+    return path:gsub('/$', ''):match('([^/]+)$') or path
+end
+
+-- Inactive tabs turn yellow while any of their panes works: OSC 9;4 progress or a Claude spinner.
 -- The default tab bar only looks at the active pane of each tab.
 wezterm.on('format-tab-title', function(tab, _, _, _, _, max_width)
-    local busy, failed = false, false
+    local busy, failed, shown = false, false, tab.active_pane
     for _, p in ipairs(tab.panes) do
         local progress = p.progress or 'None'
+        local glyph = split_claude_glyph(p.title)
         if type(progress) == 'table' and progress.Error then
             failed = true
-        elseif progress ~= 'None' then
+        elseif progress ~= 'None' or (glyph and glyph ~= '✳') then
+            -- Name the tab after the first working pane, not the focused one.
+            if not busy then shown = p end
             busy = true
         end
     end
-    local title = tab.tab_title ~= '' and tab.tab_title or tab.active_pane.title
-    title = wezterm.truncate_right(string.format(' %d: %s ', tab.tab_index + 1, title), max_width)
+    local _, title = split_claude_glyph(tab.tab_title ~= '' and tab.tab_title or shown.title)
+    -- An unnamed Claude session is just titled 'claude': show where it runs instead.
+    if title == 'claude' then
+        title = 'claude:' .. cwd_basename(shown)
+    end
+    title = wezterm.truncate_right(string.format(' %d: %s%s ', tab.tab_index + 1, busy and '● ' or '', title), max_width)
     if tab.is_active or not (busy or failed) then
         return title
     end
@@ -87,6 +124,11 @@ config.check_for_updates = false
 -- Tab bar
 config.tab_bar_at_bottom = true
 config.hide_tab_bar_if_only_one_tab = true
+config.tab_max_width = 32
+config.show_new_tab_button_in_tab_bar = false
+if is_nightly then
+    config.show_close_tab_button_in_tabs = false
+end
 
 -- Leader: OPT+b (avoids clashing with tmux Ctrl+b)
 config.leader = { key = "b", mods = "OPT", timeout_milliseconds = 1000 }
@@ -105,6 +147,7 @@ end
 config.keys = {
     { key = 'm', mods = 'CMD', action = wezterm.action.DisableDefaultAssignment },
     { key = 'f', mods = 'CMD|CTRL', action = wezterm.action.ToggleFullScreen },
+    { key = 'n', mods = 'CMD', action = wezterm.action_callback(spawn_window_like_current) },
 
     resizePane('LeftArrow', 'Left'),
     resizePane('RightArrow', 'Right'),
