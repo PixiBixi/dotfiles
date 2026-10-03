@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""Recreate WezTerm tabs, splits and Claude sessions from the snapshot written by .wezterm.lua.
+
+Run it from a shell inside the freshly started WezTerm: tabs land in the current window, extra
+windows are opened next to it, and every pane that ran Claude resumes its own session.
+"""
+
+import argparse
+import json
+import os
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+WEZTERM = "/opt/homebrew/bin/wezterm"
+STATE_DIR = Path.home() / ".local/state/wezterm"
+DEFAULT_SNAPSHOT = STATE_DIR / "layout-last-session.json"
+
+
+def cli(*args: str, dry_run: bool = False) -> str:
+    cmd = [WEZTERM, "cli", "--no-auto-start", *args]
+    if dry_run:
+        print("  " + shlex.join(cmd[1:]))
+        return "<new>"
+    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def running_claude_sessions() -> set[str]:
+    """Sessions still alive in some process: resuming them would make two writers on one transcript."""
+    alive = set()
+    for f in (Path.home() / ".claude/sessions").glob("*.json"):
+        try:
+            data = json.loads(f.read_text())
+            os.kill(int(data["pid"]), 0)
+            alive.add(data["sessionId"])
+        except (OSError, ValueError, KeyError):
+            continue
+    return alive
+
+
+def split_tree(panes: list[dict]):
+    """Rebuild the split tree from pane rectangles: find a cut no pane straddles, recurse on both sides."""
+    if len(panes) == 1:
+        return panes[0]
+    for axis, size in (("left", "width"), ("top", "height")):
+        lo = min(p[axis] for p in panes)
+        hi = max(p[axis] + p[size] for p in panes)
+        for cut in sorted({p[axis] for p in panes if p[axis] > lo}):
+            if all(p[axis] >= cut or p[axis] + p[size] <= cut for p in panes):
+                first = [p for p in panes if p[axis] < cut]
+                second = [p for p in panes if p[axis] >= cut]
+                percent = round((hi - cut) * 100 / (hi - lo))
+                direction = "--right" if axis == "left" else "--bottom"
+                return (direction, percent, split_tree(first), split_tree(second))
+    raise ValueError(f"cannot rebuild the split layout of {[p['title'] for p in panes]}")
+
+
+def first_leaf(node) -> dict:
+    return node if isinstance(node, dict) else first_leaf(node[2])
+
+
+def build(node, pane_id: str, opts, alive: set[str]) -> None:
+    if isinstance(node, dict):
+        session = node.get("claude_session")
+        if not session or opts.no_claude:
+            return
+        if session in alive:
+            print(f"  skip {session}: already running elsewhere", file=sys.stderr)
+            return
+        cli("send-text", "--pane-id", pane_id, "--no-paste", f"claude --resume {session}\n", dry_run=opts.dry_run)
+        return
+    direction, percent, first, second = node
+    new = cli("split-pane", direction, "--percent", str(percent), "--pane-id", pane_id,
+              "--cwd", first_leaf(second)["cwd"], dry_run=opts.dry_run)
+    build(first, pane_id, opts, alive)
+    build(second, new, opts, alive)
+
+
+def restore(snapshot: dict, opts) -> None:
+    alive = running_claude_sessions()
+    current_window = None
+    if not opts.dry_run:
+        panes = json.loads(cli("list", "--format", "json"))
+        current_window = next(str(p["window_id"]) for p in panes if str(p["pane_id"]) == os.environ["WEZTERM_PANE"])
+
+    for w, window in enumerate(snapshot["windows"]):
+        window_id = current_window
+        for t, tab in enumerate(window["tabs"]):
+            tree = split_tree(tab["panes"])
+            cwd = first_leaf(tree)["cwd"]
+            if w > 0 and t == 0:
+                root = cli("spawn", "--new-window", "--cwd", cwd, dry_run=opts.dry_run)
+                if not opts.dry_run:
+                    window_id = next(str(p["window_id"]) for p in json.loads(cli("list", "--format", "json"))
+                                     if str(p["pane_id"]) == root)
+            else:
+                target = ["--window-id", window_id] if window_id else []
+                root = cli("spawn", *target, "--cwd", cwd, dry_run=opts.dry_run)
+            build(tree, root, opts, alive)
+
+
+def prompt(snapshot: dict, opts) -> int:
+    """Startup mode: offer the restore, then close this pane on success or fall back to a login shell."""
+    panes = [p for w in snapshot["windows"] for t in w["tabs"] for p in t["panes"]]
+    tabs = sum(len(w["tabs"]) for w in snapshot["windows"])
+    sessions = sum(1 for p in panes if p.get("claude_session"))
+    try:
+        answer = input(f"Restore {tabs} tabs, {len(panes)} panes and {sessions} Claude sessions "
+                       f"from {snapshot.get('saved_at', '?')}? [y/N] ").strip().lower()
+        if answer in ("y", "yes", "o", "oui"):
+            restore(snapshot, opts)
+            return 0
+    except (EOFError, KeyboardInterrupt):
+        print()
+    except Exception as exc:  # a failed restore must still leave a usable shell
+        print(f"restore failed: {exc}", file=sys.stderr)
+    shell = os.environ.get("SHELL", "/bin/zsh")
+    os.execv(shell, [shell, "-l"])
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("snapshot", nargs="?", type=Path, default=DEFAULT_SNAPSHOT,
+                        help=f"layout file (default: {DEFAULT_SNAPSHOT}; current: {STATE_DIR}/layout.json; older: {STATE_DIR}/history/)")
+    parser.add_argument("--dry-run", action="store_true", help="print the wezterm commands without running them")
+    parser.add_argument("--no-claude", action="store_true", help="recreate the layout without resuming Claude sessions")
+    parser.add_argument("--prompt", action="store_true", help="ask first, close this pane after a restore, else start a shell (used at WezTerm startup)")
+    opts = parser.parse_args()
+
+    # A claude started from a Claude session inherits CLAUDE_CODE_CHILD_SESSION and stops saving transcripts.
+    if any(k in os.environ for k in ("CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_SESSION_ID")):
+        print("refusing to run from a Claude session: resumed sessions would not save their transcript", file=sys.stderr)
+        return 1
+    if "WEZTERM_PANE" not in os.environ and not opts.dry_run:
+        print("run this from a shell inside WezTerm", file=sys.stderr)
+        return 1
+
+    snapshot = json.loads(opts.snapshot.read_text())
+    if opts.prompt:
+        return prompt(snapshot, opts)
+    print(f"restoring {opts.snapshot} (saved {snapshot.get('saved_at', '?')})")
+    restore(snapshot, opts)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

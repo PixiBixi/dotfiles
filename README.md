@@ -54,6 +54,7 @@ dotfiles/
 │   │       ├── tg-run           # Runner Terragrunt à sortie lisible
 │   │       ├── helm-charts-update # Charts Helm locaux passés à la dernière version
 │   │       ├── wezterm-pane-picker # Sélecteur fzf des panes WezTerm (Cmd+P)
+│   │       ├── wezterm-restore  # Restauration des onglets et sessions Claude WezTerm
 │   │       └── slack-restart.sh # Redémarrage nocturne de Slack
 │   └── Library/
 │       └── LaunchAgents/        # Agents launchd, rendus depuis __HOME__
@@ -390,6 +391,15 @@ Version nightly (`wezterm@nightly`) : le plein écran derrière l'encoche et plu
 | `Ctrl+K` (dans le sélecteur) | Efface la saisie après le curseur |
 
 Un onglet inactif passe en jaune avec un `●` quand une de ses panes travaille (session Claude en cours ou progression OSC 9;4).
+
+La config sauvegarde la disposition (onglets, splits, dossiers, ID de session Claude) dans `~/.local/state/wezterm/layout.json` à chaque changement, avec 10 versions dans `history/`. Au démarrage, WezTerm propose de restaurer la session précédente.
+
+| Commande | Effet |
+| ------ | ------- |
+| `wezterm-restore` | Restaure la session précédente (`layout-last-session.json`) dans la fenêtre courante |
+| `wezterm-restore ~/.local/state/wezterm/history/layout-<date>.json` | Restaure une sauvegarde plus ancienne |
+| `wezterm-restore --dry-run` | Affiche les commandes sans rien ouvrir |
+| `wezterm-restore --no-claude` | Recrée les onglets sans relancer les sessions Claude |
 
 ### Markdownlint
 

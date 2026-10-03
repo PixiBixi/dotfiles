@@ -4,15 +4,6 @@ local mux = wezterm.mux
 -- Several options below only exist in nightly: the 20240203 stable rejects them.
 local is_nightly = wezterm.version > '20240203-110809-5046fc22'
 
-wezterm.on("gui-startup", function(cmd)
-    local _, _, window = mux.spawn_window(cmd or {})
-    if is_nightly then
-        window:gui_window():toggle_fullscreen()
-    else
-        window:gui_window():maximize()
-    end
-end)
-
 -- New window in the same state as the current one (notch fullscreen or maximized).
 -- The GUI window shows up shortly after the mux window, hence the bounded retry.
 local function spawn_window_like_current(window, _)
@@ -53,6 +44,122 @@ local function cwd_basename(cwd)
     local path = cwd and (cwd.file_path or tostring(cwd)) or ''
     return path:gsub('/$', ''):match('([^/]+)$') or path
 end
+
+-- Layout snapshot for ~/.local/bin/wezterm-restore. WezTerm has no pane created/closed event, so
+-- update-status (about every second) fingerprints the layout and writes only when it changed.
+local STATE_DIR = wezterm.home_dir .. '/.local/state/wezterm'
+local LAYOUT_FILE = STATE_DIR .. '/layout.json'
+local LAYOUT_HISTORY = 10
+local CLAUDE_REFRESH_SECONDS = 30
+wezterm.run_child_process { 'mkdir', '-p', STATE_DIR .. '/history' }
+
+-- The Claude session behind a pane, from the file Claude Code keeps per process.
+local function claude_session(pane)
+    local info = pane:get_foreground_process_info()
+    if not info then return nil end
+    -- The binary is ~/.local/share/claude/versions/<version>: match argv[0], not the executable name.
+    local arg0 = ((info.argv or {})[1] or ''):match('[^/]*$')
+    if not arg0:match('^claude') and not (info.executable or ''):find('/claude/versions/', 1, true) then return nil end
+    local f = io.open(string.format('%s/.claude/sessions/%d.json', wezterm.home_dir, info.pid))
+    if not f then return nil end
+    local ok, data = pcall(wezterm.serde.json_decode, f:read('a'))
+    f:close()
+    return ok and data.sessionId or nil
+end
+
+local function write_file(path, content)
+    local f = io.open(path, 'w')
+    if f then f:write(content) f:close() end
+end
+
+local function read_file(path)
+    local f = io.open(path)
+    if not f then return nil end
+    local content = f:read('a')
+    f:close()
+    return content
+end
+
+local function save_layout(json)
+    local previous = read_file(LAYOUT_FILE)
+    if previous then
+        write_file(string.format('%s/history/layout-%s.json', STATE_DIR, os.date('%Y%m%d-%H%M%S')), previous)
+        local old = wezterm.glob(STATE_DIR .. '/history/layout-*.json')
+        table.sort(old)
+        for i = 1, #old - LAYOUT_HISTORY do os.remove(old[i]) end
+    end
+    write_file(LAYOUT_FILE, json)
+end
+
+wezterm.on('update-status', function()
+    if not is_nightly then return end
+    local g = wezterm.GLOBAL
+    local now = os.time()
+    local refresh_claude = now - (g.claude_refreshed_at or 0) >= CLAUDE_REFRESH_SECONDS
+    local known, sessions = g.claude_sessions or {}, {}
+    local windows, keys, count = {}, {}, 0
+    for _, mw in ipairs(wezterm.mux.all_windows()) do
+        local tabs = {}
+        for _, tab in ipairs(mw:tabs()) do
+            local panes = {}
+            for _, p in ipairs(tab:panes_with_info()) do
+                local id = tostring(p.pane:pane_id())
+                if refresh_claude then sessions[id] = claude_session(p.pane) else sessions[id] = known[id] end
+                local cwd = p.pane:get_current_working_dir()
+                table.insert(panes, {
+                    left = p.left, top = p.top, width = p.width, height = p.height,
+                    cwd = cwd and cwd.file_path or wezterm.home_dir,
+                    title = p.pane:get_title(), claude_session = sessions[id],
+                })
+                table.insert(keys, string.format('%s:%d,%d,%dx%d:%s', id, p.left, p.top, p.width, p.height, sessions[id] or ''))
+                count = count + 1
+            end
+            table.insert(tabs, { panes = panes })
+            table.insert(keys, '|')
+        end
+        table.insert(windows, { tabs = tabs })
+        table.insert(keys, '#')
+    end
+    g.claude_sessions = sessions
+    if refresh_claude then g.claude_refreshed_at = now end
+    local fingerprint = table.concat(keys)
+    if count == 0 or fingerprint == g.layout_fingerprint then return end
+    g.layout_fingerprint = fingerprint
+    local json = wezterm.serde.json_encode { saved_at = os.date('!%Y-%m-%dT%H:%M:%SZ'), windows = windows }
+    -- Panes may close one by one on quit or reboot: a snapshot that lost over half of them goes aside
+    -- instead of overwriting the good one, unless it holds for a minute (a deliberate cleanup).
+    local previous = g.layout_pane_count or 0
+    if previous > 2 and count < previous / 2 then
+        g.layout_partial_since = g.layout_partial_since or now
+        if now - g.layout_partial_since < 60 then
+            write_file(STATE_DIR .. '/layout-partial.json', json)
+            g.layout_fingerprint = nil
+            return
+        end
+    end
+    g.layout_partial_since = nil
+    save_layout(json)
+    g.layout_pane_count = count
+end)
+
+-- Startup: keep the previous session's final layout before the new window overwrites it, and when
+-- it exists, open the first tab on wezterm-restore --prompt, which offers to bring it all back.
+wezterm.on('gui-startup', function(cmd)
+    local spawn = cmd or {}
+    local last = read_file(LAYOUT_FILE)
+    if last then
+        write_file(STATE_DIR .. '/layout-last-session.json', last)
+        if not spawn.args then
+            spawn = { args = { '/opt/homebrew/bin/python3', wezterm.home_dir .. '/.local/bin/wezterm-restore', '--prompt' } }
+        end
+    end
+    local _, _, window = mux.spawn_window(spawn)
+    if is_nightly then
+        window:gui_window():toggle_fullscreen()
+    else
+        window:gui_window():maximize()
+    end
+end)
 
 -- Inactive tabs turn yellow while any of their panes works: OSC 9;4 progress or a Claude spinner.
 -- The default tab bar only looks at the active pane of each tab.
