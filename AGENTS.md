@@ -118,6 +118,7 @@ Skills owned by their own installer are **never** vendored here, only the proven
 | Skill | Installer |
 |-------|-----------|
 | `ansible-*`, `archify`, `gcx` and its 23 sibling skills, `golang-*`, `hallmark`, `humanizer`, `linkedin-best-practices-2026`, `python3-development`, `retro`, `security-audit`, `terragrunt-generator` | `npx skillfish install --global` from `packages/skillfish.json` |
+| `tickler` | `tickler skill install` (cask `pixibixi/tap/tickler`, installs the skill matching the CLI version) |
 | `ui-ux-pro-max` | `uipro init --ai claude --global` (npm `ui-ux-pro-max-cli`) |
 | `seo` | `Bhanunamikaze/Agentic-SEO-Skill` `install.sh --target claude` (also deploys the `seo-*` agents to `~/.claude/agents/`) |
 

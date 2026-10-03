@@ -474,6 +474,17 @@ install_claude_skills() {
         log_warning "packages/skillfish.json not found, skipping skillfish skills"
     fi
 
+    # tickler: the CLI from the pixibixi/tap cask installs the skill of its own version
+    if command -v tickler &> /dev/null; then
+        if tickler skill install; then
+            log_success "tickler skill installed"
+        else
+            log_warning "tickler skill install failed (an edited skill needs: tickler skill install --force)"
+        fi
+    else
+        log_warning "tickler not found (cask pixibixi/tap/tickler), skipping the tickler skill"
+    fi
+
     # ui-ux-pro-max: shipped by the ui-ux-pro-max-cli npm package (binary: uipro)
     if command -v uipro &> /dev/null; then
         if uipro init --ai claude --global; then
