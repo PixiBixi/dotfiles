@@ -245,9 +245,8 @@ if is_nightly then
     config.text_min_contrast_ratio = 4.5
 end
 
--- Fonts
+-- Tab bar font size
 config.window_frame = {
-    font = wezterm.font({ family = 'Berkeley Mono', weight = 'Bold' }),
     font_size = 10,
 }
 
