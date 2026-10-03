@@ -53,6 +53,7 @@ dotfiles/
 │   │   └── bin/                 # Commandes déployées sur le $PATH
 │   │       ├── tg-run           # Runner Terragrunt à sortie lisible
 │   │       ├── helm-charts-update # Charts Helm locaux passés à la dernière version
+│   │       ├── wezterm-pane-picker # Sélecteur fzf des panes WezTerm (Cmd+P)
 │   │       └── slack-restart.sh # Redémarrage nocturne de Slack
 │   └── Library/
 │       └── LaunchAgents/        # Agents launchd, rendus depuis __HOME__
@@ -377,6 +378,18 @@ mkdir -p ~/.ssh/private
 ```bash
 vim ~/.wezterm.lua
 ```
+
+Version nightly (`wezterm@nightly`) : le plein écran derrière l'encoche et plusieurs options n'existent pas dans la stable de 2024.
+
+| Raccourci | Effet |
+| ------ | ------- |
+| `Ctrl+Cmd+F` | Plein écran derrière l'encoche (pas le plein écran natif macOS) |
+| `Cmd+N` | Nouvelle fenêtre dans le même état que la fenêtre courante |
+| `Cmd+P` | Sélecteur fzf de toutes les panes (`wezterm-pane-picker`), avec aperçu |
+| `Ctrl+F` (dans le sélecteur) | Bascule entre recherche par titre et recherche dans le contenu des panes |
+| `Ctrl+K` (dans le sélecteur) | Efface la saisie après le curseur |
+
+Un onglet inactif passe en jaune avec un `●` quand une de ses panes travaille (session Claude en cours ou progression OSC 9;4).
 
 ### Markdownlint
 

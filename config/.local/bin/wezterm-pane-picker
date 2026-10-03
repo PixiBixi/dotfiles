@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# fzf picker over every pane of the current WezTerm window, run by Cmd+P in .wezterm.lua.
+# Ctrl+F toggles between matching pane titles and searching pane contents (scrollback included).
+#
+# Usage: wezterm-pane-picker <list> <start position>   (list lines: tab_id \t pane_id \t path \t display)
+#        wezterm-pane-picker preview <pane_id> [line]  (internal, called by fzf)
+#        wezterm-pane-picker search <query>            (internal, called by fzf)
+#        wezterm-pane-picker toggle                    (internal, called by fzf)
+set -euo pipefail
+
+# Absolute paths: the WezTerm GUI may run with a minimal PATH.
+FZF=/opt/homebrew/bin/fzf
+WEZTERM=/opt/homebrew/bin/wezterm
+SELF="${BASH_SOURCE[0]}"
+SCROLLBACK=3000
+TITLE_PROMPT='panes > '
+CONTENT_PROMPT='content > '
+TITLE_PREVIEW_WINDOW='right,65%,border-left,wrap,follow'
+CONTENT_PREVIEW_WINDOW='right,65%,border-left,nowrap,+{5}-/2'
+
+# get-text --escapes pads lines to the pane width with spaces and color codes, ends them with \r,
+# and writes colors as '38:2::r:g:b', which fzf does not parse. Clean all of it, squeeze blank lines
+# and, for Claude panes, drop the input box and footer below the last prompt.
+TAIL_AWK='
+BEGIN { esc = sprintf("%c", 27); re = esc "\\[[0-9;:]*[A-Za-z]" }
+function sgr(s,   out, seq) {
+    out = ""
+    while (match(s, re)) {
+        seq = substr(s, RSTART, RLENGTH); gsub(/::/, ";", seq); gsub(/:/, ";", seq)
+        out = out substr(s, 1, RSTART - 1) seq; s = substr(s, RSTART + RLENGTH)
+    }
+    return out s
+}
+function rtrim(s,   n) {
+    do { n = length(s); sub(/[ \t]+$/, "", s); sub(esc "\\[[0-9;]*m$", "", s) } while (length(s) < n)
+    return s
+}
+{ gsub(/\r/, ""); t = $0; gsub(re, "", t); sub(/[ \t]+$/, "", t); txt[++c] = t; raw[c] = rtrim(sgr($0)); if (t ~ /^❯/) p = c }
+END {
+    e = p ? p - 2 : c
+    while (e > 0 && txt[e] == "") e--
+    for (i = 1; i <= e; i++) if (txt[i] != "" || txt[i-1] != "") print (txt[i] == "" ? "" : raw[i]) esc "[0m"
+}'
+
+pane_text() {
+    "$WEZTERM" cli get-text --pane-id "$1" --start-line "-$SCROLLBACK" | tr -d '\r' | sed 's/[[:space:]]*$//'
+}
+
+cmd_preview() {
+    local pane="$1" line="${2:-}"
+    if [[ -z "$line" ]]; then
+        "$WEZTERM" cli get-text --escapes --pane-id "$pane" | awk "$TAIL_AWK"
+    else
+        pane_text "$pane" | awk -v n="$line" 'NR == n { printf "\033[7m%s\033[0m\n", $0; next } 1'
+    fi
+}
+
+# One result per matching line: the pane's list line, then the match, then its line number for the preview.
+cmd_search() {
+    local query="$1" tab pane path display
+    [[ ${#query} -lt 2 ]] && return 0
+    while IFS=$'\t' read -r tab pane path display; do
+        { pane_text "$pane" | grep -n -i -F -- "$query" || true; } | tail -n 20 | while IFS=: read -r line text; do
+            text="${text#"${text%%[![:space:]]*}"}"
+            printf '%s\t%s\t%s\t%s  \033[38;2;86;95;137m│\033[0m %s\t%s\n' "$tab" "$pane" "$path" "$display" "${text:0:160}" "$line"
+        done
+    done < "$PICKER_LIST"
+}
+
+cmd_toggle() {
+    if [[ "${FZF_PROMPT:-}" == "$TITLE_PROMPT" ]]; then
+        echo "rebind(change)+change-prompt($CONTENT_PROMPT)+disable-search+clear-query+reload(true)+change-preview($SELF preview {2} {5})+change-preview-window($CONTENT_PREVIEW_WINDOW)"
+    else
+        echo "unbind(change)+change-prompt($TITLE_PROMPT)+enable-search+clear-query+reload(cat $PICKER_LIST)+change-preview($SELF preview {2})+change-preview-window($TITLE_PREVIEW_WINDOW)"
+    fi
+}
+
+cmd_pick() {
+    local list="$1" pos="${2:-1}" tab pane
+    PICKER_LIST="$(mktemp -t wezterm-pane-picker)"
+    export PICKER_LIST
+    trap 'rm -f "$PICKER_LIST"' EXIT
+    printf '%s\n' "$list" > "$PICKER_LIST"
+
+    local selection
+    selection="$("$FZF" --ansi --delimiter='\t' --with-nth=4 --layout=reverse --no-sort \
+        --prompt="$TITLE_PROMPT" --pointer='▌' --info=inline-right --no-scrollbar --cycle \
+        --color='bg+:#283457,fg:#a9b1d6,fg+:#c0caf5,hl:#ff9e64,hl+:#ff9e64,info:#545c7e,prompt:#7dcfff,pointer:#7aa2f7,border:#3b4261,label:#7aa2f7,gutter:-1' \
+        --header='ctrl-f: titles / content' --header-first \
+        --bind="start:unbind(change)" \
+        --bind="load:pos($pos)+unbind(load)" \
+        --bind="change:reload:sleep 0.15; $SELF search {q} || true" \
+        --bind="ctrl-f:transform:$SELF toggle" \
+        --bind="ctrl-k:kill-line" \
+        --bind='focus:transform-preview-label:printf " %s " {3}' \
+        --preview="$SELF preview {2}" \
+        --preview-window="$TITLE_PREVIEW_WINDOW" --preview-wrap-sign='  ' \
+        < "$PICKER_LIST")" || return 0
+
+    IFS=$'\t' read -r tab pane _ <<< "$selection"
+    "$WEZTERM" cli activate-tab --tab-id "$tab"
+    "$WEZTERM" cli activate-pane --pane-id "$pane"
+}
+
+case "${1:-}" in
+    preview) shift && cmd_preview "$@" ;;
+    search) shift && cmd_search "${1:-}" ;;
+    toggle) cmd_toggle ;;
+    *) cmd_pick "$@" ;;
+esac

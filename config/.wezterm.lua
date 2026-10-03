@@ -49,8 +49,7 @@ local function split_claude_glyph(title)
     return glyph, rest or title
 end
 
-local function cwd_basename(pane)
-    local cwd = pane.current_working_dir
+local function cwd_basename(cwd)
     local path = cwd and (cwd.file_path or tostring(cwd)) or ''
     return path:gsub('/$', ''):match('([^/]+)$') or path
 end
@@ -73,7 +72,7 @@ wezterm.on('format-tab-title', function(tab, _, _, _, _, max_width)
     local _, title = split_claude_glyph(tab.tab_title ~= '' and tab.tab_title or shown.title)
     -- An unnamed Claude session is just titled 'claude': show where it runs instead.
     if title == 'claude' then
-        title = 'claude:' .. cwd_basename(shown)
+        title = 'claude:' .. cwd_basename(shown.current_working_dir)
     end
     title = wezterm.truncate_right(string.format(' %d: %s%s ', tab.tab_index + 1, busy and '● ' or '', title), max_width)
     if tab.is_active or not (busy or failed) then
@@ -85,6 +84,36 @@ wezterm.on('format-tab-title', function(tab, _, _, _, _, max_width)
         { Text = title },
     }
 end)
+
+-- Pane picker (Cmd+P): fzf in a zoomed split of the current tab, see ~/.local/bin/wezterm-pane-picker.
+local ESC = string.char(27)
+local function ansi(color, text) return ESC .. '[' .. color .. 'm' .. text .. ESC .. '[0m' end
+
+local function pick_tab(window, pane)
+    local lines, current = {}, 1
+    local home = os.getenv('HOME') or ''
+    for _, t in ipairs(window:mux_window():tabs_with_info()) do
+        for _, p in ipairs(t.tab:panes()) do
+            local glyph, title = split_claude_glyph(p:get_title())
+            local cwd = p:get_current_working_dir()
+            local path = cwd and (cwd.file_path or tostring(cwd)) or ''
+            if title == 'claude' then
+                title = 'claude:' .. cwd_basename(cwd)
+            end
+            local mark = glyph == nil and '  ' or glyph == '✳' and ansi('38;2;86;95;137', '✳ ') or ansi('38;2;224;175;104', '● ')
+            table.insert(lines, string.format('%d\t%d\t%s\t%s %s%s  %s', t.tab:tab_id(), p:pane_id(), path:gsub('^' .. home, '~'),
+                ansi('38;2;122;162;247', string.format('%2d', t.index + 1)), mark, title, ansi('38;2;86;95;137', cwd_basename(cwd))))
+            if p:pane_id() == pane:pane_id() then current = #lines end
+        end
+    end
+    -- Zoomed so the picker fills the tab; the zoom goes away with the picker pane.
+    local picker = pane:split {
+        direction = 'Bottom',
+        args = { home .. '/.local/bin/wezterm-pane-picker', table.concat(lines, '\n'), tostring(current) },
+    }
+    picker:activate()
+    picker:tab():set_zoomed(true)
+end
 
 local config = wezterm.config_builder()
 
@@ -148,6 +177,7 @@ config.keys = {
     { key = 'm', mods = 'CMD', action = wezterm.action.DisableDefaultAssignment },
     { key = 'f', mods = 'CMD|CTRL', action = wezterm.action.ToggleFullScreen },
     { key = 'n', mods = 'CMD', action = wezterm.action_callback(spawn_window_like_current) },
+    { key = 'p', mods = 'CMD', action = wezterm.action_callback(pick_tab) },
 
     resizePane('LeftArrow', 'Left'),
     resizePane('RightArrow', 'Right'),
