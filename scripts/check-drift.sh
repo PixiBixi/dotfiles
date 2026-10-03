@@ -258,6 +258,69 @@ else
     done <<< "${registered}"
 fi
 
+# ── apps/claude/settings.json → Claude Code plugins ───────────────────────
+# Safety net for install_claude_plugins: settings.json is the only plugin list,
+# so an enabled plugin it does not declare is lost on the next machine.
+echo
+printf "${BOLD}apps/claude/settings.json → Claude Code plugins${NC}\n"
+
+settings_file="${REPO_DIR}/apps/claude/settings.json"
+claude_bin="$(command -v claude || echo "${HOME}/.local/bin/claude")"
+
+if [[ ! -x "${claude_bin}" ]] || ! command -v jq &> /dev/null; then
+    printf "  ${DIM}~ SKIP       ${NC}  %-45s  ${DIM}[claude or jq not installed]${NC}\n" \
+        "Claude Code plugins"
+else
+    known_mps="$("${claude_bin}" plugin marketplace list --json 2> /dev/null | jq -r '.[].name')"
+    declared_mps="$(jq -r '.extraKnownMarketplaces // {} | keys[]' "${settings_file}")"
+    installed_plugins="$("${claude_bin}" plugin list --json 2> /dev/null \
+        | jq -r '.[] | select(.scope == "user" and (.id | endswith("@skills-dir") | not))
+            | "\(.id)\t\(.enabled)"')"
+    declared_plugins="$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "${settings_file}")"
+
+    while read -r mp; do
+        [[ -n "${mp}" ]] || continue
+        if grep -qxF "${mp}" <<< "${known_mps}"; then
+            printf "  ${GREEN}✓ OK        ${NC}  %-45s  ${CYAN}[marketplace]${NC}\n" "marketplace ${mp}"
+            ((ok++)) || true
+        else
+            printf "  ${RED}✗ NOT ADDED ${NC}  %-45s  [scripts/init_mac.sh --only claude-plugins]\n" \
+                "marketplace ${mp}"
+            ((err++)) || true
+        fi
+    done <<< "${declared_mps}"
+
+    # claude-plugins-official is built in, never declared
+    while read -r mp; do
+        [[ -z "${mp}" || "${mp}" == "claude-plugins-official" ]] && continue
+        grep -qxF "${mp}" <<< "${declared_mps}" && continue
+        printf "  ${YELLOW}⚠ ORPHAN    ${NC}  %-45s  [added, absent from extraKnownMarketplaces]\n" \
+            "marketplace ${mp}"
+        ((warn++)) || true
+    done <<< "${known_mps}"
+
+    while read -r id; do
+        [[ -n "${id}" ]] || continue
+        if grep -q "^${id}"$'\t' <<< "${installed_plugins}"; then
+            printf "  ${GREEN}✓ OK        ${NC}  %-45s  ${CYAN}[plugin]${NC}\n" "plugin ${id}"
+            ((ok++)) || true
+        else
+            printf "  ${RED}✗ NOT INSTALLED${NC}  %-42s  [scripts/init_mac.sh --only claude-plugins]\n" \
+                "plugin ${id}"
+            ((err++)) || true
+        fi
+    done <<< "${declared_plugins}"
+
+    # Only an enabled orphan matters: a disabled one is inert and stays local on purpose
+    while IFS=$'\t' read -r id enabled; do
+        [[ -n "${id}" && "${enabled}" == "true" ]] || continue
+        grep -qxF "${id}" <<< "${declared_plugins}" && continue
+        printf "  ${YELLOW}⚠ ORPHAN    ${NC}  %-45s  [enabled, absent from enabledPlugins]\n" \
+            "plugin ${id}"
+        ((warn++)) || true
+    done <<< "${installed_plugins}"
+fi
+
 # ── Summary ────────────────────────────────────────────────────────────────
 echo
 printf "${BOLD}Summary:${NC}  ${GREEN}${ok} ok${NC}  ${YELLOW}${warn} warnings${NC}  ${RED}${err} errors${NC}\n"

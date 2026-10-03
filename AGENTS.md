@@ -71,6 +71,11 @@ It also checks the krew indexes from `packages/krew-indexes.txt` against `kubect
 - `WRONG URL` warns that the index name points somewhere else than the repo says.
 - `ORPHAN`: an index registered locally but absent from `krew-indexes.txt`, so it is lost on the next machine. Version it with `make update-krew-indexes`.
 
+It checks the Claude Code plugins against `apps/claude/settings.json`, the safety net for the `claude-plugins` step:
+
+- `NOT ADDED` / `NOT INSTALLED` is an **error**: a marketplace of `extraKnownMarketplaces` or an `enabledPlugins` entry missing locally. Fix with `scripts/init_mac.sh --only claude-plugins`.
+- `ORPHAN`: a marketplace added locally but not declared (`claude-plugins-official` is built in and skipped), or an **enabled** plugin absent from `enabledPlugins`. `equativ-plugins` is expected here: its private URL stays out of this public repo.
+
 ## init_mac.sh
 
 `scripts/init_mac.sh` is the single entrypoint for provisioning a new Mac. It uses two path variables:
