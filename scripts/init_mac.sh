@@ -59,6 +59,7 @@ STEPS=(
     "claude-code:install_claude_code"
     "claude:setup_claude"
     "claude-skills:install_claude_skills"
+    "claude-plugins:install_claude_plugins"
     "rtk:setup_rtk"
     "launchagents:setup_launchagents"
 )
@@ -501,6 +502,47 @@ install_claude_skills() {
     fi
 }
 
+# Install Claude Code plugins declared in settings.json (extraKnownMarketplaces +
+# enabledPlugins), so the list lives in one place. No --yes: a plugin whose
+# marketplace declares a command must be approved by hand, never blindly.
+install_claude_plugins() {
+    log_info "Installing Claude Code plugins..."
+
+    local settings="${REPO_DIR}/apps/claude/settings.json"
+    local claude_bin="${HOME}/.local/bin/claude"
+    if [[ ! -x "${claude_bin}" ]] || ! command -v jq &> /dev/null; then
+        log_warning "claude or jq not found, skipping Claude Code plugins"
+        return 0
+    fi
+
+    local known name source
+    known="$("${claude_bin}" plugin marketplace list --json 2> /dev/null | jq -r '.[].name')"
+    while IFS=$'\t' read -r name source; do
+        [[ -n "${name}" ]] || continue
+        if grep -qxF "${name}" <<< "${known}"; then
+            log_success "Marketplace ${name} already added"
+        elif "${claude_bin}" plugin marketplace add "${source}" &> /dev/null; then
+            log_success "Marketplace ${name} added"
+        else
+            log_warning "Marketplace ${name} (${source}) failed to add"
+        fi
+    done < <(jq -r '.extraKnownMarketplaces // {} | to_entries[]
+        | [.key, (.value.source | .repo // .url // .path // empty)] | @tsv' "${settings}")
+
+    local installed id
+    installed="$("${claude_bin}" plugin list --json 2> /dev/null | jq -r '.[].id')"
+    while read -r id; do
+        [[ -n "${id}" ]] || continue
+        if grep -qxF "${id}" <<< "${installed}"; then
+            log_success "Plugin ${id} already installed"
+        elif "${claude_bin}" plugin install "${id}" --scope user &> /dev/null; then
+            log_success "Plugin ${id} installed"
+        else
+            log_warning "Plugin ${id} failed to install (marketplace command to approve, or private repo)"
+        fi
+    done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "${settings}")
+}
+
 # Setup Neovim with Mason
 setup_neovim() {
     log_info "Setting up Neovim configuration..."
@@ -743,6 +785,7 @@ main() {
     run_step "claude-code" install_claude_code
     run_step "claude" setup_claude
     run_step "claude-skills" install_claude_skills
+    run_step "claude-plugins" install_claude_plugins
     run_step "rtk" setup_rtk
     run_step "launchagents" setup_launchagents
 
