@@ -304,6 +304,7 @@ setup_dotfiles() {
         "config/.config/git/ignore"
         "config/.local/bin/tg-run"
         "config/.local/bin/helm-charts-update"
+        "config/.local/bin/wezterm-pane-picker"
     )
 
     for src_rel in "${symlink_files[@]}"; do
