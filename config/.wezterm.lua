@@ -13,8 +13,8 @@ wezterm.on("gui-startup", function(cmd)
     end
 end)
 
--- Right status : affiche l'heure avec couleurs Tokyo Night
-wezterm.on('update-right-status', function(window, _)
+-- Right status: clock in Tokyo Night colors
+wezterm.on('update-status', function(window, _)
     window:set_right_status(wezterm.format {
         { Foreground = { Color = '#565f89' } },
         { Text = '  ' },
@@ -51,7 +51,7 @@ end)
 
 local config = wezterm.config_builder()
 
--- Apparence
+-- Appearance
 config.color_scheme = 'Tokyo Night'
 config.colors = {
     tab_bar = {
@@ -78,7 +78,7 @@ config.window_frame = {
     font_size = 10,
 }
 
--- Confort
+-- Comfort
 config.audible_bell = "Disabled"
 config.scrollback_lines = 10000
 config.adjust_window_size_when_changing_font_size = false
@@ -88,7 +88,7 @@ config.check_for_updates = false
 config.tab_bar_at_bottom = true
 config.hide_tab_bar_if_only_one_tab = true
 
--- Leader : OPT+b (évite conflit avec tmux Ctrl+b)
+-- Leader: OPT+b (avoids clashing with tmux Ctrl+b)
 config.leader = { key = "b", mods = "OPT", timeout_milliseconds = 1000 }
 
 -- Allows ~ | etc. with left Alt on macOS
