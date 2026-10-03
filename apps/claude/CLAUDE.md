@@ -18,6 +18,8 @@ Tokens cost real money and the budget is the user's.
 - Sub-agent model choice (Agent tool) is deliberate: work that follows existing patterns → Sonnet; architecture, complex business logic, debugging, design trade-offs → Opus. The main conversation model is set separately by the user.
 - Before a multi-step task: propose the plan and the model split, wait for approval, then execute what was approved, no silent upgrade mid-task.
 - For current model IDs and pricing, read the `claude-api` skill, never answer from memory.
+- What Claude Code loads or does (CLAUDE.md/AGENTS.md, hooks, settings, permissions) is never answered from memory: check `~/.claude/cache/changelog.md` or ask the `claude-code-guide` agent.
+- Polling (CI, a Slack canvas, a deploy) never loops in the main session: every poll re-reads the whole context. Use a blocking watcher (`gh pr checks --watch`, `gh run watch`, `glab ci status --live`, Monitor), or a Haiku/Sonnet subagent that reports only the change.
 
 ## /claude-security scans
 
@@ -40,6 +42,7 @@ The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-ve
 
 ## Standards & Conventions
 
+- **Docs committed to a shared repo** (CLAUDE.md, AGENTS.md, README) never cite local paths or the personal clone layout: use the GitLab project path.
 - **Inclusive terms**: allowlist/blocklist, primary/replica, placeholder/example, main branch, conflict-free, concurrent/parallel
 - **Naming**: Terraform → snake_case, env vars → SCREAMING_SNAKE_CASE
 - **Documentation**: practical examples and real troubleshooting over theory
@@ -71,7 +74,11 @@ Production issue or suspected incident → use the `incident-response` skill. De
 - `glab` is always pre-installed, use it without checking first
 - Shell scripts must be defensive and explicit
 - **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Prefer the native Grep/Glob tools; use `command rg` / `command find` when a specific flag matters.
-- **The Bash tool runs zsh**: an unmatched glob aborts the whole command (quote it: `--include='*.yml'`, or `setopt nullglob` before a loop), a `"-f a -f b"` string is not word-split (build an array: `files+=(-f "$v")`, then `"${files[@]}"`), and a word starting with `=` is expanded (`echo '====='`).
+- **The Bash tool runs zsh**, three traps that keep failing:
+  - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`) or `setopt nullglob` before a loop.
+  - A command stored in a variable is one word: `K="kubectl --context X"; $K get pods` fails with `command not found: kubectl --context X`. Use a function whose name is not an alias (`k`, `g` are: `k(){...}` is a parse error), e.g. `kc(){ kubectl --context X "$@"; }`; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
+  - A word starting with `=` is expanded: `echo =====` fails with `===== not found`. Quote it (`echo '====='`) or use `---`.
+- When a tool's output or help names a skill (`# skill: create-dashboard`), load it before the next call.
 - **Public source code is read from local clones in `~/Documents/work/src`** (and `src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout (the user's branches live there). Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>` (`<org>-<repo>` on a name clash). The `local-source-redirect.sh` hook enforces this on WebFetch for github.com and gitlab.com. Private groups cloned elsewhere are mapped in `~/.config/claude/source-roots` (not versioned here): follow the path the hook gives.
 
 ## Memory
