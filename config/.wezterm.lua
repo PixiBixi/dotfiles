@@ -247,7 +247,7 @@ end
 
 -- Tab bar font: JetBrains Mono ships with WezTerm, so it always resolves (the default is Roboto).
 config.window_frame = {
-    font = wezterm.font({ family = 'JetBrains Mono', weight = 'Bold' }),
+    font = wezterm.font('JetBrains Mono'),
     font_size = 10,
 }
 
