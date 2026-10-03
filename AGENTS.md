@@ -112,7 +112,7 @@ Skills owned by their own installer are **never** vendored here, only the proven
 
 | Skill | Installer |
 |-------|-----------|
-| `archify`, `hallmark`, `humanizer`, `linkedin-best-practices-2026`, `python3-development`, `security-audit`, `terragrunt-generator` | `npx skillfish install --global` from `packages/skillfish.json` |
+| `archify`, `hallmark`, `humanizer`, `linkedin-best-practices-2026`, `python3-development`, `retro`, `security-audit`, `terragrunt-generator` | `npx skillfish install --global` from `packages/skillfish.json` |
 | `ui-ux-pro-max` | `uipro init --ai claude --global` (npm `ui-ux-pro-max-cli`) |
 | `seo` | `Bhanunamikaze/Agentic-SEO-Skill` `install.sh --target claude` (also deploys the `seo-*` agents to `~/.claude/agents/`) |
 
