@@ -304,7 +304,7 @@ Voir `packages/Brewfile` pour la liste complète. Généralement :
 ### Claude Code / AI Tooling
 
 - **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale (`apps/claude/CLAUDE.md`, `settings.json`, `keybindings.json`), hooks et skills déployés par `setup_claude()`. Statusline : `apps/claude/bin/claude-statusline` (session, branche, modèle et effort, contexte, quotas 5h/semaine, coût), référencée directement par `settings.json`. Fond du terminal via `CLAUDE_STATUSLINE_BG_RGB` (défaut `26;27;37`), police Nerd Font requise. Une session nommée comme une clé de ticket (`PE-2166`) devient un lien cliquable si `CLAUDE_STATUSLINE_TICKET_URL` (préfixe d’URL, ex. `https://example.atlassian.net/browse/`) est défini
-- **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json` (skillfish), `uipro`, ou leur dépôt upstream
+- **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json` (skillfish), `tickler` ou `uipro`
 - **RTK** : proxy CLI token-efficient (`rtk init --global` configure le hook et génère `~/.claude/RTK.md`)
 
 ### Development Tools

@@ -149,7 +149,8 @@
     "openwiki@openwiki-cc": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
-    "claude-artifacts@equativ-plugins": true
+    "claude-artifacts@equativ-plugins": true,
+    "claude-seo@agricidaniel-claude-seo": true
   },
   "extraKnownMarketplaces": {
     "samber": {
@@ -180,6 +181,12 @@
       "source": {
         "source": "github",
         "repo": "netresearch/claude-code-marketplace"
+      }
+    },
+    "agricidaniel-claude-seo": {
+      "source": {
+        "source": "github",
+        "repo": "AgriciDaniel/claude-seo"
       }
     }
   },

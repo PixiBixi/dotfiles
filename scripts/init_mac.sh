@@ -495,24 +495,6 @@ install_claude_skills() {
     else
         log_warning "uipro not found (npm package ui-ux-pro-max-cli), skipping ui-ux-pro-max"
     fi
-
-    # seo: upstream installer, also deploys the seo-* specialist agents to ~/.claude/agents/
-    if [[ -d "${HOME}/.claude/skills/seo" ]]; then
-        log_success "seo skill already present"
-    else
-        local seo_tmp
-        seo_tmp="$(mktemp -d)"
-        if git clone --depth 1 https://github.com/Bhanunamikaze/Agentic-SEO-Skill.git "${seo_tmp}"; then
-            if (cd "${seo_tmp}" && bash install.sh --target claude); then
-                log_success "seo skill installed"
-            else
-                log_warning "Agentic-SEO-Skill installer failed"
-            fi
-        else
-            log_warning "Agentic-SEO-Skill clone failed"
-        fi
-        rm -rf "${seo_tmp}"
-    fi
 }
 
 # Install Claude Code plugins declared in settings.json (extraKnownMarketplaces +
