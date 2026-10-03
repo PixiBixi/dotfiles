@@ -1,12 +1,12 @@
 local wezterm = require 'wezterm'
 local mux = wezterm.mux
 
--- Behind-the-notch fullscreen only exists in nightly: the 20240203 stable rejects the key.
-local has_notch_fullscreen = wezterm.version > '20240203-110809-5046fc22'
+-- Notch fullscreen, contrast and alignment options only exist in nightly: the 20240203 stable rejects them.
+local is_nightly = wezterm.version > '20240203-110809-5046fc22'
 
 wezterm.on("gui-startup", function(cmd)
     local _, _, window = mux.spawn_window(cmd or {})
-    if has_notch_fullscreen then
+    if is_nightly then
         window:gui_window():toggle_fullscreen()
     else
         window:gui_window():maximize()
@@ -25,6 +25,30 @@ wezterm.on('update-right-status', function(window, _)
     })
 end)
 
+-- Highlight inactive tabs where any pane reports progress (OSC 9;4), e.g. a working Claude session.
+-- The default tab bar only looks at the active pane of each tab.
+wezterm.on('format-tab-title', function(tab, _, _, _, _, max_width)
+    local busy, failed = false, false
+    for _, p in ipairs(tab.panes) do
+        local progress = p.progress or 'None'
+        if type(progress) == 'table' and progress.Error then
+            failed = true
+        elseif progress ~= 'None' then
+            busy = true
+        end
+    end
+    local title = tab.tab_title ~= '' and tab.tab_title or tab.active_pane.title
+    title = wezterm.truncate_right(string.format(' %d: %s ', tab.tab_index + 1, title), max_width)
+    if tab.is_active or not (busy or failed) then
+        return title
+    end
+    return {
+        { Background = { Color = failed and '#f7768e' or '#e0af68' } },
+        { Foreground = { Color = '#1a1b26' } },
+        { Text = title },
+    }
+end)
+
 local config = wezterm.config_builder()
 
 -- Apparence
@@ -38,10 +62,14 @@ config.window_background_opacity = 0.85
 config.macos_window_background_blur = 30
 config.window_decorations = 'RESIZE'
 config.window_padding = { left = 0, right = 0, top = 0, bottom = 0 }
-if has_notch_fullscreen then
+if is_nightly then
     -- Native fullscreen must stay off, the notch option is ignored with it.
     config.native_macos_fullscreen_mode = false
     config.macos_fullscreen_extend_behind_notch = true
+    -- Spread the leftover pixels of a non-cell-aligned fullscreen evenly instead of right/bottom.
+    config.window_content_alignment = { horizontal = 'Center', vertical = 'Center' }
+    -- WCAG AA: Tokyo Night dim text is hard to read over the translucent background.
+    config.text_min_contrast_ratio = 4.5
 end
 
 -- Fonts
