@@ -176,6 +176,12 @@
         "source": "github",
         "repo": "grafana/gcx"
       }
+    },
+    "netresearch-claude-code-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "netresearch/claude-code-marketplace"
+      }
     }
   },
   "outputStyle": "Concise",
@@ -184,8 +190,8 @@
     "Coucou Jerem pense à déconnecter"
   ],
   "autoUpdatesChannel": "latest",
+  "tui": "default",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "tui": "default"
+  "skipAutoPermissionPrompt": true
 }
