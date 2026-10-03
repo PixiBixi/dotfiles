@@ -264,6 +264,7 @@ cask "font-jetbrains-mono-nerd-font"
 cask "gcloud-cli"
 cask "google-chrome"
 cask "pixibixi/tap/gopen", trusted: true
+cask "pixibixi/tap/tickler", trusted: true
 cask "hex-fiend"
 cask "hiddenbar"
 cask "kap"
