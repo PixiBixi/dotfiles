@@ -16,7 +16,9 @@ Don't assume cloud provider, CI/CD system, or orchestration platform unless stat
 Tokens cost real money and the budget is the user's.
 
 - Sub-agent model choice (Agent tool) is deliberate: work that follows existing patterns → Sonnet; architecture, complex business logic, debugging, design trade-offs → Opus. The main conversation model is set separately by the user.
+- When a subagent reports back, check its evidence before accepting its conclusion.
 - Before a multi-step task: propose the plan and the model split, wait for approval, then execute what was approved, no silent upgrade mid-task.
+- Once a plan is approved, keep going when a step doesn't need my input; put status notes in the same message as the next action.
 - For current model IDs and pricing, read the `claude-api` skill, never answer from memory.
 - What Claude Code loads or does (CLAUDE.md/AGENTS.md, hooks, settings, permissions) is never answered from memory: check `~/.claude/cache/changelog.md` or ask the `claude-code-guide` agent.
 - Polling (CI, a Slack canvas, a deploy) never loops in the main session: every poll re-reads the whole context. Use a blocking watcher (`gh pr checks --watch`, `gh run watch`, `glab ci status --live`, Monitor), or a Haiku/Sonnet subagent that reports only the change.
@@ -32,6 +34,8 @@ The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-ve
 ## Output Expectations
 
 - **Answer the question asked, nothing around it.** A closed question gets one sentence. No recap of what you just did, no unrequested metrics table, no spontaneous "points d'attention" section, no closing offer of next steps.
+- Once you have answered something, treat it as done; focus on what I'm asking now.
+- Mark anything you couldn't confirm, and say where you looked.
 - Detail (measurements, validations, risks, alternatives) only when asked, or when it changes what I have to do next. Investigation figures belong in the MR or the ticket, not in the chat reply.
 - A created MR is a link plus one line.
 - **Commands for me to run are a multi-line `bash` block I can paste as-is**: one command per line, `\` continuations for long flags, variables for repeated paths or keys, real values filled in (no `<placeholder>`), a comment with the expected outcome. Never a one-line `! a && b && c` chain.
