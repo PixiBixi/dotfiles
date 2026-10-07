@@ -155,13 +155,11 @@
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "cli-tools@equativ-plugins": true,
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "openwiki@openwiki-cc": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
-    "claude-artifacts@equativ-plugins": true,
     "claude-seo@agricidaniel-claude-seo": true
   },
   "extraKnownMarketplaces": {
