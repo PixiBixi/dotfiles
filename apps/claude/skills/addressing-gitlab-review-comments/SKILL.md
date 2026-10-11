@@ -1,6 +1,6 @@
 ---
 name: addressing-gitlab-review-comments
-description: Use when a reviewer left inline or line-anchored comments on a GitLab merge request, or when asked to address, fix, reply to or resolve MR review threads.
+description: Use when a reviewer left inline or line-anchored comments on a GitLab merge request, or when asked to address, fix, reply to or resolve MR review threads. Triggers - "check la review de <name>", "y'a un commentaire de <name>", "<name> a commenté la MR", "go sur les commentaires", "réponds à la review", an MR URL pasted with "review" or "commentaire" and no other verb. Not for reviewing someone else's MR yourself.
 ---
 
 # Addressing GitLab MR Review Comments
