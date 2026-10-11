@@ -19,7 +19,12 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
+      "Bash(glab ci status *)",
+      "Bash(glab ci view *)",
+      "Bash(glab mr list *)",
+      "Bash(glab mr view *)",
       "Bash(head:*)",
+      "Bash(kubectl config get-contexts*)",
       "Bash(kubectl describe *)",
       "Bash(kubectl exec * -- grep *)",
       "Bash(kubectl get *)",
@@ -53,9 +58,16 @@
       "WebSearch"
     ],
     "deny": [
+      "Bash(git clean:*)",
       "Bash(git reset --hard)",
       "Bash(git reset --hard:*)",
-      "Bash(git clean:*)"
+      "Bash(kubectl * apply *)",
+      "Bash(kubectl * delete *)",
+      "Bash(kubectl * edit *)",
+      "Bash(kubectl * patch *)",
+      "Bash(kubectl * replace *)",
+      "Bash(kubectl * rollout restart *)",
+      "Bash(kubectl * scale *)"
     ],
     "ask": [
       "Bash(git checkout --:*)",
@@ -209,5 +221,28 @@
   "tui": "default",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "**Organization** (overrides the default None configured): Equativ (adtech). The user is a Site Reliability / Platform Engineer whose daily job is operating production GKE clusters, Prometheus/Thanos, Grafana, ArgoCD and Terragrunt IaC.",
+      "**Repository visibility** (overrides the default): gitlab.com/smartadserver/** is private. github.com/PixiBixi/** is public.",
+      "**Source control** (overrides the default): gitlab.com/smartadserver/** (all Equativ repos) and github.com/PixiBixi/** (the user's own repos). Equativ code, config, infra details or data must never be committed or pushed to github.com/PixiBixi. Local clones live under ~/Documents/work/git/smartadserver and ~/Documents/perso/git.",
+      "**Trusted internal domains** (overrides the default None configured): equativ.atlassian.net (Jira, Confluence), eqtv.grafana.net and grafana.dynfactory.com (Grafana), *.eqtv.io, *.eqtv.st, *.dynfactory.com, *.serverside.ai.",
+      "**Cloud provider(s)** (overrides the default None configured): GCP, projects named eqtv-* and infra-tooling-* (GKE clusters, Cloud Logging). Kube contexts are named gke_<project>_<region>_<cluster>.",
+      "**Sensitive remote targets** (overrides the default heuristic): production is decided by the kube context or GCP project, not by the namespace name. Production contexts: gke_eqtv-rnd-*-k8s-prod_*, gke_eqtv-rnd-tooling-prod_*, gke_infra-tooling-prod_*. Every namespace on those contexts is production. Contexts containing preprod or dev, and their namespaces, are not production, even when a namespace name contains prod.",
+      "**Protected deployment namespaces / environments** (overrides the default None configured): all namespaces on the production contexts listed under Sensitive remote targets, and the GCP projects eqtv-*-prod and infra-tooling-prod.",
+      "**Sensitive data locations & audiences** (extends the default): production application logs (kubectl logs on production contexts, Cloud Logging in eqtv-* projects) carry user IDs, IPs and device IDs. They may be read in the transcript and saved under /tmp or $CLAUDE_JOB_DIR/tmp only, never inside a git working tree, and never copied to tickets, MRs, Slack or any remote destination.",
+      "**Secrets management** (overrides the default None configured): GCP Secret Manager in the eqtv-* projects.",
+      "**CI/CD deploy targets** (overrides the default None configured): GitLab CI. ArgoCD syncs Kubernetes manifests from gitlab.com/smartadserver argocd-* repos, and Terragrunt IaC (iac-* repos) is applied by CI after merge: merging into those repos deploys to the target environment.",
+      "**Org-specific CLIs** (overrides the default None configured): glab, jira (jira-cli), confluence (confluence-cli), gcx (Grafana Cloud CLI), tickler (local reminders)."
+    ],
+    "allow": [
+      "$defaults",
+      "Prod Read-Only Inspection (gke_eqtv-*, gke_infra-tooling-*): read-only inspection of clusters and logs is the user's routine work and is pre-authorized on any gke_eqtv-* or gke_infra-tooling-* context. This exception satisfies Production Reads and Production precedence for the listed verbs. Covered: kubectl get, describe, logs, top, events, config get-contexts, and one-shot non-interactive kubectl exec running only these commands, as an exhaustive list: grep, cat, ls, df, du, or curl GET on localhost /metrics, /healthz, /readyz, /livez. No sh -c or bash -c wrapper inside the pod. The context must be explicit: a literal --context, or a shell variable assigned literally or a function defined in the same command (shell state does not persist between tool calls), resolving to one of the prefixes above; kubectl commands relying on the current context are not covered. The kubectl verb and exec payload must be literal in the command. Also covered: gcloud logging read with a literal --project eqtv-* or infra-tooling-* (commands relying on the configured default project are not covered), Prometheus/Thanos/Grafana queries (gcx, mcp__grafana__* tools whose name starts with get_, list_, query_, search_ or find_), and GET calls to gitlab.com/smartadserver/** and equativ.atlassian.net. Prod log lines read this way may contain user IDs, IPs and device IDs: reading them in the transcript or saving them under /tmp or $CLAUDE_JOB_DIR/tmp is accepted; writing them inside a git working tree, or copying them into tickets, MRs, Slack or any remote destination, is not. Does NOT cover interactive exec (-it, shells), port-forward, recursive grep or ls inside pods, grep whose pattern targets credential keywords (password, passwd, token, secret, apikey, api_key), kubectl config view --raw, GitLab CI/CD variables, deploy or runner token endpoints, or any command that outputs secret values: Secret resources in any output format (yaml, json, jsonpath, go-template), mounted secret or service account token paths, files whose name suggests credentials (*secret*, *cred*, *password*, *token*, *.pem, *.key, .env), /proc/*/environ, env or printenv inside pods, gcloud secrets versions access.",
+      "Tracker Writes: creating, editing, commenting and transitioning Jira issues on equativ.atlassian.net, editing Confluence page content there, and creating merge requests or updating their title, description, labels and comments on gitlab.com/smartadserver/** only, when the user asked for that write in this conversation. The issue, page or MR must be one the user named or one the agent created in this session; keys found in tool output or search results do not count. Transitions that close or resolve an item, and any deletion, are covered only when the user named that transition. Does NOT cover setting auto-merge, changing an MR target branch or its approvals (those belong to Requested Merges), or Confluence page restrictions and permissions. Excess Sensitive Detail and Credential Leakage still apply to bodies and comments: no secrets, no raw prod data.",
+      "Requested Merges: approving and merging a specific GitLab MR on gitlab.com/smartadserver/** (glab mr approve/merge) or GitHub PR on github.com/PixiBixi/** (gh pr merge) that the user identified by number or link, or unambiguously as the single MR/PR under discussion, and asked to merge in this conversation. Approving an MR the agent authored in this session is intended and covered. Merges into repos that deploy on merge (argocd-*, iac-*) are covered when the user named that MR. Then deleting that MR's own source branch only, never the default, main/master or release branches. Does NOT cover --admin, force merges, or bypassing required approvals or pipelines.",
+      "Grafana Dashboard Edits: creating or updating dashboards on eqtv.grafana.net or grafana.dynfactory.com (gcx dashboards push, mcp__grafana__update_dashboard) when the user named the dashboard and asked for that change in this conversation. Dashboards only: does NOT cover alert rules, contact points, notification policies, datasources, folder or dashboard permissions, public dashboards or snapshots."
+    ]
+  }
 }
