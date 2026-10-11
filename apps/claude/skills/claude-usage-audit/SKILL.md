@@ -5,13 +5,13 @@ description: Use when asked to analyse Claude Code token usage or spend over a p
 
 # Claude usage audit
 
-Three local scripts over `~/.claude/projects/**/*.jsonl` (main sessions and `subagents/`). Each API call is deduplicated on `(message.id, requestId)`; cost is the public API price per model, so on a subscription it reads as "API-equivalent", a proxy for plan quota.
+Four local scripts over `~/.claude/projects/**/*.jsonl` (main sessions and `subagents/`). Each API call is deduplicated on `(message.id, requestId)`; cost is the public API price per model, so on a subscription it reads as "API-equivalent", a proxy for plan quota.
 
 ## Run
 
 ```bash
 SKILL_DIR=~/.claude/skills/claude-usage-audit/scripts
-OUT=$CLAUDE_SCRATCHPAD   # or any temp dir
+OUT=$(mktemp -d)          # or the session scratchpad
 python3 -I "$SKILL_DIR/usage.py" "$OUT/usage.json"            # totals, daily, models, projects, sessions, cache rebuilds, tools, skills, agents
 python3 -I "$SKILL_DIR/context_sources.py" "$OUT/usage2.json" # Bash command families by output size, full vs partial Read, sdk entrypoints, idle gaps
 python3 -I "$SKILL_DIR/cost_split.py"                         # cost by token type, cache-read tax above 200k / 300k context
@@ -22,7 +22,7 @@ Window: `AUDIT_DAYS=90` in the environment (default 30, 90 for `history.py`). Tr
 
 ## Before quoting dollars
 
-Prices live in the `PRICES` table of `usage.py` and `P` in `cost_split.py`. Check them against the `claude-api` skill first and fix the table when a model is missing (an unknown model counts as $0).
+Prices live in three tables: `PRICES` in `usage.py` and `history.py`, `P` in `cost_split.py`. Check them against the `claude-api` skill first and fix the table when a model is missing (an unknown model counts as $0).
 
 ## What to look at, in order
 
