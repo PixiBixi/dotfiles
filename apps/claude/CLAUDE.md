@@ -55,7 +55,7 @@ The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-ve
 - **Code comments**: 1-3 lines. State the decision and why it must not be undone, then cite the ticket for context (`# PE-1685: halved from 100. Bounds peak RSS -- at 100 pods were OOMKilled. Do NOT raise it back.`). Never inline the investigation: measurements, percentiles, rejected hypotheses and reasoning go in the ticket and the MR. Same for alert descriptions and log messages: they are read under pressure. If it does not fit in 3 lines, cut; do not expand
 - **README**: update it before committing whenever a feature, flag, or behavior changes. Keep it a usage reference: what the thing does, how to install it, the tables of commands/flags/options. The rationale (why a verdict is spelled that way, which labels are read, what was rejected) goes in the wiki, the ticket or the MR, never in prose paragraphs under a table. If a section explains rather than documents, cut it and link out
 - **Commits**: Conventional Commits, **one commit per scope** (`fix(tflint):`, `feat(module):`, `chore(live):`), never bundle unrelated scopes
-- **Branch creation**: always from a freshly-fetched `origin/<target>` (`git fetch origin <target> && git checkout -b <name> origin/<target>`), never from the local target branch: a local `main` may carry unpushed commits that would silently leak into the MR
+- **Branch creation**: always from a freshly-fetched `origin/<target>` (`git fetch origin <target> && git checkout -b <name> origin/<target>`), never from the local target branch: a local `main` may carry unpushed commits that would silently leak into the MR. Many repos default to `master`: read the target from `git symbolic-ref --short refs/remotes/origin/HEAD`, never assume `main`
 - **Signed commits, always**: `commit.gpgsign` and `tag.gpgsign` are true globally, with an SSH key (`~/.ssh/signing_gitlab`, registered on GitHub and GitLab despite its name). Every commit must come out `G` in `git log --format="%h %G?"`. A repo carrying a local `commit.gpgsign=false`, or commits already made unsigned, gets repaired with `git rebase --exec "git commit --amend --no-edit -S --quiet" <base>`, never with `git reset --hard`
 - **Author identity is per repo**: there is deliberately no global `user.email`. Set it on the repo before the first commit: `PixiBixi@users.noreply.github.com` for anything public, the Equativ address for internal GitLab. Never put the work email on a public commit
 - **Before pushing, opening an MR/PR, or merging**: rebase on the target branch
@@ -74,14 +74,16 @@ Production issue or suspected incident → use the `incident-response` skill. De
 
 ## Tooling
 
-- Shell: `fd` over `find`, `rg` over `grep`, `lsd` over `ls`, `bat` over `cat`
+- Shell: `fd` over `find`, `rg` over `grep`, `lsd` over `ls`, `bat` over `cat`. `eza` is not installed
+- **Edit/Write need a prior Read tool call** on the file: a `cat` or `sed -n` through Bash does not count and the edit fails with "File has not been read yet"
 - `glab` is always pre-installed, use it without checking first
 - Shell scripts must be defensive and explicit
 - **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Prefer the native Grep/Glob tools; use `command rg` / `command find` when a specific flag matters.
-- **The Bash tool runs zsh**, three traps that keep failing:
-  - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`) or `setopt nullglob` before a loop.
-  - A command stored in a variable is one word: `K="kubectl --context X"; $K get pods` fails with `command not found: kubectl --context X`. Use a function whose name is not an alias (`k`, `g` are: `k(){...}` is a parse error), e.g. `kc(){ kubectl --context X "$@"; }`; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
+- **The Bash tool runs zsh on macOS**, traps that keep failing:
+  - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`, `'...?limit=1000'`) or `setopt nullglob` before a loop.
+  - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: `$K get pods` fails with `command not found`, `k(){...}` is a parse error (`k`, `g` are aliases), and permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
   - A word starting with `=` is expanded: `echo =====` fails with `===== not found`. Quote it (`echo '====='`) or use `---`.
+  - BSD userland: `date -r <epoch>` and `date -j -f <fmt> <str>` (no `date -d`), `sed -i ''`, no `grep -P` (use `rg`).
 - When a tool's output or help names a skill (`# skill: create-dashboard`), load it before the next call.
 - **Public source code is read from local clones in `~/Documents/work/src`** (and `src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout (the user's branches live there). Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>` (`<org>-<repo>` on a name clash). The `local-source-redirect.sh` hook enforces this on WebFetch for github.com and gitlab.com. Private groups cloned elsewhere are mapped in `~/.config/claude/source-roots` (not versioned here): follow the path the hook gives.
 
@@ -91,7 +93,7 @@ Auto memory is native: Claude captures corrections and preferences on its own. S
 
 ## CLAUDE.md & settings versioning
 
-`~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/keybindings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. After editing any of them, commit in the dotfiles repo with `chore(claude): <description>` and push.
+`~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/keybindings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. Edit/Write refuse a symlink, so always pass the `~/Documents/perso/git/dotfiles/apps/claude/...` path. After editing any of them, commit in the dotfiles repo with `chore(claude): <description>` and push.
 
 ## RTK (Rust Token Killer)
 
