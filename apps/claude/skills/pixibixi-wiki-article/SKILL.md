@@ -7,7 +7,7 @@ description: Use when writing, adding, updating, cross-linking, or adding a diag
 
 ## Overview
 
-Le wiki est un site **MkDocs Material** (`~/Documents/perso/git/pixibixi.github.io`), déployé sur `wiki.jdelgado.fr` via GitHub Actions (`gh-deploy`) à chaque push sur `master`. Un article = un `.md` sous `docs/<section>/`. La prose est en **français**, le code/commits/technique en **anglais**.
+Le wiki est un site **MkDocs Material** (repo GitHub `PixiBixi/pixibixi.github.io`), déployé sur `wiki.jdelgado.fr` via GitHub Actions (`gh-deploy`) à chaque push sur `master`. Un article = un `.md` sous `docs/<section>/`. La prose est en **français**, le code/commits/technique en **anglais**.
 
 Ce skill capture la procédure complète *et les pièges qui cassent la CI ou laissent l'article invisible*.
 
@@ -15,7 +15,7 @@ Ce skill capture la procédure complète *et les pièges qui cassent la CI ou la
 
 | Élément | Valeur |
 |---|---|
-| Repo | `~/Documents/perso/git/pixibixi.github.io` (branche `master`) |
+| Repo | `pixibixi.github.io` (branche `master`) |
 | Articles | `docs/<section>/<nom>.md` (ex. `docs/ci-cd/github/go-ci.md`) |
 | Build local (repro CI) | `DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:$HOME/lib:/usr/local/lib:/usr/lib" uv run mkdocs build --strict` (Gotcha 4) |
 | Lint markdown (repro CI) | `npx -y markdownlint-cli2@0.23.0 --config .markdownlint.json <fichiers.md>` |
@@ -47,8 +47,8 @@ Ce skill capture la procédure complète *et les pièges qui cassent la CI ou la
 
 Le `CLAUDE.md` du projet porte le style de fond (ton, structure, tournures). Ce qui suit complète sur des points qu'aucun lint n'attrape.
 
-- **Jamais d'em dash (`—`)**, nulle part : ni dans la prose, ni dans les titres, ni dans les descriptions de front matter, ni dans les commentaires d'un bloc de code. C'est la signature la plus visible d'un texte généré. À la place, un `-`, une virgule, un deux-points, ou on coupe la phrase en deux. Les incises appariées (`mot — aparté — suite`) passent en virgules ou en parenthèses, jamais en deux tirets : ça se lit mal et un `-` en début de ligne est parsé comme un item de liste par markdownlint.
-- **Jamais d'en dash (`–`) non plus**, et il arrive surtout dans les plages : versions, nombres, dates. On écrit `HAProxy 2.4 à 3.2`, pas `2.4–3.2`. Même raison que l'em dash, il ne se tape pas au clavier. Selon la phrase : `à`, `de X à Y`, ou un simple `-`.
+- **Jamais d'em dash (`U+2014`, tiret cadratin)**, nulle part : ni dans la prose, ni dans les titres, ni dans les descriptions de front matter, ni dans les commentaires d'un bloc de code. C'est la signature la plus visible d'un texte généré. À la place, un `-`, une virgule, un deux-points, ou on coupe la phrase en deux. Les incises appariées (mot, tiret cadratin, aparté, tiret cadratin, suite) passent en virgules ou en parenthèses, jamais en deux tirets : ça se lit mal et un `-` en début de ligne est parsé comme un item de liste par markdownlint.
+- **Jamais d'en dash (`U+2013`, tiret demi-cadratin) non plus**, et il arrive surtout dans les plages : versions, nombres, dates. On écrit `HAProxy 2.4 à 3.2`, pas `2.4` et `3.2` reliés par un `U+2013`. Même raison que l'em dash, il ne se tape pas au clavier. Selon la phrase : `à`, `de X à Y`, ou un simple `-`.
 - **Chiffres toujours en chiffres, jamais en lettres** : « 3 shards », « 12 fichiers », « 100 caches », y compris en début de phrase. Seule exception, les approximations restent en lettres (« une vingtaine de clusters », « la centaine de pods ») - les écrire en chiffres inventerait une précision qui n'existe pas.
 - **Un chiffre précis se justifie sur place, sinon il n'y est pas.** Écrire « garde 14 mois de métriques » en intro alors que le 14 vient d'un palier expliqué 100 lignes plus loin laisse le lecteur devant un nombre arbitraire. Soit on explique là, soit on reste générique (« aussi longtemps qu'on le lui demande ») et le chiffre arrive avec sa raison.
 - **Unités de temps collées au chiffre** : `24h/24`, `12h`, `3h`, `6d`. Pas d'espace avant le symbole, c'est la convention de tout le wiki. La forme en mot (`12 heures`) reste valable en prose, mais on ne mélange pas `12 h` et `12h` dans le même article.
@@ -156,11 +156,7 @@ Ce qui sonne faux, à la place :
 
 ## Schémas SVG (style maison)
 
-Il n'existe pas de skill dédié au SVG, le style maison est ci-dessous. En revanche, dès que le schéma **encode des quantités** (barres, frise proportionnelle, courbe), c'est un graphique et pas un diagramme : invoquer le skill `dataviz` **avant** d'écrire le premier `<rect>` et faire tourner son validateur de palette.
-
-```bash
-node scripts/validate_palette.js "#hex,#hex,#hex" --mode dark   # puis --mode light
-```
+Pour un diagramme d'architecture ou de flux, les skills `archify` et `artifact-diagramming` existent, mais le style maison ci-dessous prime pour les SVG du wiki. Dès que le schéma **encode des quantités** (barres, frise proportionnelle, courbe), c'est un graphique et pas un diagramme : invoquer le skill `dataviz` **avant** d'écrire le premier `<rect>` et faire tourner son validateur de palette, via le skill `dataviz` (lancer le script depuis le répertoire de ce skill, en dark puis en light).
 
 Ce qu'il attrape et qu'on ne voit pas à l'œil : aplats trop saturés en gros blocs, absence de gap de 2px entre fills adjacents, libellés portant la couleur de la série au lieu d'une encre neutre et séparation insuffisante pour les daltonismes.
 

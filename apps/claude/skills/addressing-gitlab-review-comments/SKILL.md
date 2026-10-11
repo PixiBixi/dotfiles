@@ -1,6 +1,6 @@
 ---
 name: addressing-gitlab-review-comments
-description: Use when a reviewer left inline (line-anchored) comments on a GitLab merge request and you need to fetch them with their file+line, fix the code, then reply to and resolve each thread with glab.
+description: Use when a reviewer left inline or line-anchored comments on a GitLab merge request, or when asked to address, fix, reply to or resolve MR review threads.
 ---
 
 # Addressing GitLab MR Review Comments
@@ -46,7 +46,8 @@ for line in sys.stdin:
 Open the file at the cited line so the comment makes sense in context. Apply the fix only after evaluating it (see receiving-code-review). Commit as one review-fix commit and push:
 
 ```bash
-git commit -am "fix(<scope>): address review on <thing>"   # Conventional Commits, ticket id in the body
+git add <files>
+git commit -m "fix(<scope>): address review on <thing>"   # Conventional Commits, ticket id in the body
 git fetch origin <target> && git rebase origin/<target>
 git push --force-with-lease   # a plain `git push` is enough only if the rebase was a no-op
 ```
@@ -61,15 +62,7 @@ glab api -X POST "$API/discussions/$DISC/notes" -f "body=Done: <what you changed
 glab api -X PUT  "$API/discussions/$DISC?resolved=true"
 ```
 
-Reusable helper:
-
-```bash
-reply_resolve() {  # $1=discussion-id  $2=reply text
-  glab api -X POST "$API/discussions/$1/notes" -f "body=$2" >/dev/null \
-  && glab api -X PUT "$API/discussions/$1?resolved=true" >/dev/null \
-  && echo "done: $1"
-}
-```
+Never wrap `glab` in a shell function: permission allow rules only match the literal command, so write both calls in full for each thread.
 
 ## Writing the reply
 

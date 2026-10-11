@@ -1,11 +1,11 @@
 ---
 name: ticket-conventions
-description: Conventions and API gotchas for writing to a tracker or an MR/PR - creating a Jira issue or a GitLab issue, posting a comment on an existing ticket, writing an MR/PR description. Load BEFORE any tracker write, and on "fais un ticket", "crée le ticket", "update le ticket", "commente", "commente le ticket", "ouvre une issue", "ouvre la MR", "description de la MR", "poste ça sur PE-xxxx", "le ticket est prêt / à tester". Covers the approval gate, the length ceiling on descriptions and comments, the Jira markdown trap, custom field id discovery, and the glab flags that hang. Not for jira-cli command syntax (that is jira-cli).
+description: Conventions and API gotchas for writing to a tracker or an MR/PR - creating a Jira issue or a GitLab issue, posting a comment on an existing ticket, writing an MR/PR description. Load BEFORE any tracker write, and on "fais un ticket", "crée le ticket", "update le ticket", "commente", "commente le ticket", "ouvre une issue", "ouvre la MR", "description de la MR", "poste ça sur PE-xxxx", "le ticket est prêt / à tester". Not for jira-cli command syntax (that is jira-cli).
 ---
 
 # Ticket conventions
 
-Command syntax lives in `jira-cli`. This file is the layer above it: what a write must look like, and the four ways a tracker write fails silently.
+Command syntax lives in `jira-cli`. This file is the layer above it: what a write must look like, and the five ways a tracker write goes wrong (approval gate, Jira markdown, length, custom field ids, glab flags that hang).
 
 ## The approval gate
 
