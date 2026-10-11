@@ -6,7 +6,13 @@ Answers the question you must answer before dropping a metric at scrape time:
 including the Cloud Monitoring ones that a plain `expr` sweep misses) plus the
 Grafana-managed alert rules, and reports every reference it finds.
 
-Dashboards are cached on disk so repeated runs only fetch what changed.
+Library panels are scanned too: their queries live outside the dashboard JSON.
+
+Dashboards are cached on disk for --max-age (1h): the search API carries no
+version, so an edit inside that window is only seen with --refresh.
+
+Exit codes: 0 every pattern unused, 1 at least one still referenced, 2 the scan
+is incomplete (a fetch failed) or the tool could not run. Never read 2 as UNUSED.
 
 Examples:
     # one-off check
@@ -44,14 +50,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any, Iterable, Iterator, NoReturn
 from urllib.parse import quote, urlencode, urlparse
 
 DEFAULT_CACHE = Path(
     os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")
 ) / "grafana-metric-usage"
-DEFAULT_MAX_AGE = 24 * 3600
+# The search API returns no version, so staleness is age only: keep it short
+# for a tool that gates a drop.
+DEFAULT_MAX_AGE = 3600
 DEFAULT_WORKERS = 12
+
+# 1 is a verdict (still in use / lint errors); 2 means "no verdict", so a gate
+# keyed on `$?` never mistakes a failed scan for one.
+EXIT_INCOMPLETE = 2
 
 # Keys whose string values can hold a query. Covers PromQL (`expr`), Cloud
 # Monitoring PromQL mode (`promQLQuery.expr`), Cloud Monitoring MQL mode
@@ -62,7 +74,10 @@ TEXT_KEYS = frozenset({"title", "description", "legendFormat", "content"})
 
 # PromQL identifier. Tokens immediately followed by "(" are function calls and
 # are skipped, so `rate(` and `histogram_quantile(` never look like metrics.
-IDENT_RE = re.compile(r"[A-Za-z_:][A-Za-z0-9_:]*")
+# The lookbehind drops duration units: the `d` of `offset 1d` is not a name.
+IDENT_RE = re.compile(r"(?<![A-Za-z0-9_:])[A-Za-z_:][A-Za-z0-9_:]*")
+CALL_TAIL_RE = re.compile(r"\s*(?:(?:by|without)\s*\([^)]*\)\s*)?\(")
+RANGE_RE = re.compile(r"\[[0-9smhdwy:$_{}A-Za-z ]*\]")
 
 # Reserved words that are valid identifiers but never metric names.
 PROMQL_KEYWORDS = frozenset(
@@ -74,6 +89,15 @@ PROMQL_KEYWORDS = frozenset(
 
 
 STATIC_TOKEN_VARS = ("GRAFANA_TOKEN", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "GTOK")
+
+# `{__name__=~"container_.*"}` selects metrics without naming them as a token.
+NAME_REGEX_RE = re.compile(r"""__name__\s*=~\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')""")
+
+
+def die(message: str) -> NoReturn:
+    """Print to stderr and exit with EXIT_INCOMPLETE, never with a verdict code."""
+    print(message, file=sys.stderr)
+    sys.exit(EXIT_INCOMPLETE)
 
 
 def env_token() -> str:
@@ -142,14 +166,19 @@ def resolve_target(url: str = "", token: str = "", context: str = "") -> tuple[s
     env_url = os.environ.get("GRAFANA_URL", "")
     if token:
         if not (url or env_url):
-            sys.exit("no Grafana URL: pass --url or set GRAFANA_URL (required with --token)")
+            die("no Grafana URL: pass --url or set GRAFANA_URL (required with --token)")
         return url or env_url, token, ""
     have_gcx = shutil.which("gcx") is not None
     ctx = gcx_context(context)
     if ctx:
         if not have_gcx:
-            sys.exit(f"gcx context {ctx!r} requested but gcx is not on PATH (brew install gcx)")
-        return gcx_default_url(ctx), "", ctx
+            die(f"gcx context {ctx!r} requested but gcx is not on PATH (brew install gcx)")
+        ctx_url = gcx_default_url(ctx)
+        # An exported $GCX_CONTEXT must not silently win over an explicit --url.
+        if url and ctx_url and url_host(url) != url_host(ctx_url):
+            die(f"--url {url_host(url)} is not the host of gcx context {ctx!r} ({url_host(ctx_url)}): "
+                f"drop one of them (unset GCX_CONTEXT?)")
+        return url or ctx_url, "", ctx
     static = env_token()
     if url:
         if static and env_url and url_host(url) == url_host(env_url):
@@ -157,7 +186,7 @@ def resolve_target(url: str = "", token: str = "", context: str = "") -> tuple[s
         ctx = gcx_context_for_url(url) if have_gcx else ""
         if ctx:
             return url, "", ctx
-        sys.exit(
+        die(
             f"no credentials for {url_host(url)}: no gcx context points at it "
             f"(see `gcx config list-contexts`).\n"
             f"Run `gcx login <name> --server {url.rstrip('/')}`, or pass --token."
@@ -166,7 +195,7 @@ def resolve_target(url: str = "", token: str = "", context: str = "") -> tuple[s
         return gcx_default_url(""), "", ""
     if static and env_url:
         return env_url, static, ""
-    sys.exit(
+    die(
         "no Grafana credentials: gcx is not on PATH and GRAFANA_TOKEN/GRAFANA_URL are unset.\n"
         "Install gcx (brew install gcx) and run `gcx login`."
     )
@@ -221,7 +250,7 @@ def gcx_api_json(path: str, params: dict[str, Any] | None, context: str, timeout
             summary = json.loads(proc.stdout)["error"]["summary"]
         except (json.JSONDecodeError, KeyError, TypeError):
             summary = (proc.stdout or proc.stderr or "").strip()[:300]
-        if "404" in summary:
+        if re.search(r"\b404\b", str(summary)):
             return None
         raise GrafanaError(f"gcx api {path} failed: {summary}")
     try:
@@ -268,7 +297,7 @@ class Hit:
 
     metric: str  # the pattern that was asked for
     matched: str  # the identifier that actually matched it, differs in regex/glob mode
-    kind: str  # "dashboard" or "alert-rule"
+    kind: str  # "dashboard", "library-panel" or "alert-rule"
     uid: str
     title: str
     folder: str
@@ -279,6 +308,8 @@ class Hit:
         """Return a clickable URL for the object holding this reference."""
         if self.kind == "dashboard":
             return f"{base_url}/d/{self.uid}"
+        if self.kind == "library-panel":
+            return f"{base_url}/library-panels?uid={self.uid}"
         return f"{base_url}/alerting/grafana/{self.uid}/view"
 
 
@@ -578,14 +609,32 @@ def identifiers(query: str) -> set[str]:
         The set of candidate metric names.
     """
     out: set[str] = set()
+    # Range and subquery selectors (`[5m:1m]`) hold durations, never names.
+    query = RANGE_RE.sub(" ", query)
     for match in IDENT_RE.finditer(query):
         token = match.group(0)
         if token in PROMQL_KEYWORDS:
             continue
-        tail = query[match.end() : match.end() + 1]
-        if tail == "(":
+        # `rate (x)` and `sum by (le) (x)` are calls too; a metric name never precedes "(".
+        if CALL_TAIL_RE.match(query, match.end()):
             continue
         out.add(token)
+    return out
+
+
+def name_regexes(query: str) -> list[str]:
+    """Return the `__name__=~"..."` regexes of a query, unescaped.
+
+    Args:
+        query: A PromQL query.
+
+    Returns:
+        The regex bodies, in order of appearance.
+    """
+    out: list[str] = []
+    for match in NAME_REGEX_RE.finditer(query):
+        body = match.group(1) if match.group(1) is not None else match.group(2)
+        out.append(body.encode().decode("unicode_escape"))
     return out
 
 
@@ -608,26 +657,52 @@ class Matcher:
         elif mode == "exact":
             self._exact = set(self.patterns)
 
-    def match(self, candidate: str) -> str | None:
-        """Return the pattern a candidate matches, or None.
+    def match(self, candidate: str) -> list[str]:
+        """Return every pattern a candidate matches.
+
+        All of them, not the first: overlapping drop rules (`kube_.*` and
+        `kube_pod_.*`) must each see the hit, or the second reads UNUSED.
 
         Args:
             candidate: An identifier extracted from a query.
 
         Returns:
-            The matching pattern, so the report can group by pattern.
+            The matching patterns, so the report can group by pattern.
         """
         if self.mode == "exact":
-            return candidate if candidate in self._exact else None
+            return [candidate] if candidate in self._exact else []
         if self.mode == "glob":
-            for pattern in self.patterns:
-                if fnmatch.fnmatchcase(candidate, pattern):
-                    return pattern
-            return None
-        for pattern, compiled in zip(self.patterns, self._res, strict=True):
-            if compiled.match(candidate):
-                return pattern
-        return None
+            return [p for p in self.patterns if fnmatch.fnmatchcase(candidate, p)]
+        return [p for p, compiled in zip(self.patterns, self._res, strict=True) if compiled.fullmatch(candidate)]
+
+    def match_name_regex(self, regex: str) -> list[str]:
+        """Return the exact metric names a `__name__=~` selector reads.
+
+        Only decidable in exact mode: whether two regexes or globs overlap is
+        not, so those modes rely on the literal tokens alone.
+
+        Args:
+            regex: The selector's regex body, anchored like PromQL does.
+
+        Returns:
+            The wanted metric names the selector matches.
+        """
+        if self.mode != "exact":
+            return []
+        try:
+            compiled = re.compile(regex)
+        except re.error:
+            return []
+        return [p for p in self.patterns if compiled.fullmatch(p)]
+
+    def scan(self, query: str) -> Iterator[tuple[str, str]]:
+        """Yield (pattern, matched identifier) for every hit in one query string."""
+        for candidate in identifiers(query):
+            for pattern in self.match(candidate):
+                yield pattern, candidate
+        for regex in name_regexes(query):
+            for pattern in self.match_name_regex(regex):
+                yield pattern, f'__name__=~"{regex}"'
 
 
 def list_dashboards(client: Client) -> list[dict[str, Any]]:
@@ -650,6 +725,46 @@ def list_dashboards(client: Client) -> list[dict[str, Any]]:
             break
         page += 1
     return rows
+
+
+def list_library_panels(client: Client, stats: Stats) -> list[dict[str, Any]]:
+    """Return every library panel, following pagination.
+
+    A dashboard only stores `{"libraryPanel": {"uid": ...}}`: the queries and
+    the datasource live in the library element, invisible to a dashboard scan.
+
+    Args:
+        client: An initialised Grafana client.
+        stats: Counters; a failure is recorded so the run reports incomplete.
+
+    Returns:
+        The library elements, each with uid, name, folder info and `model`.
+    """
+    out: list[dict[str, Any]] = []
+    page = 1
+    try:
+        while True:
+            body = client.get_json("/api/library-elements", {"kind": 1, "perPage": 500, "page": page}) or {}
+            batch = (body.get("result") or {}).get("elements") or []
+            out.extend(e for e in batch if isinstance(e, dict))
+            if len(batch) < 500:
+                break
+            page += 1
+    except GrafanaError as exc:
+        stats.failed.append(f"library panels: {exc}")
+    return out
+
+
+def library_panel_payload(element: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Wrap a library element as a (search row, dashboard payload) pair, so the scanners take it as is."""
+    meta = element.get("meta") or {}
+    row = {
+        "uid": element.get("uid", "?"),
+        "title": f"[library panel] {element.get('name', '?')}",
+        "folderTitle": meta.get("folderName") or "General",
+        "kind": "library-panel",
+    }
+    return row, {"dashboard": {"panels": [element.get("model") or {}]}}
 
 
 def fetch_dashboards(
@@ -685,20 +800,23 @@ def fetch_dashboards(
     def _fetch(row: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
         return row, client.get_json(f"/api/dashboards/uid/{quote(row['uid'], safe='')}")
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(_fetch, row) for row in misses]
-        for future in as_completed(futures):
-            try:
-                row, payload = future.result()
-            except GrafanaError as exc:
-                stats.failed.append(str(exc))
-                continue
-            if payload is None:
-                continue
-            cache.put(row["uid"], payload)
-            stats.fetched += 1
-            yield row, payload
-    cache.flush()
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(_fetch, row) for row in misses]
+            for future in as_completed(futures):
+                try:
+                    row, payload = future.result()
+                except GrafanaError as exc:
+                    stats.failed.append(str(exc))
+                    continue
+                if payload is None:  # deleted between the search and the fetch
+                    continue
+                cache.put(row["uid"], payload)
+                stats.fetched += 1
+                yield row, payload
+    finally:
+        # Blobs are already on disk: an interrupted run must not refetch them all.
+        cache.flush()
 
 
 def scan_dashboard(
@@ -720,16 +838,15 @@ def scan_dashboard(
     hits: list[Hit] = []
     seen: set[tuple[str, str, str]] = set()
     for path, value, datasource in walk_strings(dashboard, keys):
-        for candidate in identifiers(value):
-            pattern = matcher.match(candidate)
-            if pattern is None or (pattern, candidate, path) in seen:
+        for pattern, candidate in matcher.scan(value):
+            if (pattern, candidate, path) in seen:
                 continue
             seen.add((pattern, candidate, path))
             hits.append(
                 Hit(
                     metric=pattern,
                     matched=candidate,
-                    kind="dashboard",
+                    kind=row.get("kind", "dashboard"),
                     uid=row["uid"],
                     title=row.get("title", "?"),
                     folder=row.get("folderTitle", "General"),
@@ -740,21 +857,22 @@ def scan_dashboard(
     return hits
 
 
-def scan_alert_rules(client: Client, matcher: Matcher) -> list[Hit]:
+def scan_alert_rules(client: Client, matcher: Matcher, stats: Stats) -> list[Hit]:
     """Find every wanted metric referenced by a Grafana-managed alert rule.
 
     Args:
         client: An initialised Grafana client.
         matcher: The metric matcher.
+        stats: Counters; an unreadable provisioning API is recorded as a
+            failure, so the run exits incomplete instead of UNUSED.
 
     Returns:
-        One Hit per (metric, rule) pair found. Empty when the token cannot read
-        the provisioning API, which is reported but not fatal.
+        One Hit per (metric, rule) pair found.
     """
     try:
         rules = client.get_json("/api/v1/provisioning/alert-rules")
     except GrafanaError as exc:
-        print(f"warning: alert rules not scanned ({exc})", file=sys.stderr)
+        stats.failed.append(f"alert rules not scanned (--no-alerts to skip them): {exc}")
         return []
     if not rules:
         return []
@@ -762,9 +880,8 @@ def scan_alert_rules(client: Client, matcher: Matcher) -> list[Hit]:
     for rule in rules:
         seen: set[tuple[str, str]] = set()
         for path, value, _ in walk_strings(rule.get("data", []), QUERY_KEYS):
-            for candidate in identifiers(value):
-                pattern = matcher.match(candidate)
-                if pattern is None or (pattern, candidate) in seen:
+            for pattern, candidate in matcher.scan(value):
+                if (pattern, candidate) in seen:
                     continue
                 seen.add((pattern, candidate))
                 hits.append(
@@ -845,9 +962,9 @@ def report(
     unused = 0
     for pattern in patterns:
         found = by_metric[pattern]
-        dash = len({h.uid for h in found if h.kind == "dashboard"})
+        dash = len({h.uid for h in found if h.kind != "alert-rule"})
         alert = len({h.uid for h in found if h.kind == "alert-rule"})
-        verdict = "UNUSED" if not found else "IN USE"
+        verdict = "IN USE" if found else "UNKNOWN" if stats.failed else "UNUSED"
         unused += not found
         print(f"{pattern:{width}}  {dash:>10}  {alert:>6}  {verdict}")
         # In regex/glob mode the pattern covers many families; say which ones are
@@ -869,6 +986,19 @@ def report(
         f"\n{len(patterns)} pattern(s): {unused} unused, {len(patterns) - unused} in use"
         f"  |  {stats.total} dashboards ({stats.from_cache} cached, {stats.fetched} fetched)"
     )
+    report_failures(stats)
+
+
+def report_failures(stats: Stats) -> None:
+    """Print every fetch failure to stderr, in every output mode.
+
+    An unread dashboard can be the one consumer, so a scan with failures has
+    no UNUSED verdict: the caller exits EXIT_INCOMPLETE.
+    """
+    if not stats.failed:
+        return
+    print(f"INCOMPLETE: {len(stats.failed)} object(s) not scanned, no pattern can be called unused:",
+          file=sys.stderr)
     for failure in stats.failed:
         print(f"  fetch error: {failure}", file=sys.stderr)
 
@@ -896,7 +1026,7 @@ def load_patterns(args: argparse.Namespace) -> list[str]:
         if line and line not in out:
             out.append(line)
     if not out:
-        raise SystemExit("no metric supplied: use -m, -f or pipe a list on stdin")
+        die("no metric supplied: use -m, -f or pipe a list on stdin")
     return out
 
 
@@ -905,7 +1035,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(__doc__ or "").split("\n")[0],
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Exit code is 1 when at least one pattern is still referenced.",
+        epilog="Exit code: 1 when at least one pattern is still referenced, 2 when the scan is incomplete or failed.",
     )
     parser.add_argument("-m", "--metric", action="append", default=[], help="metric name, repeatable")
     parser.add_argument("-f", "--metrics-file", type=Path, help="file with one metric per line, # comments allowed")
@@ -936,9 +1066,27 @@ def main(argv: list[str] | None = None) -> int:
         argv: Command line arguments, defaulting to sys.argv[1:].
 
     Returns:
-        0 when every pattern is unused, 1 when at least one is still referenced.
+        0 when every pattern is unused, 1 when at least one is still referenced,
+        EXIT_INCOMPLETE when nothing is referenced but some fetch failed.
     """
     args = build_parser().parse_args(argv)
+    try:
+        return run(args)
+    except GrafanaError as exc:
+        die(f"error: {exc}")
+    except re.error as exc:
+        die(f"invalid regex: {exc}")
+
+
+def open_cache(args: argparse.Namespace, url: str, ctx: str) -> Cache:
+    """Open the per-instance cache, bypassed when the instance cannot be identified."""
+    # Without a host or a context name two gcx contexts would share one namespace.
+    refresh = args.refresh or not (url_host(url) or ctx)
+    return Cache(args.cache_dir / cache_namespace(url, ctx), args.max_age, refresh)
+
+
+def run(args: argparse.Namespace) -> int:
+    """Body of main, so main can turn API errors into EXIT_INCOMPLETE."""
     url, token, ctx = resolve_target(args.url, args.token, args.gcx_context)
 
     patterns = load_patterns(args)
@@ -947,7 +1095,7 @@ def main(argv: list[str] | None = None) -> int:
     keys = QUERY_KEYS | TEXT_KEYS if args.include_text else QUERY_KEYS
 
     client = Client(url, token, ctx)
-    cache = Cache(args.cache_dir / cache_namespace(url, ctx), args.max_age, args.refresh)
+    cache = open_cache(args, url, ctx)
     stats = Stats()
 
     started = time.monotonic()
@@ -957,8 +1105,10 @@ def main(argv: list[str] | None = None) -> int:
     hits: list[Hit] = []
     for row, payload in fetch_dashboards(client, rows, cache, args.workers, stats):
         hits.extend(scan_dashboard(row, payload, matcher, keys))
+    for element in list_library_panels(client, stats):
+        hits.extend(scan_dashboard(*library_panel_payload(element), matcher, keys))
     if not args.no_alerts:
-        hits.extend(scan_alert_rules(client, matcher))
+        hits.extend(scan_alert_rules(client, matcher, stats))
     elapsed = time.monotonic() - started
 
     if args.json:
@@ -975,13 +1125,25 @@ def main(argv: list[str] | None = None) -> int:
                     "url": hit.location(client.base_url),
                 }
             )
-        print(json.dumps({"patterns": found, "dashboards_scanned": stats.total, "seconds": round(elapsed, 2)}, indent=2))
+        print(json.dumps({
+            "patterns": found,
+            "complete": not stats.failed,
+            "failed": stats.failed,
+            "dashboards_listed": stats.total,
+            "dashboards_scanned": stats.from_cache + stats.fetched,
+            "seconds": round(elapsed, 2),
+        }, indent=2))
+        report_failures(stats)
     elif not args.quiet:
         report(patterns, hits, stats, client.base_url, resolve_datasources(client), args.verbose)
         print(f"scanned in {elapsed:.1f}s")
+    else:
+        report_failures(stats)
 
     client.close()
-    return 1 if hits else 0
+    if hits:
+        return 1
+    return EXIT_INCOMPLETE if stats.failed else 0
 
 
 if __name__ == "__main__":

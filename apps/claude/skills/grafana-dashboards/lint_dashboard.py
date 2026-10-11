@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grafana_metric_usage import (  # noqa: E402  # type: ignore[import-not-found]
     Client,
     GrafanaError,
+    die,
     list_dashboards,
     resolve_target,
 )
@@ -328,8 +329,8 @@ def check_variables(dashboard: dict[str, Any], expect_ds_var: str | None) -> lis
     if not expect_ds_var:
         return []
     out: list[Finding] = []
-    for index, variable in enumerate(dashboard.get("templating", {}).get("list") or []):
-        if variable.get("type") != "datasource":
+    for index, variable in enumerate((dashboard.get("templating") or {}).get("list") or []):
+        if not isinstance(variable, dict) or variable.get("type") != "datasource":
             continue
         name = variable.get("name")
         if name == expect_ds_var:
@@ -656,8 +657,8 @@ def ds_var_majority(dashboards: list[tuple[str, dict[str, Any]]]) -> str | None:
     """
     names: Counter[str] = Counter()
     for _, dashboard in dashboards:
-        for variable in dashboard.get("templating", {}).get("list") or []:
-            if variable.get("type") == "datasource" and variable.get("name"):
+        for variable in (dashboard.get("templating") or {}).get("list") or []:
+            if isinstance(variable, dict) and variable.get("type") == "datasource" and variable.get("name"):
                 names[variable["name"]] += 1
                 break  # only the primary (first) var votes, a secondary like dsTooling must not skew it
     if not names:
@@ -672,7 +673,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(__doc__ or "").split("\n")[0],
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Exit code is 1 when at least one error is found. Warnings alone exit 0.",
+        epilog="Exit code is 1 when at least one error is found, 2 when a dashboard could not be fetched or read. Warnings alone exit 0.",
     )
     parser.add_argument("files", nargs="*", type=Path, help="dashboard JSON files")
     parser.add_argument("--uid", action="append", default=[], help="fetch this dashboard uid, repeatable")
@@ -701,31 +702,45 @@ def collect(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
     Raises:
         SystemExit: When nothing was selected or credentials are missing.
     """
-    out: list[tuple[str, dict[str, Any]]] = [(str(p), load_local(p)) for p in args.files]
+    out: list[tuple[str, dict[str, Any]]] = []
+    for path in args.files:
+        try:
+            out.append((str(path), load_local(path)))
+        except (OSError, json.JSONDecodeError) as exc:
+            die(f"cannot read {path}: {exc}")
     if not args.uid and not args.folder:
         if not out:
-            raise SystemExit("nothing to lint: pass a file, --uid or --folder")
+            die("nothing to lint: pass a file, --uid or --folder")
         return out
 
     url, token, ctx = resolve_target(args.url, args.token, args.gcx_context)
     client = Client(url, token, ctx)
     uids = list(args.uid)
-    if args.folder:
-        uids += [
-            row["uid"] for row in list_dashboards(client) if row.get("folderTitle") == args.folder
-        ]
-        if not uids:
-            raise SystemExit(f"no dashboard found in folder {args.folder!r}")
-    for uid in uids:
-        try:
-            payload = client.get_json(f"/api/dashboards/uid/{uid}")
-        except GrafanaError as exc:
-            print(f"warning: {uid} not fetched ({exc})", file=sys.stderr)
-            continue
-        if payload:
+    # Any dashboard left unlinted voids the verdict: a clean summary over a subset passes a gate it should not.
+    missing: list[str] = []
+    try:
+        if args.folder:
+            in_folder = [row["uid"] for row in list_dashboards(client) if row.get("folderTitle") == args.folder]
+            if not in_folder:
+                die(f"no dashboard found in folder {args.folder!r}")
+            uids += in_folder
+        for uid in uids:
+            try:
+                payload = client.get_json(f"/api/dashboards/uid/{uid}")
+            except GrafanaError as exc:
+                missing.append(f"{uid}: {exc}")
+                continue
+            if not payload:
+                missing.append(f"{uid}: not found")
+                continue
             dashboard = to_dashboard(payload)
             out.append((f"{dashboard.get('title', uid)} [{uid}]", dashboard))
-    client.close()
+    except GrafanaError as exc:
+        die(f"error: {exc}")
+    finally:
+        client.close()
+    if missing:
+        die("not linted, no verdict:\n" + "\n".join(f"  {m}" for m in missing))
     return out
 
 
@@ -744,10 +759,13 @@ def main(argv: list[str] | None = None) -> int:
     expect = args.expect_ds_var
     if args.folder and not expect:
         expect = ds_var_majority(dashboards)
+        # stderr under --json: stdout must stay a single JSON document.
+        notice = sys.stderr if args.json else sys.stdout
         if expect:
-            print(f"datasource variable: aligning on the majority form {expect!r}\n")
+            print(f"datasource variable: aligning on the majority form {expect!r}\n", file=notice)
         else:
-            print("datasource variable: no name on more than half the dashboards, naming not checked (--expect-ds-var to force)\n")
+            print("datasource variable: no name on more than half the dashboards, naming not checked (--expect-ds-var to force)\n",
+                  file=notice)
 
     # A legacy folder would get one title-format warning per dashboard, which buries the real ones.
     layout = not args.folder or any(parse_title(d.get("title") or "") for _, d in dashboards)

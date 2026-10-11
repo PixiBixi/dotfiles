@@ -1,11 +1,11 @@
 ---
 name: grafana-dashboards
-description: Entry point for ANY Grafana dashboard work, load it BEFORE create-dashboard or manage-dashboards (generic, they lack the house rules). Load it as soon as a Grafana dashboard URL (a `/d/<uid>` path) is pasted or the user says "dash" or "panel", then gcx:create-dashboard if creating. Use when creating, editing, improving, redesigning or cleaning up a dashboard ("make it look better", "le dash est moche", layout, readability), or a PromQL query against a Thanos or Prometheus datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99). Also when laying out the set of dashboards for a component folder (Start here, SLA, Ops, Sizing, Deep dive), or when an audit has to find every dashboard still reading a given metric, or every dashboard that really reads a given datasource before deleting it. For panels on a Google Cloud Monitoring (stackdriver) datasource, use grafana-cloud-monitoring instead.
+description: Use for ANY Grafana dashboard work, load it BEFORE gcx:create-dashboard or manage-dashboards (generic, they lack the house rules). Triggers - a dashboard URL (`/d/<uid>`) pasted, "dash" or "panel", creating, editing, redesigning or cleaning up a dashboard, PromQL on a Thanos or Prometheus datasource, a dashboard that OOMs the query layer, empty panels, slow template variables, a plausible but wrong number, the folder layout of a component's dashboards, or an audit of every dashboard reading a given metric or datasource. For Google Cloud Monitoring (stackdriver) panels use grafana-cloud-monitoring instead.
 ---
 
 # Authoring Grafana dashboards and PromQL
 
-**Load order:** this skill first, then `create-dashboard` when the work is a visual redesign or new panels (its snapshot loop), or `manage-dashboards` for plain get/push. This skill's rules win on conflict.
+**Load order:** this skill first, then `gcx:create-dashboard` when the work is a visual redesign or new panels (its snapshot loop), or `manage-dashboards` for plain get/push. This skill's rules win on conflict.
 
 Three tools ship next to this file: `lint_dashboard.py` (schema baseline before saving), `grafana_metric_usage.py` (is a metric still read anywhere) and `grafana_datasource_usage.py` (is a datasource still read anywhere). The working directory is never this folder, so call them through `SKILL=${CLAUDE_SKILL_DIR}` as in the examples below. They route through `gcx api`, so gcx's own OAuth refresh applies; the target is picked as in § Which instance, the same chain as the sibling skill. **When the output is evidence for a Jira ticket, an MR or a postmortem rather than a dashboard, use the `charting-grafana-metrics` skill**, which renders a PNG from a query, for the common case of a Grafana without the Image Renderer plugin (`gcx dashboards snapshot` errors out).
 
@@ -36,7 +36,7 @@ Set these without asking, they are schema baseline, not per-dashboard choices:
 - **`graphTooltip: 1` (shared crosshair), ALWAYS.** Never `0` (no sharing), never `2` (shared *tooltip*, unreadable past ~10 panels). These dashboards are read by correlating panels against each other: hovering CPU must move the cursor line on GC, threadpool and network at the same instant. When auditing an existing dashboard, check `$.graphTooltip` and report it compliant rather than assuming it needs changing.
 - `timezone: "utc"`, `editable: true`, and a dashboard-level `description` (1-2 sentences: what it is for, who reads it). It is what shows up in Grafana search.
 - Panel type `timeseries`/`stat`/`table` only. The `graph` plugin is deprecated; rewrite it when you touch a panel that still uses it.
-- **Every panel needs a unique `id`.** JSON authored without them saves with none at all, which silently breaks panel permalinks (`?viewPanel=`) *and* the `panel_id` label in the query-frontend slow log, i.e. it disables the debugging procedure in § Pre-flight on exactly the dashboards you will need it for.
+- **Every panel needs a unique `id`.** JSON authored without them saves with none at all, which silently breaks panel permalinks (`?viewPanel=`) *and* the `panel_id` label in the query-frontend slow log, i.e. it disables the debugging procedure in § Pre-flight: query cost on exactly the dashboards you will need it for.
 - **One name for the datasource variable, across the whole folder.** Three names for the same thing (`ds`, `datasource`, `Source`) makes dashboard URLs non-transposable and breaks copy-paste between panels. When standardising, align on the form more than half the dashboards already carry, even an imported `DS_*` name, rather than on what a doc says: every rename breaks the `?var-<name>=` in existing bookmarks and tickets. A second datasource variable takes the convention as prefix (`dsTooling`), never a new spelling.
 
 ## Known datasources
@@ -50,10 +50,10 @@ The rules above are the ones that get skipped, and it is always on the quick das
 
 ```bash
 SKILL=${CLAUDE_SKILL_DIR}
-$SKILL/lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
+python3 $SKILL/lint_dashboard.py mydash.json          # or --folder "K8S" to sweep one folder
 ```
 
-Errors exit 1, so it gates a commit; the folder-layout rules are warnings only, so legacy folders still pass. Run `--help` for the flags. Two caveats: its language check is a heuristic that surfaces candidates, so read what it reports rather than trusting the count, and on a folder it aligns the datasource variable on the name carried by **more than half** of the dashboards that have one, because every rename breaks the `?var-<name>=` in existing bookmarks. Below that bar the naming check is skipped: a mere plurality is not a convention, pass `--expect-ds-var` to pick one.
+Errors exit 1, so it gates a commit; a `--uid` or folder dashboard it could not fetch exits 2, never a clean 0. The folder-layout rules are warnings only, so legacy folders still pass. Run `--help` for the flags. Two caveats: its language check is a heuristic that surfaces candidates, so read what it reports rather than trusting the count, and on a folder it aligns the datasource variable on the name carried by **more than half** of the dashboards that have one, because every rename breaks the `?var-<name>=` in existing bookmarks. Below that bar the naming check is skipped: a mere plurality is not a convention, pass `--expect-ds-var` to pick one.
 
 Two things it cannot decide for you:
 
@@ -81,11 +81,11 @@ A `409 Conflict` means the manifest's `resourceVersion` predates another save: r
 Before dropping a metric at scrape time, or before deleting a recording rule, prove nothing reads it. `grafana_metric_usage.py`, next to this file, sweeps every dashboard and every Grafana-managed alert rule, reading all three query paths above plus template variables and collapsed rows:
 
 ```bash
-$SKILL/grafana_metric_usage.py -m kube_pod_tolerations -v     # -v lists each reference
-$SKILL/grafana_metric_usage.py --regex -f drop-regexes.txt    # feed it the relabel regexes verbatim
+python3 $SKILL/grafana_metric_usage.py -m kube_pod_tolerations -v     # -v lists each reference
+python3 $SKILL/grafana_metric_usage.py --regex -f drop-regexes.txt    # feed it the relabel regexes verbatim
 ```
 
-Exits 1 as soon as one metric is still referenced. Results are cached on disk, so a second run is seconds. Three traps it exists to avoid, all met for real:
+Exits 1 as soon as one metric is still referenced, **2 when the scan is incomplete** (a dashboard, the library panels or the alert rules could not be read): 2 is never UNUSED, rerun or pass `--no-alerts` knowingly. Library panels are scanned, and an exact name read through `{__name__=~"..."}` counts as a hit. Dashboards are cached for 1h (`--refresh` to bypass): the search API carries no version, so a recent edit is only seen once the entry expires. Three traps it exists to avoid, all met for real:
 
 - **A substring grep lies in both directions.** `grep container_threads` matches `container_threads_max`, a different family that a chart may already drop. The tool matches whole PromQL identifiers, and skips tokens followed by `(` so a function is never mistaken for a metric.
 - **A hit is not a consumer.** Read the datasource the tool prints next to each hit: an unresolved import variable (`${DS_SOMETHING}`) or a uid that no longer resolves means the panel has been dead for years. It attributes each hit to the target's own datasource, not to the dashboard's union.
@@ -95,10 +95,12 @@ Exits 1 as soon as one metric is still referenced. Results are cached on disk, s
 Same question one level up, before deleting a datasource or leaving one behind in a migration. `grafana_datasource_usage.py` takes a uid **or** a name and shares the dashboard cache with the tool above:
 
 ```bash
-$SKILL/grafana_datasource_usage.py -d wfWf8AG4k -v          # list the dashboards that read it
-$SKILL/grafana_datasource_usage.py -d wfWf8AG4k -vv         # also list the selector-only ones
-$SKILL/grafana_datasource_usage.py -d wfWf8AG4k --quiet     # exit 1 while something still reads it
+python3 $SKILL/grafana_datasource_usage.py -d wfWf8AG4k -v          # list the dashboards that read it
+python3 $SKILL/grafana_datasource_usage.py -d wfWf8AG4k -vv         # also list the selector-only ones
+python3 $SKILL/grafana_datasource_usage.py -d wfWf8AG4k --quiet     # exit 1 while something still reads it
 ```
+
+Exit 2 means no verdict: an unknown `-d` (typo, wrong instance), an unreadable `/api/datasources`, or a dashboard that failed to fetch. Library panels are scanned, and a query panel with no datasource at all counts as reading the instance default.
 
 **The verdict is the direct / selector split, never the raw hit count.** A `type: datasource` variable selects by plugin type, so every datasource of that type appears in every dashboard carrying such a variable, without anyone having pointed at it. Measured on a 1294-dashboard instance: `GKE cluster ads.txt production` showed up in 294 dashboards and had **1** real consumer. A grep on the uid answers 294 and gets the decision wrong in the expensive direction, which is the datasource-level form of the *a hit is not a consumer* rule above.
 
@@ -118,7 +120,7 @@ Grafana does not rewrite references, so a rename is a manual sweep. Miss one and
 - Re-read every level afterwards. The whole patch is atomic, so a failed op changes nothing, but a *successful* partial sweep looks fine until someone opens the dashboard.
 - **It breaks existing URLs.** `?var-<oldname>=<uid>` no longer applies, so bookmarks and links pasted in tickets or chat lose their selection and fall back to the default. Say so before doing it.
 
-## Pre-flight (ALWAYS do this first)
+## Pre-flight: query cost (ALWAYS do this first)
 Before writing any expr, confirm the metric exists **on the target datasource**:
 ```promql
 count(<metric>) or on() vector(-1)    # -1 = absent on this datasource
@@ -212,7 +214,7 @@ Every recipe above leans on `absent()` or `vector()`, so **none of them port to 
 ## Absence is not zero
 Three different failures all render as an empty panel, distinguish them before concluding:
 - **A counter with no sample until its first event.** Some exporters ship nothing while the counter is zero (e.g. `dragonfly_evicted_keys_total`), so "no data" reads as healthy *and* as broken. Judge via a proxy that always has a value (used versus maxmemory), or force a healthy state per § Healthy / empty-state panels.
-- **A metric only one component exports.** `thanos_store_api_query_duration_seconds` exists on the global querier only, so any panel filtering it per stack returns nothing forever. Run the § Pre-flight `count()` check *with the panel's own label filters applied*, not just on the bare metric name.
+- **A metric only one component exports.** `thanos_store_api_query_duration_seconds` exists on the global querier only, so any panel filtering it per stack returns nothing forever. Run the § Pre-flight: query cost `count()` check *with the panel's own label filters applied*, not just on the bare metric name.
 - **`kube_pod_container_status_restarts_total` does NOT count pod recreation.** It counts container restarts *inside an existing pod*. A recreated pod is a new object whose counter starts at zero, so `increase()` reads nothing while pods churn every few minutes. This produces a **false and reassuring** answer, the worst kind: a panel titled "restarts" shows zero during exactly the event it exists to catch, a fleet-wide rollout. Count pod age instead, which catches both cases:
 ```promql
 count by (namespace) (time() - kube_pod_start_time{pod=~"<sts>.*"} < 3600)

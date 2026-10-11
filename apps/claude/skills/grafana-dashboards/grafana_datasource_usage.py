@@ -16,8 +16,14 @@ References are collected in all three shapes Grafana emits (the string
 "${ds}", the object {"uid": ...}, and a plain datasource name) at the four
 sites that carry one: panel, panel target, template variable, annotation.
 
-Dashboards are cached on disk, shared with grafana_metric_usage.py, so repeated
-runs only fetch what changed.
+Library panels are scanned too, and a panel with no datasource at all counts
+as reading the instance default datasource.
+
+Dashboards are cached on disk for --max-age (1h), shared with
+grafana_metric_usage.py.
+
+Exit codes: 0 every datasource unused, 1 at least one still read, 2 the scan is
+incomplete, a -d is unknown, or the tool could not run. Never read 2 as UNUSED.
 
 Examples:
     # who really reads this datasource?
@@ -41,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -56,36 +63,47 @@ from grafana_metric_usage import (  # noqa: E402
     DEFAULT_CACHE,
     DEFAULT_MAX_AGE,
     DEFAULT_WORKERS,
-    Cache,
+    EXIT_INCOMPLETE,
     Client,
-    Stats,
-    cache_namespace,
-    fetch_dashboards,
-    list_dashboards,
     GrafanaError,
-    resolve_datasources,
+    Stats,
+    die,
+    fetch_dashboards,
+    library_panel_payload,
+    list_dashboards,
+    list_library_panels,
+    open_cache,
+    report_failures,
     resolve_target,
 )
 
 
-def datasource_types(client: Client) -> dict[str, str]:
-    """Map datasource uid to plugin type.
+@dataclass(slots=True)
+class Datasources:
+    """The instance's datasources, as /api/datasources lists them."""
 
-    Needed to decide what a `type: datasource` variable reaches: it selects by
-    plugin type and never names a uid, so without this the selector count is
-    wrong by two orders of magnitude.
+    names: dict[str, str]  # uid to name
+    types: dict[str, str]  # uid to plugin type
+    default: str  # uid of the instance default, "" if none
 
-    Args:
-        client: An initialised Grafana client.
+    @classmethod
+    def fetch(cls, client: Client) -> Datasources:
+        """List the datasources, or die: without the list no -d can be resolved or checked.
 
-    Returns:
-        A uid to type mapping. Empty when the token cannot list datasources.
-    """
-    try:
-        items = client.get_json("/api/datasources") or []
-    except GrafanaError:
-        return {}
-    return {item["uid"]: str(item.get("type", "")) for item in items if "uid" in item}
+        Needed to decide what a `type: datasource` variable reaches: it selects by
+        plugin type and never names a uid, so without the types the selector count
+        is wrong by two orders of magnitude.
+        """
+        try:
+            items = client.get_json("/api/datasources") or []
+        except GrafanaError as exc:
+            die(f"cannot list datasources, so -d cannot be resolved: {exc}")
+        items = [i for i in items if isinstance(i, dict) and "uid" in i]
+        return cls(
+            names={str(i["uid"]): str(i.get("name", "")) for i in items},
+            types={str(i["uid"]): str(i.get("type", "")) for i in items},
+            default=next((str(i["uid"]) for i in items if i.get("isDefault")), ""),
+        )
 
 # Where a datasource reference can sit, and what each site means for the
 # verdict. A variable's `current`/`options` is the selector trap: it records
@@ -98,6 +116,12 @@ SITE_ANNOTATION = "annotation"
 SITE_SELECTOR = "variable-selector"
 
 DIRECT_SITES = frozenset({SITE_PANEL, SITE_TARGET, SITE_VARIABLE_QUERY, SITE_ANNOTATION})
+
+# `$ds`, `${ds}`, `${ds:raw}` and the deprecated `[[ds]]`, all naming variable `ds`.
+VARIABLE_REF = re.compile(r"\$([A-Za-z_]\w*)|\$\{([A-Za-z_]\w*)(?::[^}]*)?\}|\[\[([A-Za-z_]\w*)(?::[^\]]*)?\]\]")
+
+# Panel types that carry no query, so a missing datasource is not an implicit default.
+CHROME_PANELS = frozenset({"row", "text", "dashlist", "news", "welcome"})
 
 
 @dataclass(slots=True)
@@ -119,8 +143,12 @@ class Ref:
         """
         return bool(self.sites & DIRECT_SITES)
 
+    kind: str = "dashboard"
+
     def location(self, base_url: str) -> str:
-        """Return a clickable URL for the dashboard."""
+        """Return a clickable URL for the dashboard or library panel."""
+        if self.kind == "library-panel":
+            return f"{base_url}/library-panels?uid={self.uid}"
         return f"{base_url}/d/{self.uid}"
 
 
@@ -153,12 +181,31 @@ def _matches(ref: str, wanted: str, aliases: set[str], ds_vars: dict[str, set[st
         True when this reference points at the wanted datasource.
     """
     ref = ref.strip()
-    if ref.startswith("$"):
+    name = variable_name(ref)
+    if name is not None:
         # "${ds}" resolves to whatever the variable can select. Handled by the
         # caller as a selector hit, never as a direct one, so the variable's
         # own reach is what matters here.
-        return wanted in ds_vars.get(ref.lstrip("$").strip("{}"), set())
+        return wanted in ds_vars.get(name, set())
     return ref == wanted or ref in aliases
+
+
+def variable_name(ref: str) -> str | None:
+    """Return the variable a reference names (`$ds`, `${ds}`, `${ds:raw}`, `[[ds]]`), else None."""
+    match = VARIABLE_REF.fullmatch(ref.strip())
+    return next((g for g in match.groups() if g), None) if match else None
+
+
+def _strings(node: Any) -> Iterator[str]:
+    """Yield every string leaf of a JSON value."""
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _strings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _strings(value)
 
 
 def variable_reach(
@@ -191,14 +238,20 @@ def variable_reach(
         # only the value saved last time, which is why it is not the criterion.
         query = var.get("query")
         by_type = bool(ds_type) and isinstance(query, str) and query.strip() == ds_type
-        blob = json.dumps([var.get("current"), var.get("options"), query])
-        if by_type or wanted in blob or any(a in blob for a in aliases):
+        # Whole values, not a substring of a JSON dump: uid "abc" is not in "abcdef".
+        values = set(_strings([var.get("current"), var.get("options"), query]))
+        if by_type or wanted in values or values & aliases:
             reach.setdefault(name, set()).add(wanted)
     return reach
 
 
 def scan_dashboard(
-    row: dict[str, Any], payload: dict[str, Any], wanted: str, aliases: set[str], ds_type: str = ""
+    row: dict[str, Any],
+    payload: dict[str, Any],
+    wanted: str,
+    aliases: set[str],
+    ds_type: str = "",
+    is_default: bool = False,
 ) -> Ref | None:
     """Find every site in one dashboard that references the datasource.
 
@@ -208,6 +261,8 @@ def scan_dashboard(
         wanted: The uid being searched for.
         aliases: Other spellings of the same datasource.
         ds_type: Plugin type of the wanted datasource.
+        is_default: True when `wanted` is the instance default datasource, so
+            a query panel naming no datasource at all reads it.
 
     Returns:
         A Ref when the dashboard references the datasource, else None.
@@ -217,7 +272,7 @@ def scan_dashboard(
     sites: set[str] = set()
 
     def note(ref: str, site: str) -> None:
-        if ref.strip().startswith("$"):
+        if variable_name(ref) is not None:
             if _matches(ref, wanted, aliases, ds_vars):
                 sites.add(SITE_SELECTOR)
         elif _matches(ref, wanted, aliases, ds_vars):
@@ -229,12 +284,22 @@ def scan_dashboard(
         for panel in panels:
             if not isinstance(panel, dict):
                 continue
-            for ref in datasource_refs(panel):
+            panel_refs = list(datasource_refs(panel))
+            for ref in panel_refs:
                 note(ref, SITE_PANEL)
-            for target in panel.get("targets") or []:
-                if isinstance(target, dict):
-                    for ref in datasource_refs(target):
-                        note(ref, SITE_TARGET)
+            targets = [t for t in panel.get("targets") or [] if isinstance(t, dict)]
+            for target in targets:
+                for ref in datasource_refs(target):
+                    note(ref, SITE_TARGET)
+            # No datasource anywhere means Grafana falls back to the instance default.
+            implicit = (
+                not panel_refs
+                and "libraryPanel" not in panel
+                and panel.get("type") not in CHROME_PANELS
+                and any(not list(datasource_refs(t)) for t in targets)
+            )
+            if is_default and implicit:
+                sites.add(SITE_PANEL)
             # Rows hold their own panels when collapsed, which a flat sweep of
             # $.panels[*] silently skips.
             walk_panels(panel.get("panels"))
@@ -257,6 +322,7 @@ def scan_dashboard(
         title=row.get("title", dash.get("title", "")),
         folder=row.get("folderTitle", "General"),
         sites=sites,
+        kind=row.get("kind", "dashboard"),
     )
 
 
@@ -291,10 +357,11 @@ def report(
         refs = found.get(uid, [])
         direct = [r for r in refs if r.direct]
         selector = len(refs) - len(direct)
-        used = bool(direct) or (count_selectors and selector)
-        in_use += bool(used)
+        used = is_used(refs, count_selectors)
+        in_use += used
         label = names.get(uid, uid)
-        print(f"{label:{width}}  {len(direct):>6}  {selector:>8}  {'IN USE' if used else 'UNUSED'}")
+        verdict = "IN USE" if used else "UNKNOWN" if stats.failed else "UNUSED"
+        print(f"{label:{width}}  {len(direct):>6}  {selector:>8}  {verdict}")
 
     if verbose:
         for uid in wanted:
@@ -323,9 +390,13 @@ def report(
     if not count_selectors:
         print("selector-only hits are not usage: a datasource variable lists every "
               "datasource of its type. Pass --count-variable-only to include them.")
-    for failure in stats.failed:
-        print(f"  fetch error: {failure}", file=sys.stderr)
+    report_failures(stats)
     return in_use
+
+
+def is_used(refs: list[Ref], count_selectors: bool) -> bool:
+    """The verdict for one datasource, shared by every output mode so they never disagree."""
+    return any(r.direct for r in refs) or (count_selectors and bool(refs))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -364,51 +435,76 @@ def main(argv: list[str] | None = None) -> int:
         argv: Command line arguments, defaulting to sys.argv[1:].
 
     Returns:
-        0 when every datasource is unused, 1 when at least one is still read.
+        0 when every datasource is unused, 1 when at least one is still read,
+        EXIT_INCOMPLETE when nothing is read but some fetch failed.
     """
     args = build_parser().parse_args(argv)
+    try:
+        return run(args)
+    except GrafanaError as exc:
+        die(f"error: {exc}")
+
+
+def run(args: argparse.Namespace) -> int:
+    """Body of main, so main can turn API errors into EXIT_INCOMPLETE."""
     url, token, ctx = resolve_target(args.url, args.token, args.gcx_context)
     if not args.datasource:
-        raise SystemExit("nothing to check: pass at least one -d/--datasource")
+        die("nothing to check: pass at least one -d/--datasource")
 
     client = Client(url, token, ctx)
-    names: dict[str, str] = {str(k): str(v) for k, v in resolve_datasources(client).items()}
+    known = Datasources.fetch(client)
+    names = known.names
     by_name: dict[str, str] = {v: k for k, v in names.items()}
-    types = datasource_types(client)
 
     # Accept a uid or a name, and keep the other spelling as an alias: a target
     # may reference a datasource by name where the panel references it by uid.
     wanted: list[str] = []
     aliases: dict[str, set[str]] = {}
     for given in args.datasource:
-        uid: str = given if given in names else by_name.get(given, given)
+        uid = given if given in names else by_name.get(given)
+        if uid is None:
+            # An unknown -d would match nothing and read UNUSED: a typo must not pass a gate.
+            die(f"unknown datasource {given!r} on {url or 'the gcx context'}: not a uid or a name "
+                f"listed by /api/datasources")
         wanted.append(uid)
-        alias = {names[uid]} if uid in names else set()
+        alias = {names[uid]}
         if given != uid:
             alias.add(given)
         aliases[uid] = alias
 
-    cache = Cache(args.cache_dir / cache_namespace(url, ctx), args.max_age, args.refresh)
+    cache = open_cache(args, url, ctx)
     stats = Stats()
     started = time.monotonic()
     rows = list_dashboards(client)
     cache.prune({row["uid"] for row in rows})
 
     found: dict[str, list[Ref]] = {uid: [] for uid in wanted}
-    for row, payload in fetch_dashboards(client, rows, cache, args.workers, stats):
+
+    def scan(row: dict[str, Any], payload: dict[str, Any]) -> None:
+        dash = payload.get("dashboard") or payload
         for uid in wanted:
-            ref = scan_dashboard(row, payload, uid, aliases[uid], types.get(uid, ""))
+            ref = scan_dashboard(row, dash, uid, aliases[uid], known.types.get(uid, ""), uid == known.default)
             if ref:
                 found[uid].append(ref)
+
+    for row, payload in fetch_dashboards(client, rows, cache, args.workers, stats):
+        scan(row, payload)
+    for element in list_library_panels(client, stats):
+        scan(*library_panel_payload(element))
     elapsed = time.monotonic() - started
+    in_use = sum(is_used(found[uid], args.count_variable_only) for uid in wanted)
 
     if args.json:
         print(json.dumps({
             "elapsed": round(elapsed, 2),
-            "dashboards_scanned": stats.total,
+            "complete": not stats.failed,
+            "failed": stats.failed,
+            "dashboards_listed": stats.total,
+            "dashboards_scanned": stats.from_cache + stats.fetched,
             "datasources": {
                 uid: {
                     "name": names.get(uid),
+                    "in_use": is_used(found[uid], args.count_variable_only),
                     "direct": [
                         {"uid": r.uid, "title": r.title, "folder": r.folder,
                          "sites": sorted(r.sites & DIRECT_SITES)}
@@ -422,17 +518,15 @@ def main(argv: list[str] | None = None) -> int:
                 for uid in wanted
             },
         }, indent=2))
-        in_use = sum(1 for uid in wanted if any(r.direct for r in found[uid]))
+        report_failures(stats)
     elif args.quiet:
-        in_use = sum(
-            1 for uid in wanted
-            if any(r.direct for r in found[uid])
-            or (args.count_variable_only and found[uid])
-        )
+        report_failures(stats)
     else:
-        in_use = report(wanted, found, names, stats, url, args.verbose, args.count_variable_only)
+        report(wanted, found, names, stats, url, args.verbose, args.count_variable_only)
 
-    return 1 if in_use else 0
+    if in_use:
+        return 1
+    return EXIT_INCOMPLETE if stats.failed else 0
 
 
 if __name__ == "__main__":
