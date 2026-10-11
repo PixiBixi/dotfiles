@@ -22,6 +22,7 @@ Tokens cost real money and the budget is the user's.
 - For current model IDs and pricing, read the `claude-api` skill, never answer from memory.
 - What Claude Code loads or does (CLAUDE.md/AGENTS.md, hooks, settings, permissions) is never answered from memory: check `~/.claude/cache/changelog.md` or ask the `claude-code-guide` agent.
 - Polling (CI, a Slack canvas, a deploy) never loops in the main session: every poll re-reads the whole context. Use a blocking watcher (`gh pr checks --watch`, `gh run watch`, `glab ci status --live`, Monitor), or a Haiku/Sonnet subagent that reports only the change.
+- **Context is the bill**: every tool result is re-read on every later turn (cache reads are over half of the spend). Locate with `rg -n` first, then Read with `offset`/`limit`; never `cat`/`sed` a whole file or re-read one already in context; cap command output (`| head`, `--tail`, `-o jsonpath`). A sweep that would dump many files goes to a Sonnet subagent that returns the conclusion.
 
 ## Output Expectations
 
