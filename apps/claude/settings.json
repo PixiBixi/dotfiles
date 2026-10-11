@@ -167,12 +167,12 @@
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
     "openwiki@openwiki-cc": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
-    "gaia-review@equativ-plugins": true
+    "gaia-review@equativ-plugins": false
   },
   "extraKnownMarketplaces": {
     "ansible-skills-marketplace": {

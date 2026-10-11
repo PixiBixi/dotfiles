@@ -23,14 +23,6 @@ Tokens cost real money and the budget is the user's.
 - What Claude Code loads or does (CLAUDE.md/AGENTS.md, hooks, settings, permissions) is never answered from memory: check `~/.claude/cache/changelog.md` or ask the `claude-code-guide` agent.
 - Polling (CI, a Slack canvas, a deploy) never loops in the main session: every poll re-reads the whole context. Use a blocking watcher (`gh pr checks --watch`, `gh run watch`, `glab ci status --live`, Monitor), or a Haiku/Sonnet subagent that reports only the change.
 
-## /claude-security scans
-
-The plugin's `scan-researcher`, `scan-verifier`, `patch-generator` and `patch-verifier` agents are `model: inherit`, so they follow the session model. A `medium` scan from an Opus session dispatches ~48 researchers at ~90k tokens each.
-
-- Default combo: Sonnet 5 session, `--effort medium`, `focus attack-surface`, `--scope` on the packages that parse network input. Switch back to an Opus session for the patch phase.
-- Tiers: `low` = one researcher over the whole repo plus the panel; `medium` = up to 24 components x 4 category lenses; `high` = up to 48 components and 2 researchers per cell, roughly 4x medium.
-- RTK does not offset this cost: its hook only filters `Bash`, never the `Read`/`Grep`/`Glob` tools.
-
 ## Output Expectations
 
 - **Answer the question asked, nothing around it.** A closed question gets one sentence. No recap of what you just did, no unrequested metrics table, no spontaneous "points d'attention" section, no closing offer of next steps.
