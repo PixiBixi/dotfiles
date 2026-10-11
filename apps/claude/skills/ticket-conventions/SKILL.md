@@ -1,6 +1,6 @@
 ---
 name: ticket-conventions
-description: Conventions and API gotchas for writing to a tracker - creating a Jira issue or a GitLab issue, posting a comment on an existing ticket. Load BEFORE any tracker write, and on "crée un ticket", "ouvre une issue", "commente le ticket", "poste ça sur PE-xxxx", "le ticket est prêt / à tester". Covers the approval gate, the length ceiling on descriptions and comments, the Jira markdown trap, custom field id discovery, and the glab flags that hang. Not for jira-cli command syntax (that is jira-cli) and not for MR descriptions.
+description: Conventions and API gotchas for writing to a tracker or an MR/PR - creating a Jira issue or a GitLab issue, posting a comment on an existing ticket, writing an MR/PR description. Load BEFORE any tracker write, and on "fais un ticket", "crée le ticket", "update le ticket", "commente", "commente le ticket", "ouvre une issue", "ouvre la MR", "description de la MR", "poste ça sur PE-xxxx", "le ticket est prêt / à tester". Covers the approval gate, the length ceiling on descriptions and comments, the Jira markdown trap, custom field id discovery, and the glab flags that hang. Not for jira-cli command syntax (that is jira-cli).
 ---
 
 # Ticket conventions
@@ -20,6 +20,8 @@ Comment:
 The user is confirming the wording **and the target**, not the intent, so the gate applies even when they asked for the ticket in the first place. Showing the id next to the body is what catches a comment aimed at the wrong ticket, which is visible to the whole team the moment it lands.
 
 Show the full body, never a three-line excerpt: an excerpt hides exactly the mistakes the gate exists to catch. If the user edits the wording, show the revised draft and wait again. One approval covers one write.
+
+When the user says go, create the ticket yourself. Never ask whether a small change deserves a ticket.
 
 After posting, output the direct link so it can be verified: `<baseUrl>/browse/<TICKET-ID>?focusedCommentId=<commentId>`.
 
@@ -41,6 +43,10 @@ A description is read by someone deciding whether to pick the ticket up. Keep th
 Cut everything you needed to measure to get there. Per-metric tables, enumerations of what you scanned, the list of every artefact you touched, measurement traps you hit on the way, corrections of your own earlier numbers. That material belongs in the MR, where it serves the review, or in the dashboard you built. A section title taken from your investigation rather than from the problem is the tell that the section should go.
 
 Same restraint on an edit: re-read the whole description after amending it and cut, rather than appending a section each time something new is learned.
+
+## MR/PR descriptions
+
+Same ceiling spirit, shorter still: what and why, test evidence, links. No narrated investigation ("trop verbose", "raconte pas ta vie"). English always, even in a French session. Never hard-wrap prose. After adding commits, update the description.
 
 ## Jira: never invent a custom field id
 
