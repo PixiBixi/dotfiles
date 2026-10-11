@@ -1,6 +1,7 @@
 {
   "includeCoAuthoredBy": false,
   "autoCompactWindow": 300000,
+  "cleanupPeriodDays": 120,
   "env": {
     "SG_AGENTIC_MODEL": "claude-sonnet-5-5"
   },
