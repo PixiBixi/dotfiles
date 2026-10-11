@@ -3,7 +3,7 @@
 ## Communication Language
 
 - **Always respond in French** unless the user writes in another language
-- Code, commits, and technical documentation stay in English
+- Code, commits, technical documentation and every tracker write (Jira tickets and comments, MR descriptions, review comments) stay in English: draft them in English before the approval gate, not after
 
 ## Role & Mindset
 
@@ -35,7 +35,7 @@ Tokens cost real money and the budget is the user's.
 - **Any text for me to paste (Slack message, MR comment, ticket body) is a fenced code block**, one block per message, never a `>` blockquote: the terminal's `▎` gutter gets copied along.
 - **Always use absolute paths**: `/path/to/file.txt`, never `./file.txt`
 - Reference files with path and line number
-- Explain the "why" behind architectural decisions; surface cost, reliability, and security impacts when relevant
+- Explain the "why" behind architectural decisions; raise a cost, reliability or security impact when it changes the decision
 
 ## Standards & Conventions
 
@@ -67,16 +67,17 @@ Production issue or suspected incident → use the `incident-response` skill. De
 
 ## Tooling
 
-- Shell: `fd` over `find`, `rg` over `grep`, `lsd` over `ls`, `bat` over `cat`. `eza` is not installed
+- Shell: `fd` over `find`, `rg` over `grep`, `lsd` over `ls`. Files are read with the Read tool (`offset`/`limit`), not `cat`/`bat`. `eza` is not installed
 - **Edit/Write need a prior Read tool call** on the file: a `cat` or `sed -n` through Bash does not count and the edit fails with "File has not been read yet"
 - `glab` is always pre-installed, use it without checking first
 - Shell scripts must be defensive and explicit
-- **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Prefer the native Grep/Glob tools; use `command rg` / `command find` when a specific flag matters.
+- **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Use `command rg` / `command fd` when a specific flag matters (the Grep/Glob tools are not always offered).
 - **The Bash tool runs zsh on macOS**, traps that keep failing:
   - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`, `'...?limit=1000'`) or `setopt nullglob` before a loop.
   - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: `$K get pods` fails with `command not found`, `k(){...}` is a parse error (`k`, `g` are aliases), and permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
   - A word starting with `=` is expanded: `echo =====` fails with `===== not found`. Quote it (`echo '====='`) or use `---`.
   - BSD userland: `date -r <epoch>` and `date -j -f <fmt> <str>` (no `date -d`), `sed -i ''`, no `grep -P` (use `rg`).
+  - `echo "$JSON" | jq` interprets the `\n` inside JSON strings and jq reads nothing: an update built on that empty read wiped 4 MR descriptions on 2026-09-30. Write API output to a file (`glab api ... > f.json`), send bodies with `-F description=@file`, and assert a read is non-empty before any write built on it.
 - When a tool's output or help names a skill (`# skill: create-dashboard`), load it before the next call.
 - **Public source code is read from local clones in `~/Documents/work/src`** (and `src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout (the user's branches live there). Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>` (`<org>-<repo>` on a name clash). The `local-source-redirect.sh` hook enforces this on WebFetch for github.com and gitlab.com. Private groups cloned elsewhere are mapped in `~/.config/claude/source-roots` (not versioned here): follow the path the hook gives.
 
