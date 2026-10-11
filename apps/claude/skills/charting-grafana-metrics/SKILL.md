@@ -89,7 +89,7 @@ $VENV $SKILL/plot_grafana.py \
   --rename '{"lb-edge-dc1-1":"HAProxy 3.2.20 (dc1-1)","lb-edge-dc1-4":"HAProxy 2.7.11 (dc1-4, control)"}' \
   --annotate-max "reload: old+new worker coexist → node mem ~2x" \
   --grafana-url https://grafana.example.com \
-  --out /tmp/mem-3.2-vs-2.7.png \
+  --out ./mem-3.2-vs-2.7.png \
   --attach-jira ABC-123
 ```
 
