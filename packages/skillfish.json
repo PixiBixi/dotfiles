@@ -16,7 +16,6 @@
     "blader/humanizer",
     "grafana/gcx/claude-plugin/skills/import-dashboards",
     "grafana/gcx/claude-plugin/skills/investigate-alert",
-    "lifegenieai/lifegenie-claude-marketplace/plugins/linkedin-best-practices-2026/skills/linkedin-best-practices-2026",
     "grafana/gcx/claude-plugin/skills/manage-dashboards",
     "grafana/gcx/claude-plugin/skills/oncall-triage",
     "jamie-bitflight/claude_skills/plugins/python3-development/skills/python3-development",

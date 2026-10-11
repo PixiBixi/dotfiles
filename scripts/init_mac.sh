@@ -484,17 +484,6 @@ install_claude_skills() {
     else
         log_warning "tickler not found (cask pixibixi/tap/tickler), skipping the tickler skill"
     fi
-
-    # ui-ux-pro-max: shipped by the ui-ux-pro-max-cli npm package (binary: uipro)
-    if command -v uipro &> /dev/null; then
-        if uipro init --ai claude --global; then
-            log_success "ui-ux-pro-max skill installed"
-        else
-            log_warning "uipro init failed"
-        fi
-    else
-        log_warning "uipro not found (npm package ui-ux-pro-max-cli), skipping ui-ux-pro-max"
-    fi
 }
 
 # Install Claude Code plugins declared in settings.json (extraKnownMarketplaces +
