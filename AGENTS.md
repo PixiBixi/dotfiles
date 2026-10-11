@@ -44,7 +44,7 @@ macOS dotfiles repo organized into four purpose-driven directories:
 - `config/`: dotfiles deployed to `$HOME` (zsh, git, nvim, ssh, kube, tmux, vim, wezterm). Mirrors the target `$HOME` path structure. `config/.local/bin/` holds user commands deployed onto `$PATH` (`tg-run`), as opposed to `scripts/`, which are repo-maintenance scripts run from the clone.
 - `packages/` holds the package lists: `Brewfile`, `krew-indexes.txt`, `npm.txt`, `gems.txt`, `skillfish.json`. **krew plugins live inside the `Brewfile`** as `krew "..."` entries (no separate `krew.txt`). Custom krew *indexes* do need their own file: `brew bundle` only shells out to `kubectl krew install <name>`, it never adds an index, so any `krew "<index>/<plugin>"` entry (`netshoot/`, `pixibixi/`) would fail on a fresh machine. `krew-indexes.txt` lists them as `<name> <git url>` and the `krew-indexes` step in `init_mac.sh` registers them **before** `brew-packages` runs. Refresh it with `make update-krew-indexes`.
 - `apps/` holds the non-dotfile app configs:
-  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`, `wiki-sync.sh`, `wordlist-guard.sh`), `config/` (per-hook JSON config, symlinked flat into `~/.claude/`)
+  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`, `wiki-sync.sh`, `wordlist-guard.sh`, `cold-resume-guard.sh`), `config/` (per-hook JSON config, symlinked flat into `~/.claude/`)
   - `raycast/`, `vscode/`
 - `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`, `init.sh` (legacy, do not use)
 
@@ -96,6 +96,7 @@ Every hook exits 0 on a missing or malformed config and falls back to its built-
 | `session-allow.sh` | PermissionRequest | Per-session prefix allowlist behind an osascript dialog (Session / Once / Deny / Claude), TTL 12h |
 | `wiki-sync.sh` | SessionEnd | Runs `/openwiki:wiki update` detached, commits and pushes `openwiki/` on the default branch only |
 | `wordlist-guard.sh` | PostToolUse `Write\|Edit` | Flags banned characters and words that just landed in a file, via `additionalContext` |
+| `cold-resume-guard.sh` | UserPromptSubmit | Blocks once the first prompt to a session idle over 1h with over 150k tokens of context (expired cache), showing the re-write cost; re-sending passes. Thresholds: `COLD_RESUME_IDLE_SECONDS`, `COLD_RESUME_CTX_TOKENS` |
 
 `wordlist-guard.sh` is the floor under the writing rules in `apps/claude/CLAUDE.md`: a standing rule gets diluted with no error raised, and chat replies cannot be hooked, so this covers where written text persists. Config in `apps/claude/config/wordlist-guard.json`:
 
