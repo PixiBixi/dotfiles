@@ -5,7 +5,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timezone, timedelta
 
 ROOT = os.path.expanduser("~/.claude/projects")
-DAYS = 30
+DAYS = int(os.environ.get("AUDIT_DAYS", "30"))
 NOW = datetime.now(timezone.utc)
 SINCE = NOW - timedelta(days=DAYS)
 

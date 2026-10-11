@@ -15,9 +15,10 @@ OUT=$CLAUDE_SCRATCHPAD   # or any temp dir
 python3 -I "$SKILL_DIR/usage.py" "$OUT/usage.json"            # totals, daily, models, projects, sessions, cache rebuilds, tools, skills, agents
 python3 -I "$SKILL_DIR/context_sources.py" "$OUT/usage2.json" # Bash command families by output size, full vs partial Read, sdk entrypoints, idle gaps
 python3 -I "$SKILL_DIR/cost_split.py"                         # cost by token type, cache-read tax above 200k / 300k context
+python3 -I "$SKILL_DIR/history.py" "$OUT/hist.json"            # weekly prompts, cost per prompt, slash commands, sessions, hour x weekday (default 90 days)
 ```
 
-Window: `DAYS = 30` at the top of `usage.py` (the others use 30 too).
+Window: `AUDIT_DAYS=90` in the environment (default 30, 90 for `history.py`). Transcripts only go back `cleanupPeriodDays` (set to 120 in settings; Claude Code defaults to 30), while `~/.claude/history.jsonl` keeps every prompt: beyond the retention, only prompt-level metrics are real. Mark weeks whose transcripts were partly deleted as partial, never as low-cost.
 
 ## Before quoting dollars
 

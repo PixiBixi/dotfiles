@@ -5,7 +5,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timezone, timedelta
 
 ROOT = os.path.expanduser("~/.claude/projects")
-SINCE = datetime.now(timezone.utc) - timedelta(days=30)
+SINCE = datetime.now(timezone.utc) - timedelta(days=int(os.environ.get("AUDIT_DAYS", "30")))
 files = [f for f in glob.glob(f"{ROOT}/**/*.jsonl", recursive=True) if os.path.getmtime(f) >= SINCE.timestamp()]
 
 bash_cmd = {}

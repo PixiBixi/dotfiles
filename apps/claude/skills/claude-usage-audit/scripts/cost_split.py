@@ -3,7 +3,7 @@
 import json,glob,os,sys
 from datetime import datetime,timezone,timedelta
 from collections import Counter, defaultdict
-ROOT=os.path.expanduser('~/.claude/projects'); SINCE=datetime.now(timezone.utc)-timedelta(days=30)
+ROOT=os.path.expanduser('~/.claude/projects'); SINCE=datetime.now(timezone.utc)-timedelta(days=int(os.environ.get("AUDIT_DAYS", "30")))
 P={"claude-opus-5-5":(4,20,.2),"claude-opus-5":(5,25,.5),"claude-opus-4-7":(5,25,.5),"claude-opus-4-8":(5,25,.5),"claude-sonnet-5-5":(2,10,.2),"claude-sonnet-5":(2,10,.2),"claude-haiku-4-5":(1,5,.1)}
 def pr(m):
     for k in sorted(P,key=len,reverse=True):
