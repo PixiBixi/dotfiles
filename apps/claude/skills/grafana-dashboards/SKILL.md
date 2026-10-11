@@ -1,6 +1,6 @@
 ---
 name: grafana-dashboards
-description: Entry point for ANY Grafana dashboard work, load it BEFORE create-dashboard or manage-dashboards (generic, they lack the house rules). Use when creating, editing, improving, redesigning or cleaning up a dashboard ("make it look better", "le dash est moche", layout, readability), or a PromQL query against a Thanos or Prometheus datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99). Also when laying out the set of dashboards for a component folder (Start here, SLA, Ops, Sizing, Deep dive), or when an audit has to find every dashboard still reading a given metric, or every dashboard that really reads a given datasource before deleting it. For panels on a Google Cloud Monitoring (stackdriver) datasource, use grafana-cloud-monitoring instead.
+description: Entry point for ANY Grafana dashboard work, load it BEFORE create-dashboard or manage-dashboards (generic, they lack the house rules). Load it as soon as a Grafana dashboard URL (a `/d/<uid>` path) is pasted or the user says "dash" or "panel", then gcx:create-dashboard if creating. Use when creating, editing, improving, redesigning or cleaning up a dashboard ("make it look better", "le dash est moche", layout, readability), or a PromQL query against a Thanos or Prometheus datasource, or when a dashboard OOMs the query layer, shows empty/blank panels, has slow template variables, messy tables with stray label columns, or a panel showing a plausible but wrong number (many-to-many during rollouts, per-pod limits summed, quantiles on exponential histograms, tails hidden below p99). Also when laying out the set of dashboards for a component folder (Start here, SLA, Ops, Sizing, Deep dive), or when an audit has to find every dashboard still reading a given metric, or every dashboard that really reads a given datasource before deleting it. For panels on a Google Cloud Monitoring (stackdriver) datasource, use grafana-cloud-monitoring instead.
 ---
 
 # Authoring Grafana dashboards and PromQL
@@ -13,9 +13,9 @@ Three tools ship next to this file: `lint_dashboard.py` (schema baseline before 
 Every Grafana call in this skill's tools goes through `gcx`. Check it once per session:
 ```bash
 command -v gcx >/dev/null || { echo "install: brew install gcx"; exit 1; }
-env -u GRAFANA_TOKEN -u GRAFANA_SERVICE_ACCOUNT_TOKEN -u GRAFANA_URL gcx config check || { echo "not ready: gcx login"; exit 1; }
+gcx config check || { echo "not ready: gcx login"; exit 1; }
 ```
-**Call gcx directly with the same `env -u ...` prefix.** gcx treats those variables as an auth override of every context: a context shown as `token (environment override)` answers 401 however fresh its OAuth login is. The tools strip them on their own.
+If it reports `Auth method: token (environment override)`, rerun with `env -u GRAFANA_TOKEN -u GRAFANA_SERVICE_ACCOUNT_TOKEN -u GRAFANA_URL` before the command: those variables override every context and answer 401 however fresh the OAuth login is. Call gcx and kubectl directly, never through a shell function or a variable (zsh breaks it, and permission rules cannot match it). The tools strip those variables on their own.
 
 ## Which instance
 | Request | Pass |
@@ -39,6 +39,9 @@ Set these without asking, they are schema baseline, not per-dashboard choices:
 - **Every panel needs a unique `id`.** JSON authored without them saves with none at all, which silently breaks panel permalinks (`?viewPanel=`) *and* the `panel_id` label in the query-frontend slow log, i.e. it disables the debugging procedure in § Pre-flight on exactly the dashboards you will need it for.
 - **One name for the datasource variable, across the whole folder.** Three names for the same thing (`ds`, `datasource`, `Source`) makes dashboard URLs non-transposable and breaks copy-paste between panels. When standardising, align on the form more than half the dashboards already carry, even an imported `DS_*` name, rather than on what a doc says: every rename breaks the `?var-<name>=` in existing bookmarks and tickets. A second datasource variable takes the convention as prefix (`dsTooling`), never a new spelling.
 
+## Known datasources
+Thanos prod is uid `HejmHWd4z`. There is no datasource with uid `thanos`.
+
 ## Folder layout (common dashboard set)
 A component folder holds the same five kinds of dashboard: `<Comp> / 0 Start here`, `<Comp> / 1 SLA`, `<Comp> / Ops / <x>`, `<Comp> / Sizing / <x>`, `<Comp> / Deep dive / <x>`, with readable uids, the component tag and the same variables everywhere. **Read `folder-layout.md` next to this file before creating a dashboard in a platform folder**, or before starting a new one: it gives what each kind contains and the variable block.
 
@@ -57,6 +60,9 @@ Two things it cannot decide for you:
 **An empty `[]` from a JSONPath is not proof of absence.** It also means "you asked for the wrong shape". `$.panels[*].targets[*].datasource.uid` returns `[]` both when no target carries a datasource *and* when every target carries one as a plain string, the two are indistinguishable. Query the parent (`.datasource`) and look at what comes back before concluding anything is missing.
 
 **A `$.panels[*].targets[*].expr` sweep is blind to every GCM panel.** A fully migrated Cloud Monitoring dashboard comes back with no queries at all under that path, which reads as "these panels were abandoned" when they are in fact working: the query lives in `promQLQuery.expr` (PromQL mode) or `timeSeriesQuery.query` (MQL mode) instead. Any audit that answers "which dashboards still use metric X" has to read all three paths; `grafana_metric_usage.py` next to this file already does (see below). Cross-check the target count with `$.panels[*].targets[*].queryType` before reading an empty result as an empty dashboard.
+
+## After a migration or import
+Before handing over: lint for negative `gridPos.y`, missing plugin panels and datasource uid remap, and check no panel shows "No data".
 
 ## Every save carries a version note
 Each write to a dashboard lands in Settings > Versions, and the note is the only record of why it changed. Write it in English, ticket key first (`PE-2210: replace the stop-writes boolean with the headroom to each threshold`). Notes cannot be added afterwards: a version is immutable.
