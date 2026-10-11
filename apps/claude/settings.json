@@ -172,7 +172,6 @@
     "openwiki@openwiki-cc": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
-    "claude-seo@agricidaniel-claude-seo": true,
     "gaia-review@equativ-plugins": true
   },
   "extraKnownMarketplaces": {
@@ -198,12 +197,6 @@
       "source": {
         "source": "github",
         "repo": "netresearch/claude-code-marketplace"
-      }
-    },
-    "agricidaniel-claude-seo": {
-      "source": {
-        "source": "github",
-        "repo": "AgriciDaniel/claude-seo"
       }
     }
   },
