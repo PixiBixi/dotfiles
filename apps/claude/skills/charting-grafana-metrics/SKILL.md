@@ -1,6 +1,6 @@
 ---
 name: charting-grafana-metrics
-description: Use when you need a clean PNG chart of Grafana/Prometheus metrics, comparing series (versions, canary vs control, before/after), attaching a graph to a Jira ticket or MR, or when Grafana's server-side panel render is unavailable and `gcx dashboards snapshot` fails (no Image Renderer on that context).
+description: Use when you need a clean PNG chart of Grafana/Prometheus metrics, comparing series (versions, canary vs control, before/after), attaching a graph to a Jira ticket or MR that no existing panel already shows, or when `gcx dashboards snapshot` fails on a self-hosted Grafana without the Image Renderer. On Grafana Cloud, a screenshot of an existing panel is `gcx dashboards snapshot`, not this skill.
 ---
 
 # Charting Grafana metrics
@@ -9,7 +9,7 @@ description: Use when you need a clean PNG chart of Grafana/Prometheus metrics, 
 
 Renders a dark-themed, Grafana-styled PNG line chart from a PromQL query, fetched through the **Grafana datasource proxy** (so no direct Prometheus network access is needed, the Grafana SA token is enough). Reproducible and scriptable, unlike a manual screenshot. Can attach the result straight to a Jira issue.
 
-**Why this exists:** many Grafana instances lack the *Image Renderer* plugin, so `gcx dashboards snapshot` (its PNG renderer) errors out instead of returning an image. This rebuilds the chart from raw data instead, and also covers what a snapshot never will: a custom side-by-side comparison across queries or time ranges that no single panel encodes.
+**Snapshot first when a panel already shows it.** Grafana Cloud stacks ship server-side rendering, so `gcx dashboards snapshot` returns the real panel as a PNG there. This skill is for what a snapshot cannot give: a side-by-side comparison across queries or time ranges that no single panel encodes, and self-hosted instances without the *Image Renderer* plugin, where the snapshot errors out.
 
 ## Pre-flight
 Every Grafana call here goes through `gcx`. Check it once per session:
@@ -24,9 +24,9 @@ gcx config check || { echo "not ready: gcx login"; exit 1; }
 
 - Comparing 2+ series: version A vs B, canary vs control, before/after a change.
 - Attaching evidence to a Jira ticket, MR, or incident writeup.
-- Grafana panel render fails (`gcx dashboards snapshot` errors: no Image Renderer on that context).
+- Grafana panel render fails (`gcx dashboards snapshot` errors: no Image Renderer on that self-hosted context).
 
-Not for: interactive exploration (use Grafana), or single-value/table data.
+Not for: interactive exploration (use Grafana), single-value/table data, or a screenshot of an existing panel on Grafana Cloud (`gcx dashboards snapshot`).
 
 ## Setup (once)
 
