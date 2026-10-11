@@ -176,12 +176,6 @@
     "gaia-review@equativ-plugins": true
   },
   "extraKnownMarketplaces": {
-    "samber": {
-      "source": {
-        "source": "github",
-        "repo": "samber/cc"
-      }
-    },
     "ansible-skills-marketplace": {
       "source": {
         "source": "github",
