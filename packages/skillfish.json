@@ -1,10 +1,6 @@
 {
   "version": 1,
   "skills": [
-    "grafana/gcx/claude-plugin/skills/agento11y",
-    "grafana/gcx/claude-plugin/skills/agento11y-instrument",
-    "grafana/gcx/claude-plugin/skills/agento11y-prod-setup",
-    "grafana/gcx/claude-plugin/skills/agento11y-test-starter",
     "sigridjineth/hello-ansible-skills/skills/ansible-convert",
     "sigridjineth/hello-ansible-skills/skills/ansible-debug",
     "sigridjineth/hello-ansible-skills/skills/ansible-interactive",
@@ -14,7 +10,6 @@
     "grafana/gcx/claude-plugin/skills/debug-with-grafana",
     "grafana/gcx/claude-plugin/skills/diagnose-entity-graph",
     "grafana/gcx/claude-plugin/skills/gcx",
-    "grafana/gcx/claude-plugin/skills/gcx-demo",
     "grafana/gcx/claude-plugin/skills/gcx-observability",
     "grafana/gcx/claude-plugin/skills/generate-resource-stubs",
     "nutlope/hallmark/skills/hallmark",
@@ -29,13 +24,6 @@
     "grafana/gcx/claude-plugin/skills/scaffold-project",
     "cloudflare/security-audit-skill/skills/security-audit",
     "grafana/gcx/claude-plugin/skills/setup-gcx",
-    "grafana/gcx/claude-plugin/skills/slo-check-status",
-    "grafana/gcx/claude-plugin/skills/slo-investigate",
-    "grafana/gcx/claude-plugin/skills/slo-manage",
-    "grafana/gcx/claude-plugin/skills/slo-optimize",
-    "grafana/gcx/claude-plugin/skills/synth-check-status",
-    "grafana/gcx/claude-plugin/skills/synth-investigate-check",
-    "grafana/gcx/claude-plugin/skills/synth-manage-checks",
     "akin-ozer/cc-devops-skills/devops-skills-plugin/skills/terragrunt-generator"
   ]
 }
