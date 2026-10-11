@@ -96,6 +96,7 @@ Every hook exits 0 on a missing or malformed config and falls back to its built-
 | `session-allow.sh` | PermissionRequest | Per-session prefix allowlist behind an osascript dialog (Session / Once / Deny / Claude), TTL 12h |
 | `wiki-sync.sh` | SessionEnd | Runs `/openwiki:wiki update` detached, commits and pushes `openwiki/` on the default branch only |
 | `wordlist-guard.sh` | PostToolUse `Write\|Edit` | Flags banned characters and words that just landed in a file, via `additionalContext` |
+| `home-dir-nudge.sh` | SessionStart `startup` | When a session starts from `$HOME` (no project CLAUDE.md), shows a message pointing to the ops workspace read from `~/.config/claude/ops-dir` (first line, versioned in the private repo that owns it); silent elsewhere |
 | `cold-resume-guard.sh` | UserPromptSubmit | Blocks once the first prompt to a session idle over 1h with over 150k tokens of context (expired cache), showing the re-write cost; re-sending passes. Thresholds: `COLD_RESUME_IDLE_SECONDS`, `COLD_RESUME_CTX_TOKENS` |
 
 `wordlist-guard.sh` is the floor under the writing rules in `apps/claude/CLAUDE.md`: a standing rule gets diluted with no error raised, and chat replies cannot be hooked, so this covers where written text persists. Config in `apps/claude/config/wordlist-guard.json`:

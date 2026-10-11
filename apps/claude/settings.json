@@ -1,10 +1,9 @@
 {
-  "includeCoAuthoredBy": false,
-  "autoCompactWindow": 300000,
   "cleanupPeriodDays": 120,
   "env": {
     "SG_AGENTIC_MODEL": "claude-sonnet-5-5"
   },
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Bash(/Users/jeremy/Documents/perso/git/dotfiles/apps/claude/bin/claude-rename.sh:*)",
@@ -160,6 +159,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/home-dir-nudge.sh",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -218,6 +227,7 @@
   },
   "outputStyle": "Concise",
   "effortLevel": "high",
+  "autoCompactWindow": 300000,
   "companyAnnouncements": [
     "Coucou Jerem pense à déconnecter"
   ],
@@ -249,5 +259,6 @@
       "**CI/CD deploy targets** (overrides the default None configured): GitLab CI. ArgoCD syncs Kubernetes manifests from gitlab.com/smartadserver argocd-* repos, and Terragrunt IaC (iac-* repos) is applied by CI after merge: merging into those repos deploys to the target environment.",
       "**Org-specific CLIs** (overrides the default None configured): glab, jira (jira-cli), confluence (confluence-cli), gcx (Grafana Cloud CLI), tickler (local reminders)."
     ]
-  }
+  },
+  "skipWorkflowUsageWarning": true
 }
