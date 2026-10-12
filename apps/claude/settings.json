@@ -178,6 +178,11 @@
             "type": "command",
             "command": "$HOME/.claude/hooks/cold-resume-guard.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/repo-dir-guard.sh",
+            "timeout": 10
           }
         ]
       }
