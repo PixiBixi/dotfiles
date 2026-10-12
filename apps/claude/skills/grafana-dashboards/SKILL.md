@@ -61,6 +61,17 @@ Two things it cannot decide for you:
 
 **A `$.panels[*].targets[*].expr` sweep is blind to every GCM panel.** A fully migrated Cloud Monitoring dashboard comes back with no queries at all under that path, which reads as "these panels were abandoned" when they are in fact working: the query lives in `promQLQuery.expr` (PromQL mode) or `timeSeriesQuery.query` (MQL mode) instead. Any audit that answers "which dashboards still use metric X" has to read all three paths; `grafana_metric_usage.py` next to this file already does (see below). Cross-check the target count with `$.panels[*].targets[*].queryType` before reading an empty result as an empty dashboard.
 
+**`gcx dashboards get -o json` returns a `dashboard.grafana.app/v2` manifest, where every v1 path is empty.** Check `.apiVersion` first, then read and patch these instead:
+
+| What | v2 path |
+|---|---|
+| Panels, keyed `panel-<id>` | `.spec.elements[<name>].spec` (`id`, `title`, `description`, `vizConfig`) |
+| Queries | `.spec.elements[<name>].spec.data.spec.queries[].spec.query.spec.expr` / `.legendFormat` |
+| Rows and positions | `.spec.layout.spec.rows[].spec` (`title`) then `.layout.spec.items[].spec` (`x`, `y`, `width`, `height`, `element.name`) |
+| Variables | `.spec.variables[].spec` (`name`, `options`, `current`), type in `.kind` |
+
+A new panel needs both an `elements` entry and a `GridLayoutItem` referencing it; an element no row references is not drawn. Drop `.status` before pushing.
+
 ## After a migration or import
 Before handing over: lint for negative `gridPos.y`, missing plugin panels and datasource uid remap, and check no panel shows "No data".
 
@@ -176,6 +187,7 @@ A DaemonSet on a 1000-node cluster draws 1000 lines per `by (pod)` panel and 100
 - **GCM PromQL has no `legendFormat`**: tag each aggregate with `label_replace(max(...), "stat", "max", "", "")` and rename with a `renameByRegex` on `stat="([^"]+)"`.
 - **Pin the top N to the end of the range with `@ end()`**: `x and on(pod) topk($topk, max_over_time(x[$__range] @ end()))`. A bare `topk` in a range query re-ranks at every step, so the set of pods changes along the graph and draws more than N series. For a counter, rank on `increase(c[$__range] @ end())`. **Exception, churning fleets (spot, HPA):** pods live a few hours (1139 distinct pods in 24h for ~400 at once), so a pinned top N shows gaps where none of the ranked pods existed, and ranking on `sum_over_time` only rewards survivors. There use a per-step `topk($topk, X)` and say in the description that the legend lists more than N pods over a long range.
 - **N is a `custom` variable (3, 5, 10, 20, default 5), not a share of the fleet.** Readability caps at about 10 lines whatever the pod count; scaling N with the fleet (1% of 1182 = 12) brings the unreadable panel back. The pod variable stays for drill-down.
+- **Per-member drill-down as a toggle, not a second dashboard.** A `custom` variable `groupby` with options `stack : namespace` (default) and `pod : namespace\, pod`, read as `max by ($groupby) (...)`, with legend `{{stack}} {{pod}}`: the `pod` part renders empty when it is not grouped on. Put `${groupby:text}` in the panel titles, and tell in the variable description to narrow the fleet first (one shard, one stack), since `pod` brings back one line per member.
 
 ## Healthy / empty-state panels
 An "absence of problems" query returns empty, so the panel shows **"No data"**, which reads as *broken*, not *healthy*. Force a healthy state:
