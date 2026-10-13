@@ -191,7 +191,7 @@ if [[ -n "$ctx" ]]; then
     esac
 fi
 
-# Quota: 5h always, the week once it reaches 50%. The capsule takes the worst window's level.
+# Quota: 5h and week always shown. The capsule takes the worst window's level (week counts from 50%).
 if [[ -n "$h5" ]]; then
     worst=$h5
     [[ -n "$wk" ]] && ((wk >= 50 && wk > worst)) && worst=$wk
@@ -204,7 +204,7 @@ if [[ -n "$h5" ]]; then
     [[ "$capsule_level" == crit ]] && LEVEL=crit
     limit_text "◷ 5h" "$h5" "$h5_reset" 70
     quota="$LIMIT"
-    if [[ -n "$wk" ]] && ((wk >= 50)); then
+    if [[ -n "$wk" ]]; then
         level "$wk" "$LIMIT_WARN" "$LIMIT_CRIT"
         [[ "$capsule_level" == crit ]] && LEVEL=crit
         limit_text "◶ wk" "$wk" "$wk_reset" 80
