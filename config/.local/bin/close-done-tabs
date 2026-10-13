@@ -1,5 +1,5 @@
 #!/usr/bin/env zsh
-# Close Chrome tabs of merged/closed GitLab MRs and done Jira tickets (discarded tabs included). -n: dry run.
+# Close Chrome tabs of merged/closed GitLab MRs, passed CI jobs/pipelines and done Jira tickets (discarded tabs included). -n: dry run.
 set -euo pipefail
 
 dry_run=false
@@ -29,7 +29,7 @@ typeset -U bases
 typeset -A board_tabs
 bases=()
 while IFS= read -r url; do
-  if [[ "$url" =~ '^(https://[^/]+/.+/-/merge_requests/[0-9]+)' ]] \
+  if [[ "$url" =~ '^(https://[^/]+/.+/-/(merge_requests|jobs|pipelines)/[0-9]+)' ]] \
     || [[ "$url" =~ '^(https://[^/]+\.atlassian\.net/browse/[A-Z][A-Z0-9_]+-[0-9]+)' ]]; then
     bases+=("$match[1]")
   elif [[ "$url" =~ '^(https://[^/]+\.atlassian\.net)/[^?#]*[?].*selectedIssue=([A-Z][A-Z0-9_]+-[0-9]+)' ]]; then
@@ -39,7 +39,7 @@ while IFS= read -r url; do
     board_tabs[$canonical]+="$url"$'\n'
   fi
 done <<< "$tab_urls"
-(( ${#bases} == 0 )) && { print "No MR or Jira tab open."; exit 0; }
+(( ${#bases} == 0 )) && { print "No MR, CI or Jira tab open."; exit 0; }
 
 print -r -- "${c_dim}Checking ${#bases} item(s)...${c_off}"
 
@@ -54,6 +54,21 @@ if [[ "$url" =~ '^https://([^/]+)/(.+)/-/merge_requests/([0-9]+)$' ]]; then
       | jq -r '[.state, .title] | @tsv'); then
     label=${out%%$'\t'*} title=${out#*$'\t'}
     [[ "$label" == (merged|closed) ]] && group=done || group=open
+  else
+    group=error label=error title="GitLab API call failed"
+  fi
+elif [[ "$url" =~ '^https://([^/]+)/(.+)/-/(jobs|pipelines)/([0-9]+)$' ]]; then
+  kind=ci ref="${match[2]##*/}/$match[3]/$match[4]"
+  encoded=$(jq -rn --arg p "$match[2]" '$p|@uri')
+  if [[ "$match[3]" == jobs ]]; then
+    filter='[.status, "\(.stage)/\(.name) on \(.ref)"] | @tsv'
+  else
+    filter='[.status, "pipeline on \(.ref) (\(.source))"] | @tsv'
+  fi
+  if out=$(glab api --hostname "$match[1]" "projects/$encoded/$match[3]/$match[4]" 2>/dev/null \
+      | jq -r "$filter"); then
+    label=${out%%$'\t'*} title=${out#*$'\t'}
+    [[ "$label" == success ]] && group=done label=passed || group=open
   else
     group=error label=error title="GitLab API call failed"
   fi
@@ -76,7 +91,8 @@ results=$(print -rl -- "${bases[@]}" | xargs -P 5 -I{} zsh -c "$check" _ {})
 
 typeset -A rows
 to_close=()
-mr_done=0 jira_done=0 label_width=0 ref_width=0
+typeset -A done_count=(mr 0 ci 0 jira 0)
+label_width=0 ref_width=0
 while IFS=$'\t' read -r kind group label ref title url; do
   (( ${#label} > label_width )) && label_width=${#label}
   (( ${#ref} > ref_width )) && ref_width=${#ref}
@@ -84,13 +100,14 @@ while IFS=$'\t' read -r kind group label ref title url; do
   rows[${kind}:$group]+="$label"$'\t'"$ref"$'\t'"$title"$'\n'
   if [[ "$group" == done ]]; then
     to_close+=("$url")
-    [[ "$kind" == mr ]] && (( ++mr_done )) || (( ++jira_done ))
+    (( ++done_count[$kind] ))
   fi
 done <<< "$results"
 
-for kind in mr jira; do
+typeset -A headings=(mr "GitLab merge requests" ci "GitLab CI" jira "Jira tickets")
+for kind in mr ci jira; do
   [[ -n "${rows[${kind}:done]:-}${rows[${kind}:open]:-}${rows[${kind}:error]:-}" ]] || continue
-  [[ "$kind" == mr ]] && heading="GitLab merge requests" || heading="Jira tickets"
+  heading=$headings[$kind]
   print -r -- $'\n'"${c_bold}${heading}${c_off}"
   for group in done open error; do
     for row in ${(fo)rows[${kind}:$group]:-}; do
@@ -113,7 +130,7 @@ if (( ${#to_close} == 0 )); then
   print -r -- "Nothing to close."
   exit 0
 fi
-summary="${c_bold}${mr_done}${c_off} MR(s) and ${c_bold}${jira_done}${c_off} Jira ticket(s)"
+summary="${c_bold}${done_count[mr]}${c_off} MR(s), ${c_bold}${done_count[ci]}${c_off} CI job(s)/pipeline(s) and ${c_bold}${done_count[jira]}${c_off} Jira ticket(s)"
 if $dry_run; then
   print -r -- "${c_dim}Dry run:${c_off} ${summary} to close. Run without -n to close their tabs."
   exit 0

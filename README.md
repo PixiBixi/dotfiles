@@ -55,7 +55,7 @@ dotfiles/
 │   │       ├── helm-charts-update # Charts Helm locaux passés à la dernière version
 │   │       ├── wezterm-pane-picker # Sélecteur fzf des panes WezTerm (Cmd+P)
 │   │       ├── wezterm-restore  # Restauration des onglets et sessions Claude WezTerm
-│   │       ├── close-done-tabs  # Ferme les onglets Chrome des MR et tickets Jira terminés
+│   │       ├── close-done-tabs  # Ferme les onglets Chrome des MR, jobs CI et tickets Jira terminés
 │   │       └── slack-restart.sh # Redémarrage nocturne de Slack
 │   └── Library/
 │       └── LaunchAgents/        # Agents launchd, rendus depuis __HOME__
@@ -235,17 +235,18 @@ brew uninstall <package>
 
 ### Fermer les onglets Chrome des MR et tickets terminés
 
-`close-done-tabs` (déployé depuis `config/.local/bin/`) lit les onglets ouverts de Google Chrome, y compris les onglets déchargés, et ferme ceux des MR GitLab `merged` ou `closed` et des tickets Jira dont le statut est dans la catégorie `done`. Les états sont lus via `glab api` et `jira issue view --raw` (5 appels en parallèle), avec l'auth de ces deux CLI. Au premier lancement, macOS demande d'autoriser le terminal à piloter Chrome.
+`close-done-tabs` (déployé depuis `config/.local/bin/`) lit les onglets ouverts de Google Chrome, y compris les onglets déchargés, et ferme ceux des MR GitLab `merged` ou `closed`, des jobs et pipelines GitLab CI `passed` et des tickets Jira dont le statut est dans la catégorie `done`. Les états sont lus via `glab api` et `jira issue view --raw` (5 appels en parallèle), avec l'auth de ces deux CLI. Au premier lancement, macOS demande d'autoriser le terminal à piloter Chrome.
 
 | Onglet reconnu | Exemple |
 | ------ | ------- |
 | MR GitLab, sous-pages et ancres comprises | `https://gitlab.com/<group>/<project>/-/merge_requests/42/diffs` |
+| Job ou pipeline GitLab CI | `https://gitlab.com/<group>/<project>/-/jobs/123` |
 | Ticket Jira | `https://<site>.atlassian.net/browse/PE-123` |
 | Board ou recherche Jira avec un ticket ouvert en panneau | `https://<site>.atlassian.net/jira/software/c/projects/PE/boards/1?selectedIssue=PE-123` |
 
 | Invocation | Effet |
 | ------ | ------- |
-| `close-done-tabs -n` | Liste les MR et tickets par état, ne ferme rien |
+| `close-done-tabs -n` | Liste les MR, jobs CI et tickets par état, ne ferme rien |
 | `close-done-tabs` | Ferme les onglets terminés |
 
 Ce n'est pas un remplacement de `tg plan` : chaque unité passe par `run --all --queue-include-dir`, ce qui embarque aussi ses dépendances. `--non-interactive` n'est ajouté que si `$CI` est défini, pour qu'un `apply` local garde sa confirmation.
