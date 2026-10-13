@@ -38,7 +38,8 @@ repos:
     hooks:
       - id: shellcheck
         args: [--severity=warning]
-        exclude: '(^|/)\.zsh'
+        # ShellCheck does not parse zsh (SC1071): zsh dotfiles and zsh scripts in bin/.
+        exclude: '(^|/)\.zsh|^config/\.local/bin/close-done-tabs$'
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.10.0-1
