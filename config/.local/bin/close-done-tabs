@@ -1,0 +1,149 @@
+#!/usr/bin/env zsh
+# Close Chrome tabs of merged/closed GitLab MRs and done Jira tickets (discarded tabs included). -n: dry run.
+set -euo pipefail
+
+dry_run=false
+[[ "${1:-}" == "-n" ]] && dry_run=true
+
+if [[ -t 1 ]]; then
+  c_blue=$'\e[34m' c_red=$'\e[31m' c_green=$'\e[32m' c_yellow=$'\e[33m'
+  c_dim=$'\e[2m' c_bold=$'\e[1m' c_off=$'\e[0m'
+else
+  c_blue= c_red= c_green= c_yellow= c_dim= c_bold= c_off=
+fi
+
+tab_urls=$(osascript <<'EOF'
+set out to ""
+tell application "Google Chrome"
+  repeat with w in windows
+    repeat with t in tabs of w
+      set out to out & (URL of t) & linefeed
+    end repeat
+  end repeat
+end tell
+return out
+EOF
+)
+
+typeset -U bases
+typeset -A board_tabs
+bases=()
+while IFS= read -r url; do
+  if [[ "$url" =~ '^(https://[^/]+/.+/-/merge_requests/[0-9]+)' ]] \
+    || [[ "$url" =~ '^(https://[^/]+\.atlassian\.net/browse/[A-Z][A-Z0-9_]+-[0-9]+)' ]]; then
+    bases+=("$match[1]")
+  elif [[ "$url" =~ '^(https://[^/]+\.atlassian\.net)/[^?#]*[?].*selectedIssue=([A-Z][A-Z0-9_]+-[0-9]+)' ]]; then
+    # Board or search view with an issue panel open: closed through its exact URL.
+    canonical="$match[1]/browse/$match[2]"
+    bases+=("$canonical")
+    board_tabs[$canonical]+="$url"$'\n'
+  fi
+done <<< "$tab_urls"
+(( ${#bases} == 0 )) && { print "No MR or Jira tab open."; exit 0; }
+
+print -r -- "${c_dim}Checking ${#bases} item(s)...${c_off}"
+
+# Runs once per URL; prints "<kind>\t<group>\t<label>\t<ref>\t<title>\t<url>", group being done/open/error.
+check=$(cat <<'EOF'
+set -o pipefail
+url=$1
+if [[ "$url" =~ '^https://([^/]+)/(.+)/-/merge_requests/([0-9]+)$' ]]; then
+  kind=mr ref="$match[2]!$match[3]"
+  encoded=$(jq -rn --arg p "$match[2]" '$p|@uri')
+  if out=$(glab api --hostname "$match[1]" "projects/$encoded/merge_requests/$match[3]" 2>/dev/null \
+      | jq -r '[.state, .title] | @tsv'); then
+    label=${out%%$'\t'*} title=${out#*$'\t'}
+    [[ "$label" == (merged|closed) ]] && group=done || group=open
+  else
+    group=error label=error title="GitLab API call failed"
+  fi
+else
+  kind=jira ref=${url##*/}
+  if out=$(jira issue view "$ref" --raw < /dev/null 2>/dev/null \
+      | jq -r '[.fields.status.statusCategory.key, .fields.status.name, .fields.summary] | @tsv'); then
+    category=${out%%$'\t'*} rest=${out#*$'\t'}
+    label=${rest%%$'\t'*} title=${rest#*$'\t'}
+    [[ "$category" == done ]] && group=done || group=open
+  else
+    group=error label=error title="jira CLI call failed (is JIRA_API_TOKEN set?)"
+  fi
+fi
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$kind" "$group" "$label" "$ref" "$title" "$url"
+EOF
+)
+
+results=$(print -rl -- "${bases[@]}" | xargs -P 5 -I{} zsh -c "$check" _ {})
+
+typeset -A rows
+to_close=()
+mr_done=0 jira_done=0 label_width=0 ref_width=0
+while IFS=$'\t' read -r kind group label ref title url; do
+  (( ${#label} > label_width )) && label_width=${#label}
+  (( ${#ref} > ref_width )) && ref_width=${#ref}
+  (( ${#title} > 70 )) && title="${title[1,69]}…"
+  rows[${kind}:$group]+="$label"$'\t'"$ref"$'\t'"$title"$'\n'
+  if [[ "$group" == done ]]; then
+    to_close+=("$url")
+    [[ "$kind" == mr ]] && (( ++mr_done )) || (( ++jira_done ))
+  fi
+done <<< "$results"
+
+for kind in mr jira; do
+  [[ -n "${rows[${kind}:done]:-}${rows[${kind}:open]:-}${rows[${kind}:error]:-}" ]] || continue
+  [[ "$kind" == mr ]] && heading="GitLab merge requests" || heading="Jira tickets"
+  print -r -- $'\n'"${c_bold}${heading}${c_off}"
+  for group in done open error; do
+    for row in ${(fo)rows[${kind}:$group]:-}; do
+      label=${row%%$'\t'*} rest=${row#*$'\t'}
+      ref=${rest%%$'\t'*} title=${rest#*$'\t'}
+      case $group:$label in
+        done:closed) icon="✗" color=$c_red ;;
+        done:*)      icon="✓" color=$c_blue ;;
+        open:*)      icon="○" color=$c_green ;;
+        *)           icon="?" color=$c_yellow ;;
+      esac
+      printf "  %s%s %-*s%s  %s%-*s%s  %s\n" \
+        "$color" "$icon" "$label_width" "$label" "$c_off" "$c_bold" "$ref_width" "$ref" "$c_off" "$title"
+    done
+  done
+done
+print
+
+if (( ${#to_close} == 0 )); then
+  print -r -- "Nothing to close."
+  exit 0
+fi
+summary="${c_bold}${mr_done}${c_off} MR(s) and ${c_bold}${jira_done}${c_off} Jira ticket(s)"
+if $dry_run; then
+  print -r -- "${c_dim}Dry run:${c_off} ${summary} to close. Run without -n to close their tabs."
+  exit 0
+fi
+
+close_urls=("${to_close[@]}")
+for url in "${to_close[@]}"; do
+  close_urls+=(${(f)board_tabs[$url]:-})
+done
+
+closed_tabs=$(osascript - "${close_urls[@]}" <<'EOF'
+on run argv
+  set n to 0
+  tell application "Google Chrome"
+    repeat with w in windows
+      repeat with i from (count of tabs of w) to 1 by -1
+        set u to URL of tab i of w
+        repeat with b in argv
+          set p to (b as text)
+          if u is p or u starts with (p & "/") or u starts with (p & "#") or u starts with (p & "?") then
+            close tab i of w
+            set n to n + 1
+            exit repeat
+          end if
+        end repeat
+      end repeat
+    end repeat
+  end tell
+  return n
+end run
+EOF
+)
+print -r -- "Closed ${c_bold}${closed_tabs}${c_off} tab(s) for ${summary}."

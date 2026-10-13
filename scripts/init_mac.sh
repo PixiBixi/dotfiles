@@ -306,6 +306,7 @@ setup_dotfiles() {
         "config/.local/bin/helm-charts-update"
         "config/.local/bin/wezterm-pane-picker"
         "config/.local/bin/wezterm-restore"
+        "config/.local/bin/close-done-tabs"
     )
 
     for src_rel in "${symlink_files[@]}"; do

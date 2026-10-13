@@ -164,6 +164,7 @@ check_file "config/.config/git/ignore" "${HOME}/.config/git/ignore" symlink
 check_file "config/.local/bin/tg-run" "${HOME}/.local/bin/tg-run" symlink
 check_file "config/.local/bin/wezterm-pane-picker" "${HOME}/.local/bin/wezterm-pane-picker" symlink
 check_file "config/.local/bin/wezterm-restore" "${HOME}/.local/bin/wezterm-restore" symlink
+check_file "config/.local/bin/close-done-tabs" "${HOME}/.local/bin/close-done-tabs" symlink
 check_file "config/.local/bin/slack-restart.sh" "${HOME}/.local/bin/slack-restart.sh" copy
 
 # Agents are rendered from a __HOME__ template, so they never match the repo by md5.

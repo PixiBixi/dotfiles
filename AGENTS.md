@@ -30,6 +30,9 @@ make help                # list targets
 # Run a Terragrunt command per impacted unit, with readable output
 tg-run [<command>] [<unit dir>...]
 
+# Close Chrome tabs of merged/closed GitLab MRs and done Jira tickets (-n: dry run)
+close-done-tabs [-n]
+
 # Pre-commit
 pre-commit install                 # after cloning
 pre-commit run --all-files         # run all hooks
