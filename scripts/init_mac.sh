@@ -50,6 +50,7 @@ STEPS=(
     "krew-indexes:setup_krew_indexes"
     "brew-packages:install_brew_packages"
     "fzf:setup_fzf"
+    "git-template:setup_git_template"
     "gcloud:setup_gcloud_auth"
     "kubeswitch:setup_kubeswitch"
     "directories:setup_directories"
@@ -646,6 +647,18 @@ setup_fzf() {
     fi
 }
 
+# .gitconfig points init.templateDir here: without it new clones get no pre-commit hook
+setup_git_template() {
+    log_info "Setting up git template directory..."
+
+    if command -v pre-commit &> /dev/null; then
+        pre-commit init-templatedir "${HOME}/.git-template"
+        log_success "pre-commit hook installed in ~/.git-template"
+    else
+        log_warning "pre-commit not found, skipping git template"
+    fi
+}
+
 # Setup Google Cloud Application Default Credentials
 setup_gcloud_auth() {
     log_info "Setting up Google Cloud Application Default Credentials..."
@@ -761,6 +774,7 @@ main() {
     run_step "krew-indexes" setup_krew_indexes
     run_step "brew-packages" install_brew_packages
     run_step "fzf" setup_fzf
+    run_step "git-template" setup_git_template
     run_step "gcloud" setup_gcloud_auth
     run_step "kubeswitch" setup_kubeswitch
     run_step "directories" setup_directories
