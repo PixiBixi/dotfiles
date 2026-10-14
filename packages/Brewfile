@@ -248,7 +248,6 @@ brew "oven-sh/bun/bun"
 brew "pchuri/tap/confluence-cli"
 brew "robinovitch61/tap/kl"
 brew "valkyrie00/bbrew/bbrew"
-brew "warrensbox/tap/tfswitch", link: false
 cask "audacity"
 cask "basictex"
 cask "battery"
