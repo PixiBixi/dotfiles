@@ -444,7 +444,7 @@ setup_claude() {
     if [[ -d "${REPO_DIR}/apps/claude/skills" ]]; then
         mkdir -p "${HOME}/.claude/skills"
         for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
-            [[ -d "$skill_dir" ]] || continue
+            [[ -f "${skill_dir}SKILL.md" ]] || continue
             skill_name="$(basename "$skill_dir")"
             ln -sfn "$skill_dir" "${HOME}/.claude/skills/${skill_name}"
             log_success "Symlinked skills/${skill_name} → ${HOME}/.claude/skills/"

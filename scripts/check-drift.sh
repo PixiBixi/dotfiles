@@ -208,7 +208,7 @@ for conf in "${REPO_DIR}/apps/claude/config/"*.json; do
 done
 
 for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
-    [[ -d "${skill_dir}" ]] || continue
+    [[ -f "${skill_dir}SKILL.md" ]] || continue
     name="$(basename "${skill_dir}")"
     check_dir "apps/claude/skills/${name}" "${HOME}/.claude/skills/${name}"
 done
