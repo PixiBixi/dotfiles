@@ -300,6 +300,8 @@ config.keys = {
     { key = '%', mods = 'LEADER', action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' } },
     { key = '"', mods = 'LEADER', action = wezterm.action.SplitVertical { domain = 'CurrentPaneDomain' } },
     { key = 'w', mods = 'LEADER', action = wezterm.action.CloseCurrentPane { confirm = true } },
+    -- Claude in the ops workspace; the pane closes when it exits
+    { key = 'o', mods = 'LEADER', action = wezterm.action.SplitHorizontal { args = { 'zsh', '-lic', 'ops' } } },
 
     -- Word navigation (backward/forward)
     { key = 'LeftArrow',  mods = 'OPT', action = wezterm.action.SendString("\x1bb") },
