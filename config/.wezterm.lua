@@ -280,6 +280,14 @@ local function resizePane(key, direction)
     return { key = key, mods = 'CMD', action = wezterm.action.AdjustPaneSize { direction, 5 } }
 end
 
+-- Claude in the ops workspace; the pane or tab closes when it exits
+local ops_cmd = { 'zsh', '-lic', 'ops' }
+-- Split along the longer side so both halves stay usable
+local function split_ops(_, pane)
+    local dim = pane:get_dimensions()
+    pane:split { direction = dim.pixel_width >= dim.pixel_height and 'Right' or 'Bottom', args = ops_cmd }
+end
+
 config.keys = {
     { key = 'm', mods = 'CMD', action = wezterm.action.DisableDefaultAssignment },
     { key = 'f', mods = 'CMD|CTRL', action = wezterm.action.ToggleFullScreen },
@@ -300,8 +308,8 @@ config.keys = {
     { key = '%', mods = 'LEADER', action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' } },
     { key = '"', mods = 'LEADER', action = wezterm.action.SplitVertical { domain = 'CurrentPaneDomain' } },
     { key = 'w', mods = 'LEADER', action = wezterm.action.CloseCurrentPane { confirm = true } },
-    -- Claude in the ops workspace; the pane closes when it exits
-    { key = 'o', mods = 'LEADER', action = wezterm.action.SplitHorizontal { args = { 'zsh', '-lic', 'ops' } } },
+    { key = 'o', mods = 'LEADER', action = wezterm.action_callback(split_ops) },
+    { key = 'O', mods = 'LEADER|SHIFT', action = wezterm.action.SpawnCommandInNewTab { args = ops_cmd } },
 
     -- Word navigation (backward/forward)
     { key = 'LeftArrow',  mods = 'OPT', action = wezterm.action.SendString("\x1bb") },
