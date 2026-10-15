@@ -13,8 +13,6 @@ Ranked by gain over effort:
 | Idea | Seen in | Effort |
 |---|---|---|
 | Run the existing pre-commit hooks in CI on every push (today only local) | alrra (shellcheck + markdownlint + link check on macos-latest) | low |
-| Uninstall and drop the EOL formulas (`python@3.9`, `python@3.10`, `ffmpeg@4`, `icu4c@76`): nothing installed depends on them, but removing them from the Brewfile alone is undone by the next `make update-brew` | - | low |
-| Decide whether vim is still used: `config/.vimrc` (Vundle) is still deployed next to the nvim config | - | low |
 | GCP helpers: `gcurl` / `runcurl` aliases (curl with an access or identity token) | ahmetb `zsh_aliases.inc` | low |
 | `kubecolor` aliased to `kubectl` only when installed | ahmetb `.zshrc` (`has'kubecolor'`) | low |
 | A `kdebug` alias running a toolbox pod | caarlos0 `fish/config.fish` | low |
