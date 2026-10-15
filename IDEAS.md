@@ -13,13 +13,13 @@ Ranked by gain over effort:
 | Idea | Seen in | Effort |
 |---|---|---|
 | Run the existing pre-commit hooks in CI on every push (today only local) | alrra (shellcheck + markdownlint + link check on macos-latest) | low |
-| Clean dead weight: `scripts/init.sh` (Vundle, old Homebrew installer), `config/.vimrc`, empty `package.json`/`package-lock.json`, EOL formulas (`python@3.9`, `python@3.10`, `ffmpeg@4`) | - | low |
-| Generalize the untracked local override (`~/.zsh_work`) into `~/.zshrc.local` and `~/.gitconfig.local`, created empty on first bootstrap, never overwritten | alrra `create_local_config_files.sh`, holman, paulirish | low |
+| Uninstall and drop the EOL formulas (`python@3.9`, `python@3.10`, `ffmpeg@4`, `icu4c@76`): nothing installed depends on them, but removing them from the Brewfile alone is undone by the next `make update-brew` | - | low |
+| Decide whether vim is still used: `config/.vimrc` (Vundle) is still deployed next to the nvim config | - | low |
 | GCP helpers: `gcurl` / `runcurl` aliases (curl with an access or identity token) | ahmetb `zsh_aliases.inc` | low |
 | `kubecolor` aliased to `kubectl` only when installed | ahmetb `.zshrc` (`has'kubecolor'`) | low |
 | A `kdebug` alias running a toolbox pod | caarlos0 `fish/config.fish` | low |
 | `--dry-run` for `init_mac.sh`: every side effect goes through one `run()` wrapper | nicknisi `install.sh` | medium |
-| Symlink everything, drop the `copy` mode of `deploy_file`, and refuse to overwrite a real file instead of `ln -sf` over it | caarlos0 `setup` `link()`, alrra `create_symbolic_links.sh` | medium |
+| `deploy_file symlink` refuses to replace a real file (warn, or back it up) instead of `ln -sf` over it. The `copy` mode stays: launchd TCC and Flameshot's QSettings need real files | caarlos0 `setup` `link()`, alrra `create_symbolic_links.sh` | medium |
 | Secrets as `op://` references resolved at runtime instead of `~/.zsh_work_secrets` | mitchellh `home-manager.nix`, twpayne `onepasswordRead` | medium |
 | Smoke-test the bootstrap in CI (`init_mac.sh --dry-run` on a macOS runner) | nicknisi devcontainer smoke test, jessfraz `nix flake check` matrix | medium, needs `--dry-run` first |
 | Pin infra CLI versions (terraform, kubectl, helm) with mise instead of unpinned Homebrew formulas | nicknisi `mise.toml` | medium |
