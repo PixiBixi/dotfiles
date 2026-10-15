@@ -1,4 +1,10 @@
 # Top of .zshrc
+# Same fpath in login, non-login and child shells (inherited FPATH, OrbStack's
+# .zprofile hook): any difference makes oh-my-zsh rebuild the compdump, ~1 s.
+typeset -U path fpath
+fpath=(${fpath:#(/opt/homebrew/share/zsh/site-functions|$HOME/.oh-my-zsh/*)})
+fpath+=/Users/jeremy/.orbstack/shell/completions/zsh
+
 # Static copy of `brew shellenv`: the eval forks Ruby-backed brew, ~90 ms per shell.
 export HOMEBREW_PREFIX="/opt/homebrew"
 export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
