@@ -1,0 +1,54 @@
+# Ghostty: port of config/.wezterm.lua, kept side by side to compare the two.
+# Not ported (no scripting in Ghostty): busy-tab colouring, Claude-aware Cmd+P picker,
+# wezterm-restore layout snapshots (window-save-state below restores layout and cwd, not processes).
+
+# Appearance
+theme = TokyoNight
+background-opacity = 0.85
+background-blur = 30
+minimum-contrast = 4.5
+window-padding-x = 0
+window-padding-y = 0
+window-padding-balance = true
+macos-titlebar-style = tabs
+
+# Start fullscreen. Native mode on purpose: non-native would extend around the notch but kills tabs.
+fullscreen = true
+macos-non-native-fullscreen = false
+
+# Comfort
+scrollback-limit = 10000000
+window-save-state = always
+bell-features = no-system,no-audio,no-attention,title,no-border
+confirm-close-surface = false
+
+# Left Option composes ~ | etc., right Option acts as Alt
+macos-option-as-alt = right
+
+# Leader alt+b, same sequences as WezTerm.
+# Ghostty matches the unshifted key plus modifiers: on AZERTY `%` is shift+ù, `"` needs no shift.
+keybind = alt+b>shift+ù=new_split:right
+keybind = alt+b>"=new_split:down
+keybind = alt+b>z=toggle_split_zoom
+keybind = alt+b>w=close_surface
+keybind = alt+b>arrow_left=goto_split:left
+keybind = alt+b>arrow_right=goto_split:right
+keybind = alt+b>arrow_up=goto_split:up
+keybind = alt+b>arrow_down=goto_split:down
+
+# Claude in the ops workspace (a shell function, so no exec); exit so the split or tab closes when it exits
+keybind = alt+b>o=new_split:auto
+keybind = chain=text:ops; exit\n
+keybind = alt+b>shift+o=new_tab
+keybind = chain=text:ops; exit\n
+
+keybind = super+arrow_left=resize_split:left,40
+keybind = super+arrow_right=resize_split:right,40
+keybind = super+arrow_up=resize_split:up,40
+keybind = super+arrow_down=resize_split:down,40
+keybind = super+ctrl+f=toggle_fullscreen
+keybind = super+m=unbind
+
+# Word navigation (backward/forward)
+keybind = alt+arrow_left=esc:b
+keybind = alt+arrow_right=esc:f
