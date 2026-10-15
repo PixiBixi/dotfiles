@@ -18,9 +18,8 @@ DISABLE_MAGIC_FUNCTIONS="true"
 # oh-my-zsh reads ZSH_DISABLE_COMPFIX; the unprefixed name was a no-op.
 ZSH_DISABLE_COMPFIX="true"
 
-# NOTE: compinit is handled exclusively by oh-my-zsh.sh (sourced below).
-# A manual compinit here runs it a second time, doubling compdump cost
-# (~340ms wasted per shell). oh-my-zsh already regenerates the dump once/day.
+# NOTE: compinit runs once, in the oh-my-zsh loader below. A second compinit
+# doubles the compdump cost.
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
@@ -105,7 +104,56 @@ plugins=(zsh-defer ssh-agent terraform kubectl kube-ps1 helm aws)
 zstyle :omz:plugins:ssh-agent lazy yes
 zstyle :omz:plugins:ssh-agent identities id_rsa id_ed25519 gitlab github.com
 
-source $ZSH/oh-my-zsh.sh
+# Minimal replacement for `source $ZSH/oh-my-zsh.sh`: same libs, plugins and theme,
+# without its per-shell compdump checks (git, grep, mkdir, rm) and fork-based probes.
+ZSH_CUSTOM="$ZSH/custom"
+ZSH_CACHE_DIR="$ZSH/cache"
+# ssh-agent names its cache file after it: unset, every shell starts a new agent.
+SHORT_HOST="${HOST/.*/}"
+fpath=($ZSH_CACHE_DIR/completions $ZSH/{functions,completions} $ZSH_CUSTOM/{functions,completions}
+  $ZSH_CUSTOM/plugins/${^plugins}(N/) $ZSH/plugins/${^plugins}(N/) $fpath)
+
+# -C trusts the dump without rescanning fpath: rebuilt when older than 24h.
+# After installing a tool that ships a completion: zcomp-rebuild
+autoload -Uz compinit
+ZSH_COMPDUMP="$HOME/.zcompdump-lite-$ZSH_VERSION"
+_zcomp_stale=($ZSH_COMPDUMP(N.mh+24))
+if [[ -f $ZSH_COMPDUMP && -z $_zcomp_stale ]]; then
+  compinit -C -d "$ZSH_COMPDUMP"
+else
+  compinit -u -d "$ZSH_COMPDUMP"
+  { zcompile "$ZSH_COMPDUMP" } &!
+fi
+unset _zcomp_stale
+zcomp-rebuild() { rm -f "$ZSH_COMPDUMP"{,.zwc} && exec zsh }
+
+# lib/grep.zsh and lib/theme-and-appearance.zsh are inlined below: they fork
+# grep, diff and ls on every shell only to detect flags that never change here.
+for _lib (async_prompt clipboard cli completion directories functions git history
+  key-bindings misc prompt_info_functions termsupport); do
+  source "$ZSH/lib/$_lib.zsh"
+done
+unset _lib
+alias grep='grep --color=auto --exclude-dir={.bzr,CVS,.git,.hg,.svn,.idea,.tox,.venv,venv}'
+alias egrep='grep -E'
+alias fgrep='grep -F'
+autoload -U colors && colors
+setopt prompt_subst
+diff() { command diff --color "$@" }
+export LSCOLORS="Gxfxcxdxbxegedabagacad"
+export LS_COLORS="di=1;36:ln=35:so=32:pi=33:ex=31:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43"
+alias ls='ls -G'
+
+for _plugin ($plugins); do
+  if [[ -f $ZSH_CUSTOM/plugins/$_plugin/$_plugin.plugin.zsh ]]; then
+    source "$ZSH_CUSTOM/plugins/$_plugin/$_plugin.plugin.zsh"
+  else
+    source "$ZSH/plugins/$_plugin/$_plugin.plugin.zsh"
+  fi
+done
+unset _plugin
+source "$ZSH/themes/$ZSH_THEME.zsh-theme"
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 
 # User configuration
 
