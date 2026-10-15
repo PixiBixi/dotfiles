@@ -166,6 +166,7 @@ check_file "config/.local/bin/wezterm-pane-picker" "${HOME}/.local/bin/wezterm-p
 check_file "config/.local/bin/wezterm-restore" "${HOME}/.local/bin/wezterm-restore" symlink
 check_file "config/.local/bin/close-done-tabs" "${HOME}/.local/bin/close-done-tabs" symlink
 check_file "config/.local/bin/slack-restart.sh" "${HOME}/.local/bin/slack-restart.sh" copy
+check_file "config/.config/flameshot/flameshot.ini" "${HOME}/.config/flameshot/flameshot.ini" copy
 
 # Agents are rendered from a __HOME__ template, so they never match the repo by md5.
 for agent in "${REPO_DIR}/config/Library/LaunchAgents/"*.plist; do

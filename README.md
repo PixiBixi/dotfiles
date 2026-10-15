@@ -47,6 +47,7 @@ dotfiles/
 │   ├── .kube/
 │   │   └── switch-config.yaml
 │   ├── .config/
+│   │   ├── flameshot/           # flameshot.ini (copie)
 │   │   ├── git/                 # allowed_signers, ignore
 │   │   └── nvim/
 │   ├── .local/
@@ -279,6 +280,19 @@ launchctl bootout gui/$(id -u)/fr.jdelgado.slack-restart        # décharger
 ```
 
 Le premier déclenchement demande l'autorisation d'automatiser Slack (Réglages, Confidentialité, Automatisation).
+
+## Flameshot
+
+| Raccourci | Outil |
+|-------------------------|-------------------------------------|
+| `Cmd+Shift+4` | Flameshot, capture de zone |
+| `Cmd+Shift+5` | Natif macOS, capture de fenêtre |
+
+`config/.config/flameshot/flameshot.ini` est déployé en **copie** : Flameshot sauvegarde via QSettings, qui remplace un symlink. L'étape `screenshot-hotkeys` désactive les captures de zone natives (raccourcis 30 et 31) pour libérer `Cmd+Shift+4`. Le raccourci est déclaré `Ctrl+Shift+'` : sous Qt macOS `Ctrl` vaut `Cmd`, et sur AZERTY la touche `4` produit `'`.
+
+```bash
+./scripts/init_mac.sh --only dotfiles screenshot-hotkeys   # Réglages Système fermés
+```
 
 ## Pre-commit
 

@@ -63,6 +63,7 @@ STEPS=(
     "claude-plugins:install_claude_plugins"
     "rtk:setup_rtk"
     "launchagents:setup_launchagents"
+    "screenshot-hotkeys:setup_screenshot_hotkeys"
 )
 
 ONLY_STEPS=()
@@ -317,9 +318,11 @@ setup_dotfiles() {
     # Machine-specific: copy (do not symlink, differs per machine)
     # slack-restart.sh is here for another reason: a launchd agent has no TCC
     # rights on ~/Documents, so a symlink into the repo exits 126. Keep it a copy.
+    # flameshot.ini too: Flameshot saves through QSettings, which replaces a symlink.
     local copy_files=(
         "config/.gitconfig_work"
         "config/.local/bin/slack-restart.sh"
+        "config/.config/flameshot/flameshot.ini"
     )
 
     for src_rel in "${copy_files[@]}"; do
@@ -380,6 +383,19 @@ setup_launchagents() {
             log_error "Failed to load agent ${label}"
         fi
     done
+}
+
+# Hand Cmd+Shift+4 to Flameshot. 30 and 31 are the native area captures; on
+# AZERTY both sit on keycode 21, so both must be off. Cmd+Shift+5 stays native.
+setup_screenshot_hotkeys() {
+    log_info "Disabling native area screenshot hotkeys..."
+
+    defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 30 \
+        '{enabled = 0; value = {parameters = (52, 21, 1179648); type = standard;};}'
+    defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 31 \
+        '{enabled = 0; value = {parameters = (39, 21, 1179648); type = standard;};}'
+    /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+    log_success "Native area screenshot hotkeys disabled (close System Settings first if open)"
 }
 
 # Install Claude Code from the native installer: the Homebrew cask lags the
