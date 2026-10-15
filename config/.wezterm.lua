@@ -256,6 +256,14 @@ config.audible_bell = "Disabled"
 config.scrollback_lines = 10000
 config.adjust_window_size_when_changing_font_size = false
 config.check_for_updates = false
+-- Match the 120 Hz ProMotion display (default caps at 60)
+config.max_fps = 120
+-- Metal through WebGpu instead of the deprecated OpenGL
+config.front_end = 'WebGpu'
+config.webgpu_power_preference = 'HighPerformance'
+-- Dim unfocused panes so the active one stands out next to an ops split
+config.inactive_pane_hsb = { saturation = 0.9, brightness = 0.6 }
+config.switch_to_last_active_tab_when_closing_tab = true
 
 -- Tab bar
 config.tab_bar_at_bottom = true
