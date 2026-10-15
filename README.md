@@ -10,7 +10,7 @@ zsh, WezTerm, Kubernetes, Terragrunt et Claude Code, provisionnés par un script
 [![macOS](https://img.shields.io/badge/macOS-Ventura%2B-000000?logo=apple&logoColor=white)](#prérequis)
 [![Shell](https://img.shields.io/badge/shell-zsh-89e051?logo=gnubash&logoColor=white)](config/.zshrc)
 [![Homebrew](https://img.shields.io/badge/Homebrew-Brewfile-FBB040?logo=homebrew&logoColor=black)](packages/Brewfile)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-FAB040?logo=pre-commit&logoColor=black)](.pre-commit-config.yaml)
+[![pre-commit](https://github.com/PixiBixi/dotfiles/actions/workflows/pre-commit.yml/badge.svg)](.github/workflows/pre-commit.yml)
 [![Weekly check](https://github.com/PixiBixi/dotfiles/actions/workflows/weekly-software-check.yml/badge.svg)](.github/workflows/weekly-software-check.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
@@ -332,6 +332,8 @@ Hooks pre-commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`
 pre-commit run --all-files
 pre-commit autoupdate
 ```
+
+À chaque push sur `master` et sur chaque PR, [`pre-commit`](.github/workflows/pre-commit.yml) rejoue les mêmes hooks sur tout le repo.
 
 Chaque lundi, [`weekly-software-check`](.github/workflows/weekly-software-check.yml) vérifie que les formulas et casks du `Brewfile` existent toujours et ouvre une PR pour retirer les entrées mortes.
 

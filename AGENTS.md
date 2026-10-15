@@ -137,6 +137,8 @@ Rule of thumb: `~/.claude/skills/<name>` being a **symlink** means the repo owns
 
 ## CI
 
+`.github/workflows/pre-commit.yml` runs `pre-commit run --all-files` on every push to `master` and on every PR, so the local hooks are enforced even when a commit skipped them. Hook environments are cached on the hash of `.pre-commit-config.yaml`.
+
 `.github/workflows/weekly-software-check.yml` runs every Monday (`0 8 * * 1` UTC) to validate that `packages/Brewfile` entries still exist. Two jobs:
 
 - `check-brew`: validates formulas (`brew info`) and casks (via `formulae.brew.sh` API, since casks aren't installable on the Linux runner); tap formulas (`owner/tap/name`) are skipped. Emits the pruned Brewfile as an artifact.
