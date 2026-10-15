@@ -11,6 +11,7 @@ tap "darksworm/tap", trusted: true
 tap "derailed/popeye", trusted: true
 tap "deviceinsight/packages", trusted: true
 tap "dhth/tap", trusted: true
+tap "flameshot-org/flameshot"
 tap "fluxcd/tap", trusted: true
 tap "future-architect/tap", trusted: true
 tap "gammons/tap", trusted: { casks: ["slk"] }
@@ -255,6 +256,7 @@ cask "claude"
 cask "discord"
 cask "elasticvue"
 cask "element"
+cask "flameshot-org/flameshot/flameshot-org-flameshot", trusted: true
 cask "flux-app"
 cask "focus"
 cask "font-fira-code"
