@@ -1,8 +1,26 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<div align="center">
+
 # dotfiles
 
-Configuration complète pour macOS avec installation automatisée.
+**Mon poste macOS d'SRE, reproductible en une commande.**
 
-## Quick Start
+zsh, WezTerm, Kubernetes, Terragrunt et Claude Code, provisionnés par un script idempotent.
+
+[![macOS](https://img.shields.io/badge/macOS-Ventura%2B-000000?logo=apple&logoColor=white)](#prérequis)
+[![Shell](https://img.shields.io/badge/shell-zsh-89e051?logo=gnubash&logoColor=white)](config/.zshrc)
+[![Homebrew](https://img.shields.io/badge/Homebrew-Brewfile-FBB040?logo=homebrew&logoColor=black)](packages/Brewfile)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-FAB040?logo=pre-commit&logoColor=black)](.pre-commit-config.yaml)
+[![Weekly check](https://github.com/PixiBixi/dotfiles/actions/workflows/weekly-software-check.yml/badge.svg)](.github/workflows/weekly-software-check.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+
+[Installation](#installation) · [Contenu](#ce-qui-est-installé) · [Commandes](#commandes-maison) · [Terminal](#terminal) · [Claude Code](#claude-code) · [Maintenance](#maintenance) · [Troubleshooting](#troubleshooting)
+
+</div>
+
+---
+
+## Installation
 
 ```bash
 git clone https://github.com/PixiBixi/dotfiles.git ~/dotfiles
@@ -10,99 +28,28 @@ cd ~/dotfiles
 ./scripts/init_mac.sh
 ```
 
-Le script est **idempotent** : vous pouvez le relancer sans risque.
+> [!TIP]
+> Le script est **idempotent** : il peut être relancé sans risque. `--only <step>` ne joue qu'une étape (`dotfiles`, `launchagents`, `claude-plugins`, ...).
 
-## Prérequis
+### Prérequis
 
-- macOS (Ventura ou plus récent recommandé)
-- Connexion internet
-- Droits administrateur (pour Xcode Command Line Tools)
+- macOS Ventura ou plus récent
+- Une connexion internet
+- Les droits administrateur (Xcode Command Line Tools)
 
-Le script installe automatiquement :
+Le script installe le reste : Xcode CLT, Homebrew, oh-my-zsh et ses plugins, puis tout ce que liste `packages/` (formulas, casks, plugins krew, npm, gems).
 
-- Xcode Command Line Tools
-- Homebrew
-- oh-my-zsh + plugins
-- Tous les packages listés dans `packages/` (formulas, casks, krew plugins, npm, gems via Brewfile)
+### Post-installation
 
-## Structure du Repository
-
-```text
-dotfiles/
-├── config/                      # Dotfiles, miroir de $HOME
-│   ├── .zshrc
-│   ├── .zsh_alias
-│   ├── .zsh_functions
-│   ├── .zsh_linux
-│   ├── .zsh_mac
-│   ├── .gitconfig
-│   ├── .gitconfig_perso
-│   ├── .gitconfig_work
-│   ├── .tmux.conf
-│   ├── .vimrc
-│   ├── .wezterm.lua
-│   ├── .markdownlint.json
-│   ├── .ssh/
-│   │   └── config
-│   ├── .kube/
-│   │   └── switch-config.yaml
-│   ├── .config/
-│   │   ├── flameshot/           # flameshot.ini (copie)
-│   │   ├── git/                 # allowed_signers, ignore
-│   │   └── nvim/
-│   ├── .local/
-│   │   └── bin/                 # Commandes déployées sur le $PATH
-│   │       ├── tg-run           # Runner Terragrunt à sortie lisible
-│   │       ├── helm-charts-update # Charts Helm locaux passés à la dernière version
-│   │       ├── wezterm-pane-picker # Sélecteur fzf des panes WezTerm (Cmd+P)
-│   │       ├── wezterm-restore  # Restauration des onglets et sessions Claude WezTerm
-│   │       ├── close-done-tabs  # Ferme les onglets Chrome des MR, jobs CI et tickets Jira terminés
-│   │       └── slack-restart.sh # Redémarrage nocturne de Slack
-│   └── Library/
-│       └── LaunchAgents/        # Agents launchd, rendus depuis __HOME__
-├── packages/                    # Listes de paquets à installer
-│   ├── Brewfile                 # Formulas, casks, krew plugins, npm, gems
-│   ├── krew-indexes.txt         # Index krew custom, ajoutés avant le Brewfile
-│   ├── npm.txt
-│   ├── gems.txt
-│   └── skillfish.json           # Manifeste des skills Claude externes
-├── apps/                        # Configs d'applications non-dotfiles
-│   ├── claude/
-│   │   ├── CLAUDE.md
-│   │   ├── settings.json
-│   │   ├── hooks/               # session-allow.sh, wiki-sync.sh, wordlist-guard.sh
-│   │   ├── config/              # Config JSON par hook, symlinkée dans ~/.claude/
-│   │   └── skills/              # SKILL.md upstream + skills locales
-│   ├── raycast/
-│   │   └── Raycast.rayconfig
-│   └── vscode/
-│       ├── settings.json
-│       └── extensions.txt
-├── scripts/
-│   ├── init_mac.sh              # Script d'installation principal
-│   ├── check-drift.sh           # Diff entre config/ et les fichiers déployés
-│   ├── brew-usage-audit.sh      # Audit packages Homebrew via l'atime des binaires
-│   └── init.sh                  # Legacy, ne pas utiliser
-├── Makefile
-├── .pre-commit-config.yaml
-└── .yamllint.yaml
-```
-
-## Post-Installation
-
-### 1. Configuration Git
-
-Éditer vos identités Git :
+<details>
+<summary><b>1. Identités Git</b></summary>
 
 ```bash
-# Personnel
-vim ~/.gitconfig_perso
-
-# Professionnel
-vim ~/.gitconfig_work
+vim ~/.gitconfig_perso   # personnel
+vim ~/.gitconfig_work    # professionnel
 ```
 
-Dans votre `.gitconfig` principal, incluez conditionnellement :
+Inclusion conditionnelle dans le `.gitconfig` principal :
 
 ```ini
 [includeIf "gitdir:~/Documents/perso/"]
@@ -112,272 +59,320 @@ Dans votre `.gitconfig` principal, incluez conditionnellement :
     path = ~/.gitconfig_work
 ```
 
-`.gitconfig_work` fait passer tous les remotes gitlab.com en HTTPS (`insteadOf` sur `git@gitlab.com:`), authentifiés par le token de `glab` : un seul secret à renouveler (`glab auth login`), pas de clé SSH à tenir à jour, et aucun reclone nécessaire. Côté `glab`, à faire une fois :
+`.gitconfig_work` fait passer les remotes gitlab.com en HTTPS (`insteadOf` sur `git@gitlab.com:`), authentifiés par le token de `glab` : un seul secret à renouveler (`glab auth login`), aucun reclone. À faire une fois :
 
 ```bash
 glab config set git_protocol https --host gitlab.com
 ```
 
-Deux fichiers sous `config/.config/git/` sont symlinkés vers `~/.config/git/` :
+Symlinkés vers `~/.config/git/` :
 
-- `allowed_signers` : référencé par `gpg.ssh.allowedSignersFile`. Adresse courante en premier, domaines historiques après, séparés par des virgules sur la même ligne
-- `ignore` : gitignore global, lu par défaut à cet emplacement
+- `allowed_signers` : référencé par `gpg.ssh.allowedSignersFile`, adresse courante en premier, domaines historiques ensuite, séparés par des virgules sur la même ligne
+- `ignore` : gitignore global
 
-### 2. Kubeconfig
+</details>
 
-Split votre kubeconfig en plusieurs fichiers :
+<details>
+<summary><b>2. Kubeconfig et GKE</b></summary>
 
 ```bash
 kubectl konfig split -o ~/.kube/configs
+gcloud auth application-default login   # ADC pour que kubeswitch découvre les clusters GKE
 ```
 
-### 3. Google Cloud (GKE)
+</details>
 
-Configurer les Application Default Credentials pour que kubeswitch découvre les clusters GKE sans prompt d'authentification répété :
-
-```bash
-gcloud auth application-default login
-```
-
-À relancer si kubeswitch redemande l'auth Google (token expiré, renouvellement de session SSO).
-
-### 4. Shell
+<details>
+<summary><b>3. Shell et pre-commit</b></summary>
 
 ```bash
 source ~/.zshrc
-```
-
-### 5. Pre-commit
-
-```bash
 pre-commit install
 ```
 
-## Maintenance
+</details>
 
-### Cibles make
+---
 
-```bash
-make help          # lister les targets
+## Ce qui est installé
+
+| Domaine | Outils |
+|---|---|
+| **Shell** | zsh + oh-my-zsh, `zsh-autosuggestions`, `zsh-syntax-highlighting` |
+| **Terminal** | [WezTerm](#wezterm) nightly, config [Ghostty](config/.config/ghostty/config) portée |
+| **CLI** | `rg`, `fd`, `bat`, `lsd`, `fzf`, `jq`, `yq`, `neovim` |
+| **Kubernetes** | `kubectl` + krew, `kubectx`/`kubens`, `kubeswitch`, plugins krew dans le `Brewfile` |
+| **IaC** | Terraform, Terragrunt, [`tg-run`](#tg-run) |
+| **AI** | [Claude Code](#claude-code), skills, hooks, statusline, RTK |
+| **Dev** | Git, Node.js, Ruby système, paquets npm et gems |
+
+La liste complète est dans [`packages/Brewfile`](packages/Brewfile).
+
+<details>
+<summary><b>Structure du repo</b></summary>
+
+```text
+dotfiles/
+├── config/                       # Dotfiles, miroir de $HOME
+│   ├── .zshrc, .zsh_alias, .zsh_functions, .zsh_mac, .zsh_linux
+│   ├── .gitconfig, .gitconfig_perso, .gitconfig_work
+│   ├── .tmux.conf, .vimrc, .wezterm.lua, .markdownlint.json
+│   ├── .ssh/config
+│   ├── .kube/switch-config.yaml
+│   ├── .config/
+│   │   ├── flameshot/            # flameshot.ini (copie)
+│   │   ├── ghostty/
+│   │   ├── git/                  # allowed_signers, ignore
+│   │   └── nvim/
+│   ├── .local/bin/               # Commandes déployées sur le $PATH
+│   └── Library/LaunchAgents/     # Agents launchd, rendus depuis __HOME__
+├── packages/
+│   ├── Brewfile                  # Formulas, casks, krew plugins, npm, gems
+│   ├── krew-indexes.txt          # Index krew custom, ajoutés avant le Brewfile
+│   ├── npm.txt
+│   ├── gems.txt
+│   └── skillfish.json            # Manifeste des skills Claude externes
+├── apps/
+│   ├── claude/                   # CLAUDE.md, settings.json, bin/, hooks/, config/, skills/
+│   ├── raycast/Raycast.rayconfig
+│   └── vscode/                   # settings.json, extensions.txt
+├── scripts/
+│   ├── init_mac.sh               # Installation principale
+│   ├── check-drift.sh            # Diff entre le repo et $HOME
+│   ├── brew-usage-audit.sh       # Packages Homebrew inutilisés
+│   └── init.sh                   # Legacy, ne pas utiliser
+└── Makefile
 ```
 
-| Target | Effet |
-| -------- | ------- |
-| `update` | Tout : brew, krew indexes, npm, gems, skills, skills Claude |
-| `update-brew` | Dump les packages Homebrew installés vers `packages/Brewfile` |
-| `update-krew-indexes` | Dump les index krew custom vers `packages/krew-indexes.txt` |
-| `update-npm` | Dump les packages npm globaux vers `packages/npm.txt` |
-| `update-gems` | Dump les gems installées vers `packages/gems.txt` |
-| `update-skills` | Récupère les derniers SKILL.md upstream (un commit par skill) |
-| `update-claude-skills` | Met à jour les skills skillfish et re-bundle `packages/skillfish.json` |
-| `update-claude-plugins` | Rafraîchit les marketplaces et met à jour chaque plugin Claude Code installé (redémarrage requis) |
-| `check` | Dry-run : affiche les diffs de skills sans écrire |
-| `drift` | Lance `scripts/check-drift.sh` |
+</details>
 
-### Vérifier la dérive
+---
 
-`scripts/check-drift.sh` compare les fichiers de `config/` et de `apps/claude/` avec ce qui est déployé dans `$HOME`, et vérifie que les index krew de `packages/krew-indexes.txt` sont enregistrés.
+## Commandes maison
 
-```bash
-make drift
-```
+Déployées sur le `$PATH` depuis [`config/.local/bin/`](config/.local/bin/).
 
-### Auditer l'usage du Brewfile
+| Commande | Rôle |
+|---|---|
+| [`tg-run`](#tg-run) | Runner Terragrunt à sortie lisible |
+| [`helm-charts-update`](#helm-charts-update) | Passe les charts Helm locaux à la dernière version |
+| [`close-done-tabs`](#close-done-tabs) | Ferme les onglets Chrome des MR, jobs CI et tickets Jira terminés |
+| [`wezterm-pane-picker`](#wezterm) | Sélecteur fzf des panes WezTerm (`Cmd+P`) |
+| [`wezterm-restore`](#wezterm) | Restaure onglets et sessions Claude |
+| [`slack-restart.sh`](#agents-launchd) | Redémarrage planifié de Slack |
 
-`scripts/brew-usage-audit.sh` liste les packages Homebrew jamais utilisés, en lisant l'atime des binaires du Cellar.
+### `tg-run`
 
-| Flag | Effet |
-| ------ | ------- |
-| `--stale-days N` | Signaler les packages inutilisés depuis plus de N jours (défaut : 90) |
-| `--leaves-only` | N'auditer que les leaves (ignore les dépendances) |
-| `--all` | Lister tous les packages audités, pas seulement ceux signalés |
-| `--history FILE` | Historique shell utilisé comme preuve d'appoint (défaut : `$HISTFILE`) |
-| `--json FILE` | Écrire aussi le résultat complet en JSON |
-| `-h`, `--help` | Aide |
-
-```bash
-./scripts/brew-usage-audit.sh
-./scripts/brew-usage-audit.sh --stale-days 180 --leaves-only
-./scripts/brew-usage-audit.sh --all --json /tmp/audit.json
-```
-
-Avant de supprimer un package suggéré :
-
-```bash
-brew uses --installed <package>   # vérifier s'il est requis par un autre
-brew uninstall <package>
-```
-
-### Lancer un plan Terragrunt lisible
-
-`tg-run` (déployé depuis `config/.local/bin/`) lance une commande Terragrunt sur chaque unité impactée, une invocation par unité. Le format `pretty` de Terragrunt réencapsule la sortie Terraform en `<time> <level> [<unit>] terraform: <ligne>`, soit ~77 colonnes perdues sur chaque ligne d'un plan : le script exporte `TG_TF_FORWARD_STDOUT` pour laisser passer la sortie Terraform brute, et regroupe chaque unité dans une section repliable sous GitLab CI (un simple titre en local).
+Lance une commande Terragrunt sur chaque unité impactée, une invocation par unité. Exporte `TG_TF_FORWARD_STDOUT` pour garder la sortie Terraform brute (le format `pretty` mange ~77 colonnes par ligne) et regroupe chaque unité dans une section repliable sous GitLab CI.
 
 | Invocation | Effet |
-| ------ | ------- |
-| `tg-run` | Plan de l'unité courante si le répertoire contient un `terragrunt.hcl` ; sinon de toutes les unités sous le répertoire courant ; sinon des unités impactées vs `origin/main`. La racine du repo est exclue du deuxième cas, un appel nu y planerait tout le monorepo |
+|---|---|
+| `tg-run` | Unité courante si `terragrunt.hcl` présent, sinon toutes les unités sous le répertoire, sinon les unités impactées vs `origin/main` (jamais tout le monorepo depuis la racine) |
 | `tg-run plan live/a live/b` | Plan des unités données |
 | `tg-run validate` | N'importe quelle commande Terragrunt |
-| `BASE_REF=origin/master tg-run` | Change la branche de référence pour la détection |
-| `-h`, `--help` | Aide |
+| `BASE_REF=origin/master tg-run` | Autre branche de référence |
 
-### Mettre à jour les charts Helm locaux
+> [!NOTE]
+> Pas un remplacement de `tg plan` : chaque unité passe par `run --all --queue-include-dir`, qui embarque aussi ses dépendances. `--non-interactive` n'est ajouté que si `$CI` est défini, un `apply` local garde sa confirmation.
 
-`helm-charts-update` (déployé depuis `config/.local/bin/`) remplace chaque dossier de chart de `~/Documents/work/src/helm` par la dernière version publiée (`helm pull --untar`). Les charts suivis et leur repo sont listés dans `~/Documents/work/src/helm/.helm-sources`, une ligne `<dossier> <repo> <chart>` ou `<dossier> <oci://ref>` : les charts eux-mêmes ne sont pas modifiés. Un dossier absent de l'index est signalé `UNTRACKED` et laissé tel quel. Il ne fait jamais de downgrade.
+### `helm-charts-update`
 
-| Invocation | Effet |
-| ------ | ------- |
-| `helm-charts-update` | Met à jour tous les charts en retard |
-| `helm-charts-update --dry-run` | Affiche les versions locale et distante sans rien toucher |
-| `helm-charts-update --add argo-cd https://argoproj.github.io/argo-helm` | Ajoute le chart à l'index (chart = nom du dossier par défaut) puis le pull |
-| `helm-charts-update --add redis oci://registry-1.docker.io/bitnamicharts/redis` | Idem pour un chart OCI |
-| `JOBS=16 helm-charts-update` | Parallélisme (défaut 10) |
-| `RETRIES=5 helm-charts-update` | Tentatives par `helm show` / `helm pull` (défaut 3) |
-| `HELM_DIR=<dir> helm-charts-update` | Autre dossier de charts |
-
-### Fermer les onglets Chrome des MR et tickets terminés
-
-`close-done-tabs` (déployé depuis `config/.local/bin/`) lit les onglets ouverts de Google Chrome, y compris les onglets déchargés, et ferme ceux des MR GitLab `merged` ou `closed`, des jobs et pipelines GitLab CI `passed` et des tickets Jira dont le statut est dans la catégorie `done`. Les états sont lus via `glab api` et `jira issue view --raw` (5 appels en parallèle), avec l'auth de ces deux CLI. Au premier lancement, macOS demande d'autoriser le terminal à piloter Chrome.
-
-| Onglet reconnu | Exemple |
-| ------ | ------- |
-| MR GitLab, sous-pages et ancres comprises | `https://gitlab.com/<group>/<project>/-/merge_requests/42/diffs` |
-| Job ou pipeline GitLab CI | `https://gitlab.com/<group>/<project>/-/jobs/123` |
-| Ticket Jira | `https://<site>.atlassian.net/browse/PE-123` |
-| Board ou recherche Jira avec un ticket ouvert en panneau | `https://<site>.atlassian.net/jira/software/c/projects/PE/boards/1?selectedIssue=PE-123` |
+Remplace chaque chart de `~/Documents/work/src/helm` par la dernière version publiée (`helm pull --untar`), sans jamais downgrader. L'index `~/Documents/work/src/helm/.helm-sources` contient une ligne `<dossier> <repo> <chart>` ou `<dossier> <oci://ref>` par chart ; un dossier absent de l'index est signalé `UNTRACKED`.
 
 | Invocation | Effet |
-| ------ | ------- |
-| `close-done-tabs -n` | Liste les MR, jobs CI et tickets par état, ne ferme rien |
-| `close-done-tabs` | Ferme les onglets terminés |
+|---|---|
+| `helm-charts-update` | Met à jour les charts en retard |
+| `helm-charts-update --dry-run` | Affiche versions locale et distante |
+| `helm-charts-update --add argo-cd https://argoproj.github.io/argo-helm` | Ajoute à l'index puis pull |
+| `helm-charts-update --add redis oci://registry-1.docker.io/bitnamicharts/redis` | Idem en OCI |
+| `JOBS=16` / `RETRIES=5` / `HELM_DIR=<dir>` | Parallélisme (défaut 10), tentatives (défaut 3), autre dossier |
 
-Ce n'est pas un remplacement de `tg plan` : chaque unité passe par `run --all --queue-include-dir`, ce qui embarque aussi ses dépendances. `--non-interactive` n'est ajouté que si `$CI` est défini, pour qu'un `apply` local garde sa confirmation.
+### `close-done-tabs`
 
-## Agents launchd
+Lit les onglets Chrome (déchargés compris) et ferme ceux dont l'objet est terminé. États lus via `glab api` et `jira issue view --raw`, 5 appels en parallèle. Au premier lancement, macOS demande d'autoriser le terminal à piloter Chrome.
 
-`config/Library/LaunchAgents/*.plist` est rendu vers `~/Library/LaunchAgents/` par l'étape `launchagents` de `init_mac.sh`, qui substitue `__HOME__` puis charge l'agent. Les plists ne sont pas symlinkés : launchd n'interprète aucune variable.
-
-| Agent | Déclenchement | Fait |
-|-----------------------------|------------------------|---------------------------------------------------|
-| `fr.jdelgado.slack-restart` | 04h30, 12h30 et 19h30 | Quitte Slack via AppleScript et le relance masqué |
-
-Trois créneaux et non un seul : le Mac dort à 04h30, et un `StartCalendarInterval` manqué ne part qu'au réveil, quand le garde-fou d'inactivité l'annulerait.
-
-`slack-restart.sh` sort sans rien faire dans trois cas : Slack ne tourne pas, Slack a démarré il y a moins de 21600 secondes, ou le clavier a été utilisé dans les 600 dernières secondes. Le premier créneau où tu es absent l'emporte, les deux autres ne font rien. Le quit est laissé 30 secondes avant `pkill`. Journal dans `~/Library/Logs/slack-restart.log`, stderr dans `slack-restart.err`.
-
-Les trois seuils sont surchargeables par l'environnement, ce qui permet de tester le redémarrage sans attendre un créneau :
+| Onglet reconnu | Fermé si | Exemple |
+|---|---|---|
+| MR GitLab (sous-pages comprises) | `merged` ou `closed` | `gitlab.com/<group>/<project>/-/merge_requests/42/diffs` |
+| Job ou pipeline GitLab CI | `passed` | `gitlab.com/<group>/<project>/-/jobs/123` |
+| Ticket Jira, ou board avec `selectedIssue` | catégorie `done` | `<site>.atlassian.net/browse/PE-123` |
 
 ```bash
-IDLE_THRESHOLD=0 MIN_UPTIME=0 ~/.local/bin/slack-restart.sh
+close-done-tabs -n   # dry run : liste par état, ne ferme rien
+close-done-tabs      # ferme
 ```
 
-`slack-restart.sh` est déployé en **copie** et non en symlink : un agent launchd n'a pas de droits TCC sur `~/Documents`, donc un lien vers le repo échoue en exit 126 (`Operation not permitted`). Après modification du script, redéployer avec `./scripts/init_mac.sh --only dotfiles`.
+---
 
-```bash
-./scripts/init_mac.sh --only launchagents        # (re)déployer et charger
-launchctl list | grep fr.jdelgado                # état
-launchctl kickstart -k gui/$(id -u)/fr.jdelgado.slack-restart   # forcer un run
-launchctl bootout gui/$(id -u)/fr.jdelgado.slack-restart        # décharger
-```
+## Terminal
 
-Le premier déclenchement demande l'autorisation d'automatiser Slack (Réglages, Confidentialité, Automatisation).
+### WezTerm
 
-## Flameshot
+Version nightly (`wezterm@nightly`) : le plein écran derrière l'encoche n'existe pas dans la stable de 2024.
+
+| Raccourci | Effet |
+|---|---|
+| `Ctrl+Cmd+F` | Plein écran derrière l'encoche |
+| `Cmd+N` | Nouvelle fenêtre dans le même état que la courante |
+| `Cmd+P` | Sélecteur fzf de toutes les panes, avec aperçu |
+| `Ctrl+F` *(sélecteur)* | Bascule recherche par titre / dans le contenu |
+| `Ctrl+K` *(sélecteur)* | Efface après le curseur |
+
+Un onglet inactif passe en jaune avec un `●` quand une de ses panes travaille (session Claude ou progression OSC 9;4).
+
+La disposition (onglets, splits, dossiers, ID de session Claude) est sauvegardée dans `~/.local/state/wezterm/layout.json` à chaque changement, 10 versions dans `history/`. Au démarrage, WezTerm propose de restaurer.
+
+| Commande | Effet |
+|---|---|
+| `wezterm-restore` | Restaure la session précédente dans la fenêtre courante |
+| `wezterm-restore ~/.local/state/wezterm/history/layout-<date>.json` | Restaure une sauvegarde plus ancienne |
+| `wezterm-restore --dry-run` | Affiche les commandes sans rien ouvrir |
+| `wezterm-restore --no-claude` | Recrée les onglets sans relancer Claude |
+
+### Flameshot
 
 | Raccourci | Outil |
-|-------------------------|-------------------------------------|
+|---|---|
 | `Cmd+Shift+4` | Flameshot, capture de zone |
 | `Cmd+Shift+5` | Natif macOS, capture de fenêtre |
 
-`config/.config/flameshot/flameshot.ini` est déployé en **copie** : Flameshot sauvegarde via QSettings, qui remplace un symlink. L'étape `screenshot-hotkeys` désactive les captures de zone natives (raccourcis 30 et 31) pour libérer `Cmd+Shift+4`. Le raccourci est déclaré `Ctrl+Shift+'` : sous Qt macOS `Ctrl` vaut `Cmd`, et sur AZERTY la touche `4` produit `'`.
+`flameshot.ini` est déployé en **copie** (QSettings remplace un symlink). L'étape `screenshot-hotkeys` libère `Cmd+Shift+4` côté macOS ; le raccourci est déclaré `Ctrl+Shift+'` car sous Qt macOS `Ctrl` vaut `Cmd` et sur AZERTY `4` produit `'`.
 
 ```bash
 ./scripts/init_mac.sh --only dotfiles screenshot-hotkeys   # Réglages Système fermés
 ```
 
-## Pre-commit
+---
 
-Hooks appliqués à chaque commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`, `prettier`, `conventional-pre-commit`.
+## Claude Code
+
+| Élément | Source | Déploiement |
+|---|---|---|
+| Binaire | installeur natif | step `claude-code` |
+| `CLAUDE.md`, `settings.json`, `keybindings.json` | `apps/claude/` | symlinks dans `~/.claude/` (`setup_claude()`) |
+| Hooks et leur config | `apps/claude/hooks/`, `apps/claude/config/` | symlinks dans `~/.claude/` |
+| Skills locales et upstream | `apps/claude/skills/` | symlinks dans `~/.claude/skills/` |
+| Skills externes | `packages/skillfish.json`, `tickler` | `install_claude_skills()` |
+| Plugins | `enabledPlugins` de `settings.json` | step `claude-plugins` |
+| RTK | `rtk init --global` | hook PreToolUse + `~/.claude/RTK.md` |
+
+**Statusline** : `apps/claude/bin/claude-statusline` affiche session, branche, modèle et effort, contexte, quotas 5h/semaine et coût. Police Nerd Font requise.
+
+| Variable | Effet |
+|---|---|
+| `CLAUDE_STATUSLINE_BG_RGB` | Fond du terminal (défaut `26;27;37`) |
+| `CLAUDE_STATUSLINE_TICKET_URL` | Préfixe d'URL : une session nommée `PE-2166` devient un lien cliquable |
+
+---
+
+## Agents launchd
+
+`config/Library/LaunchAgents/*.plist` est rendu vers `~/Library/LaunchAgents/` (substitution de `__HOME__`, launchd n'interprète aucune variable) puis chargé par l'étape `launchagents`.
+
+| Agent | Déclenchement | Fait |
+|---|---|---|
+| `fr.jdelgado.slack-restart` | 04h30, 12h30, 19h30 | Quitte Slack via AppleScript et le relance masqué |
+
+`slack-restart.sh` ne fait rien si Slack ne tourne pas, a démarré il y a moins de 6h (`MIN_UPTIME`), ou si le clavier a servi dans les 10 dernières minutes (`IDLE_THRESHOLD`). Trois créneaux car un créneau manqué pendant le sommeil part au réveil, où le garde-fou d'inactivité l'annule. Quit laissé 30 s avant `pkill`. Logs : `~/Library/Logs/slack-restart.{log,err}`.
+
+> [!IMPORTANT]
+> Le script est déployé en **copie** : un agent launchd n'a pas de droits TCC sur `~/Documents`, un symlink vers le repo échoue en exit 126. Après modification : `./scripts/init_mac.sh --only dotfiles`.
 
 ```bash
-pre-commit run --all-files      # tous les hooks
-pre-commit run shellcheck       # un seul hook
-pre-commit autoupdate           # bumper les versions
+IDLE_THRESHOLD=0 MIN_UPTIME=0 ~/.local/bin/slack-restart.sh      # tester sans attendre
+./scripts/init_mac.sh --only launchagents                         # (re)déployer et charger
+launchctl list | grep fr.jdelgado                                 # état
+launchctl kickstart -k gui/$(id -u)/fr.jdelgado.slack-restart     # forcer un run
+launchctl bootout gui/$(id -u)/fr.jdelgado.slack-restart          # décharger
 ```
 
-## CI
+Le premier run demande l'autorisation d'automatiser Slack (Réglages, Confidentialité, Automatisation).
 
-`.github/workflows/weekly-software-check.yml` tourne chaque lundi, valide que les formulas et les casks de `packages/Brewfile` existent toujours, et ouvre une PR pour supprimer les entrées obsolètes.
+---
 
-## Composants Installés
+## Maintenance
 
-### Shell & Terminal
+### Cibles `make`
 
-- **zsh** avec oh-my-zsh
-- Plugins : `zsh-autosuggestions`, `zsh-syntax-highlighting`
-- **Wezterm** comme émulateur de terminal
+| Target | Effet |
+|---|---|
+| `make update` | Tout : brew, krew indexes, npm, gems, skills, skills Claude, plugins Claude |
+| `make update-brew` | Dump Homebrew vers `packages/Brewfile` |
+| `make update-krew-indexes` | Dump des index krew custom vers `packages/krew-indexes.txt` |
+| `make update-npm` / `update-gems` | Dump npm globaux / gems |
+| `make update-skills` | Derniers SKILL.md upstream, un commit par skill |
+| `make update-claude-skills` | Met à jour skillfish et re-bundle `packages/skillfish.json` |
+| `make update-claude-plugins` | Rafraîchit marketplaces et plugins (redémarrage requis) |
+| `make check` | Dry-run des diffs de skills |
+| `make drift` | Dérive entre le repo et `$HOME` (`scripts/check-drift.sh`) |
 
-### Outils CLI Modernes
+`make drift` compare `config/` et `apps/claude/` avec `$HOME`, et vérifie les index krew et les plugins Claude déclarés.
 
-Voir `packages/Brewfile` pour la liste complète. Généralement :
+### Auditer le Brewfile
 
-- `rg` (ripgrep), `fd`, `bat`, `eza`
-- `fzf` pour fuzzy finding
-- `jq`, `yq` pour manipulation JSON/YAML
+`scripts/brew-usage-audit.sh` repère les packages jamais utilisés via l'atime des binaires du Cellar.
 
-### Kubernetes Tools
+| Flag | Effet |
+|---|---|
+| `--stale-days N` | Inutilisés depuis plus de N jours (défaut 90) |
+| `--leaves-only` | Ignore les dépendances |
+| `--all` | Liste tout, pas seulement les signalés |
+| `--history FILE` | Historique shell comme preuve d'appoint (défaut `$HISTFILE`) |
+| `--json FILE` | Résultat complet en JSON |
 
-- `kubectl` + krew (installés via Homebrew)
-- `kubectx`, `kubens`
-- `kubeswitch` pour la gestion multi-cluster
-- Plugins krew : entrées `krew "..."` dans `packages/Brewfile`
-- Index krew custom : `packages/krew-indexes.txt`, enregistrés par le step `krew-indexes` de `init_mac.sh` avant l'installation des packages
+```bash
+./scripts/brew-usage-audit.sh --stale-days 180 --leaves-only
+brew uses --installed <package>   # requis par un autre ? à vérifier avant uninstall
+```
 
-### Claude Code / AI Tooling
+### Qualité
 
-- **Claude Code** : installé par l'installeur natif (step `claude-code`). Config globale (`apps/claude/CLAUDE.md`, `settings.json`, `keybindings.json`), hooks et skills déployés par `setup_claude()`. Statusline : `apps/claude/bin/claude-statusline` (session, branche, modèle et effort, contexte, quotas 5h/semaine, coût), référencée directement par `settings.json`. Fond du terminal via `CLAUDE_STATUSLINE_BG_RGB` (défaut `26;27;37`), police Nerd Font requise. Une session nommée comme une clé de ticket (`PE-2166`) devient un lien cliquable si `CLAUDE_STATUSLINE_TICKET_URL` (préfixe d’URL, ex. `https://example.atlassian.net/browse/`) est défini
-- **Skills externes** : réinstallées par `install_claude_skills()` depuis `packages/skillfish.json` (skillfish) ou `tickler`
-- **RTK** : proxy CLI token-efficient (`rtk init --global` configure le hook et génère `~/.claude/RTK.md`)
+Hooks pre-commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`, `prettier`, `conventional-pre-commit`.
 
-### Development Tools
+```bash
+pre-commit run --all-files
+pre-commit autoupdate
+```
 
-- Git avec configuration avancée
-- Node.js (via Homebrew)
-- Ruby (système macOS)
-- Packages NPM/Gem selon listes
+Chaque lundi, [`weekly-software-check`](.github/workflows/weekly-software-check.yml) vérifie que les formulas et casks du `Brewfile` existent toujours et ouvre une PR pour retirer les entrées mortes.
+
+### Ajouter un outil
+
+1. L'installer à la main pour tester
+2. `make update` pour regénérer les listes
+3. Commit + push
+
+---
 
 ## Troubleshooting
 
-### Le script échoue sur Xcode
+<details>
+<summary><b>Le script s'arrête sur Xcode</b></summary>
 
-Si l'installation Xcode Command Line Tools nécessite une interaction :
+Terminer l'installation dans la popup, puis relancer `./scripts/init_mac.sh`.
 
-1. Le script s'arrête proprement
-2. Terminez l'installation dans la fenêtre popup
-3. Relancez `./scripts/init_mac.sh`
+</details>
 
-### Homebrew pas dans le PATH
-
-Pour Apple Silicon, ajoutez à votre shell :
+<details>
+<summary><b>Homebrew absent du PATH</b></summary>
 
 ```bash
-eval "$(/opt/homebrew/bin/brew shellenv)"
+eval "$(/opt/homebrew/bin/brew shellenv)"   # Apple Silicon
+eval "$(/usr/local/bin/brew shellenv)"      # Intel
 ```
 
-Pour Intel :
+</details>
 
-```bash
-eval "$(/usr/local/bin/brew shellenv)"
-```
+<details>
+<summary><b>kubeswitch redemande l'auth Google</b></summary>
 
-### kubeswitch demande l'auth Google à chaque fois
-
-Le token ADC est expiré (fréquent sur les comptes Google Workspace avec SSO) :
+Token ADC expiré (fréquent avec le SSO Google Workspace) :
 
 ```bash
 gcloud auth application-default login
 ```
 
-Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/.kube/switch-config.yaml` sur le store GKE :
+Pour espacer les appels API, ajouter `refreshIndexAfter` au store GKE de `~/.kube/switch-config.yaml` :
 
 ```yaml
 - kind: gke
@@ -391,62 +386,30 @@ Pour réduire la fréquence des appels API, ajouter `refreshIndexAfter` dans `~/
       path: ~/.kube/cache
 ```
 
-### Un plugin krew préfixé échoue à l'installation
+</details>
 
-L'index custom n'est pas enregistré. `./scripts/check-drift.sh` le signale et affiche la commande de correction.
+<details>
+<summary><b>Un plugin krew préfixé échoue à l'installation</b></summary>
 
-## Configuration Avancée
+Son index custom n'est pas enregistré : `make drift` le signale et affiche la commande de correction.
 
-### SSH ControlMaster
+</details>
 
-Pour activer la réutilisation de connexions SSH (déjà configuré dans `.zshrc`) :
+<details>
+<summary><b>SSH ControlMaster</b></summary>
+
+La réutilisation de connexions est configurée, le dossier de sockets doit exister :
 
 ```bash
 mkdir -p ~/.ssh/private
 ```
 
-### Wezterm
+</details>
 
-```bash
-vim ~/.wezterm.lua
-```
+---
 
-Version nightly (`wezterm@nightly`) : le plein écran derrière l'encoche et plusieurs options n'existent pas dans la stable de 2024.
+<div align="center">
 
-| Raccourci | Effet |
-| ------ | ------- |
-| `Ctrl+Cmd+F` | Plein écran derrière l'encoche (pas le plein écran natif macOS) |
-| `Cmd+N` | Nouvelle fenêtre dans le même état que la fenêtre courante |
-| `Cmd+P` | Sélecteur fzf de toutes les panes (`wezterm-pane-picker`), avec aperçu |
-| `Ctrl+F` (dans le sélecteur) | Bascule entre recherche par titre et recherche dans le contenu des panes |
-| `Ctrl+K` (dans le sélecteur) | Efface la saisie après le curseur |
+Configuration personnelle, partagée sous licence [Apache 2.0](LICENSE). Utilisez à vos risques et périls.
 
-Un onglet inactif passe en jaune avec un `●` quand une de ses panes travaille (session Claude en cours ou progression OSC 9;4).
-
-La config sauvegarde la disposition (onglets, splits, dossiers, ID de session Claude) dans `~/.local/state/wezterm/layout.json` à chaque changement, avec 10 versions dans `history/`. Au démarrage, WezTerm propose de restaurer la session précédente.
-
-| Commande | Effet |
-| ------ | ------- |
-| `wezterm-restore` | Restaure la session précédente (`layout-last-session.json`) dans la fenêtre courante |
-| `wezterm-restore ~/.local/state/wezterm/history/layout-<date>.json` | Restaure une sauvegarde plus ancienne |
-| `wezterm-restore --dry-run` | Affiche les commandes sans rien ouvrir |
-| `wezterm-restore --no-claude` | Recrée les onglets sans relancer les sessions Claude |
-
-### Markdownlint
-
-```bash
-vim ~/.markdownlint.json
-```
-
-## Contribution
-
-Pour ajouter un outil :
-
-1. L'installer manuellement pour tester
-2. L'ajouter au fichier approprié (`packages/Brewfile`, `packages/npm.txt`, etc.)
-3. Regénérer le fichier avec `make update`
-4. Commit + push
-
-## Licence
-
-Configuration personnelle - Utilisez à vos risques et périls.
+</div>
