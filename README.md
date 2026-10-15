@@ -45,8 +45,8 @@ Le script installe le reste : Xcode CLT, Homebrew, oh-my-zsh et ses plugins, pui
 <summary><b>1. Identités Git</b></summary>
 
 ```bash
-vim ~/.gitconfig_perso   # personnel
-vim ~/.gitconfig_work    # professionnel
+nvim ~/.gitconfig_perso  # personnel
+nvim ~/.gitconfig_work   # professionnel
 ```
 
 Inclusion conditionnelle dans le `.gitconfig` principal :
@@ -116,7 +116,7 @@ dotfiles/
 ├── config/                       # Dotfiles, miroir de $HOME
 │   ├── .zshrc, .zsh_alias, .zsh_functions, .zsh_mac, .zsh_linux
 │   ├── .gitconfig, .gitconfig_perso, .gitconfig_work
-│   ├── .tmux.conf, .vimrc, .wezterm.lua, .markdownlint.json
+│   ├── .tmux.conf, .wezterm.lua, .markdownlint.json
 │   ├── .ssh/config
 │   ├── .kube/switch-config.yaml
 │   ├── .config/

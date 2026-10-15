@@ -301,7 +301,6 @@ setup_dotfiles() {
         "config/.gitconfig"
         "config/.gitconfig_perso"
         "config/.tmux.conf"
-        "config/.vimrc"
         "config/.config/git/allowed_signers"
         "config/.config/git/ignore"
         "config/.local/bin/tg-run"

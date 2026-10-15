@@ -155,7 +155,6 @@ check_file "config/.markdownlint.json" "${HOME}/.markdownlint.json" symlink
 check_file "config/.gitconfig" "${HOME}/.gitconfig" symlink
 check_file "config/.gitconfig_perso" "${HOME}/.gitconfig_perso" symlink
 check_file "config/.tmux.conf" "${HOME}/.tmux.conf" symlink
-check_file "config/.vimrc" "${HOME}/.vimrc" symlink
 check_file "config/.gitconfig_work" "${HOME}/.gitconfig_work" machine
 check_file "config/.ssh/config" "${HOME}/.ssh/config" machine
 check_file "config/.kube/switch-config.yaml" "${HOME}/.kube/switch-config.yaml" machine
