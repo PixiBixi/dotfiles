@@ -1,10 +1,16 @@
 # Top of .zshrc
-# Initialize Homebrew (needed for HOMEBREW_PREFIX)
-eval "$(/opt/homebrew/bin/brew shellenv)"
+# Static copy of `brew shellenv`: the eval forks Ruby-backed brew, ~90 ms per shell.
+export HOMEBREW_PREFIX="/opt/homebrew"
+export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
+export HOMEBREW_REPOSITORY="/opt/homebrew"
+fpath[1,0]="/opt/homebrew/share/zsh/site-functions"
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin${PATH+:$PATH}"
+export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
 
 DISABLE_AUTO_UPDATE="true"
 DISABLE_MAGIC_FUNCTIONS="true"
-DISABLE_COMPFIX="true"
+# oh-my-zsh reads ZSH_DISABLE_COMPFIX; the unprefixed name was a no-op.
+ZSH_DISABLE_COMPFIX="true"
 
 # NOTE: compinit is handled exclusively by oh-my-zsh.sh (sourced below).
 # A manual compinit here runs it a second time, doubling compdump cost
@@ -175,4 +181,4 @@ export PATH="/Users/jeremy/.claude-code-templates/bin:$PATH"
 
 alias claude-mem='bun "/Users/jeremy/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs"'
 # Tickler CLI completion: reminder ids with their title.
-(( $+commands[tickler] )) && source <(tickler completion zsh)
+(( $+commands[tickler] )) && zsh-defer -c 'source <(tickler completion zsh)'
