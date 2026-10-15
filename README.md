@@ -139,8 +139,7 @@ dotfiles/
 ├── scripts/
 │   ├── init_mac.sh               # Installation principale
 │   ├── check-drift.sh            # Diff entre le repo et $HOME
-│   ├── brew-usage-audit.sh       # Packages Homebrew inutilisés
-│   └── init.sh                   # Legacy, ne pas utiliser
+│   └── brew-usage-audit.sh       # Packages Homebrew inutilisés
 └── Makefile
 ```
 

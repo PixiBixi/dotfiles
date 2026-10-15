@@ -49,7 +49,7 @@ macOS dotfiles repo organized into four purpose-driven directories:
 - `apps/` holds the non-dotfile app configs:
   - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`, `wiki-sync.sh`, `wordlist-guard.sh`, `cold-resume-guard.sh`), `config/` (per-hook JSON config, symlinked flat into `~/.claude/`)
   - `raycast/`, `vscode/`
-- `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`, `init.sh` (legacy, do not use)
+- `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`
 
 Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.yamllint.yaml`, `.prettierignore`. Note: `.markdownlint.json` lives in `config/` (deployed to `$HOME`) and is referenced via `--config config/.markdownlint.json` in the pre-commit hook.
 
@@ -61,7 +61,7 @@ Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.
 - `copy`: must match the repo by md5; drift = re-run `init_mac.sh` or `cp` the file
 - `machine`: machine-specific, diffs are expected and informational only
 
-After editing a `config/` file, deploy it (`cp config/.zshrc ~/.zshrc`, etc.) or run `init_mac.sh` so the deployed copy stays in sync.
+Symlinked files are live after an edit. The `copy_files` list in `init_mac.sh` needs `init_mac.sh --only dotfiles` (or a `cp`) to resync the deployed copy.
 
 `check-drift.sh` also covers `~/.claude`: `CLAUDE.md`, `settings.json`, every `apps/claude/hooks/*.sh`, every `apps/claude/config/*.json` and every `apps/claude/skills/*/`. All three are enumerated from the same globs `setup_claude()` deploys, so adding one needs no edit here. Two extra verdicts apply there:
 
