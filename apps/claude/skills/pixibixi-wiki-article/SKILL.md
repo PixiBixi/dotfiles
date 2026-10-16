@@ -160,7 +160,7 @@ Pour un diagramme d'architecture ou de flux, les skills `archify` et `artifact-d
 
 Ce qu'il attrape et qu'on ne voit pas à l'œil : aplats trop saturés en gros blocs, absence de gap de 2px entre fills adjacents, libellés portant la couleur de la série au lieu d'une encre neutre et séparation insuffisante pour les daltonismes.
 
-Un SVG du wiki doit passer le validateur **sur les 2 surfaces**, puisqu'il ne peut pas livrer une palette par thème comme le suppose `dataviz`. Éviter `fill-opacity` pour la même raison : le résultat dépend du fond, qu'on ne contrôle pas.
+Un SVG du wiki doit passer le validateur **sur les 2 surfaces** : inliné il suit le thème, mais sa palette de fallback (RSS, sans JS) reste unique et doit tenir sur les 2 fonds. Éviter `fill-opacity` pour la même raison : le résultat dépend du fond, qu'on ne contrôle pas.
 
 SVG écrits à la main, palette GitHub dark, `viewBox` ~640 de large, police Segoe UI. Boîtes = `rect` bordure `#30363d` + barre d'accent 4px colorée à gauche ; pills = `rect rx=12` bordure colorée.
 
@@ -193,18 +193,46 @@ Toujours contrôler le rendu (`rsvg-convert` → PNG → Read) avant de committe
 
 ### Lisibilité dans les 2 thèmes
 
-Le site a un toggle clair/sombre et un SVG appelé en `<img>` ne peut pas le voir : Material pose `data-md-color-scheme` sur `<html>`, hors de portée du SVG. Un `@media (prefers-color-scheme)` suivrait l'OS et se désynchroniserait du toggle. Donc chaque SVG doit être lisible sur les 2 fonds par construction.
+Un SVG en `<img>` ne voit ni les variables CSS de la page ni le toggle clair/sombre. `docs/javascripts/jd-svg.js` inline donc tout SVG dont la racine porte `data-jd-theme`, dans l'article **et** dans la lightbox glightbox (qui recrée sa propre `<img>` depuis le lien à l'ouverture), et suffixe ses ids. Un `@media (prefers-color-scheme)` dans le SVG suivrait l'OS et se désynchroniserait du toggle : ne pas l'utiliser.
 
-- **texte dans une boîte** : donner un `fill` à la boîte (`#161b22`), jamais `fill="none"` et le texte peut rester clair (`#e6edf3`)
-- **texte posé sur le fond de page** (titres, légendes, libellés de flèche) : mid-grey `#6e7781` avec `font-weight="600"`. Ni `#e6edf3` (invisible en clair) ni `#333` (invisible en sombre)
-- **ne pas** poser un grand `rect` sombre derrière tout le schéma : ça fait un bloc noir au milieu de la page en thème clair
+Tout nouveau SVG est écrit thème-aware :
 
-Contrôler les 2 :
+- racine `<svg class="jd-svg" data-jd-theme="" ... font-family="<pile Segoe UI>">` : l'attribut `font-family` est le fallback, une `var()` de police est invalide pour rsvg
+- un `<style>` dont **chaque sélecteur est préfixé `.jd-svg `** (inliné, il fuit dans la page) et chaque couleur s'écrit `var(--jd-<token>, #<hex de la palette ci-dessus>)`. Aucun `fill="#..."` ni `stroke="#..."` en attribut, que des classes
+- pas de `--` dans un commentaire XML (parse error), donc jamais de `var(--jd-...)` en commentaire
+- référence : `docs/monitoring/lgtm/_img/thanos-flow.svg`
+
+| Rôle | Token |
+|---|---|
+| Fond de boîte / fond plus profond | `--jd-surface-raised` / `--jd-surface` |
+| Bordure de boîte | `--jd-border-strong` |
+| Texte dans une boîte | `--jd-ink` |
+| Texte secondaire, flèches, texte sur le fond de page | `--jd-muted` |
+| Accent fin (barre 4px, stroke, texte coloré) | `--jd-{ok,warn,note,bad}-ink` |
+| Aplat de données ou bande | `--jd-{ok,warn,note,bad}-border` |
+| Aplat neutre **sous du texte** | `--jd-border-strong` |
+
+Un aplat qui porte du texte ne prend jamais `--jd-muted` ni `--jd-accent` : tous 2 passent en teinte claire en sombre et le texte `--jd-ink` disparaît dessus (cas réels : la bande « pas de min-time » de thanos-sharding, 2 boîtes de ddos_decision_tree).
+
+Les règles de lisibilité de la palette de fallback restent vraies, puisque c'est elle que voient le RSS et un navigateur sans JS :
+
+- **texte dans une boîte** : donner un `fill` à la boîte, jamais `fill="none"`
+- **texte posé sur le fond de page** : `#6e7781` + `font-weight="600"`, ni `#e6edf3` ni `#333`
+- **ne pas** poser un grand `rect` sombre derrière tout le schéma
+
+Contrôles, tous obligatoires :
 
 ```bash
-rsvg-convert -b '#ffffff' -z 2 f.svg -o light.png
-rsvg-convert -b '#0d1117' -z 2 f.svg -o dark.png
+# 1. le fallback ne bouge pas d'un pixel par rapport à la version committée
+git show "HEAD:$F" > orig.svg
+rsvg-convert -b '#fbfbf9' orig.svg -o orig.png && rsvg-convert -b '#fbfbf9' "$F" -o new.png
+cmp orig.png new.png && echo IDENTICAL
+xmllint --noout "$F"
+# 2. aucun hex hors du <style>
+rg -n '#[0-9a-fA-F]{3,6}\b' "$F"
 ```
+
+3. Rendu réel sur `mkdocs serve`, en clair **et** en sombre, avec Playwright (`channel: 'chrome'`, `colorScheme`, `waitUntil: 'load'` : livereload empêche `networkidle` de jamais se terminer). Capturer le schéma dans l'article **et la lightbox ouverte** : c'est là que le fond blanc est resté la première fois, et rien d'autre ne l'attrape.
 
 ## Gotcha 1 - la nav auto NE référence PAS l'article dans les index
 
