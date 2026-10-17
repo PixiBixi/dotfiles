@@ -1,6 +1,6 @@
 ---
 name: scoping-a-website
-description: Use when the user asks to create, redesign, rebuild or restyle a website, landing page, portfolio, showcase site, SPA or web front end, asks for a design proposal for a site given as a URL ("propose-moi un design" plus a link), asks whether something should be a SPA, or says they are tired of their site's design ("refais mon site", "j'en ai marre du design", "fais-moi des maquettes", "surprends-moi"), before any mockup, prototype or code.
+description: Use when the user asks to create, redesign, rebuild or restyle a website, landing page, portfolio, showcase site, SPA or web front end, asks for a design proposal for a site given as a URL ("propose-moi un design" plus a link), asks whether something should be a SPA, or says they are tired of their site's design ("refais mon site", "j'en ai marre du design", "fais-moi des maquettes", "surprends-moi"), or asks to optimise, speed up, lighten or fix the mobile version of an existing site whose design they keep ("vois si on peut optimiser", "le site rame", "c'est lent sur mobile", "Lighthouse"), before any mockup, prototype, measurement or code.
 ---
 
 # Scoping a website
@@ -14,6 +14,10 @@ Every pixel made before the brief exists is a guess, and each wrong guess costs 
 Silently gather what the repo, the context and any URL the user gave already answer (fetch the page, screenshot it at 375 and 1440px when a browser is available, note its content, palette, fonts and stack): existing site and its stack, build step, hosting and deploy, CSP and external-dependency policy, analytics, i18n, past design feedback in memory or project docs. Never ask a question the repo answers; state the answer in the brief instead.
 
 For an existing live site, read `/robots.txt` and `/sitemap.xml` (and nested sitemap indexes; without one, crawl the nav and footer links). Group the URLs into page templates (home, category listing, detail, about, contact, legal) with their counts and one sample URL each. This inventory answers "number of pages" in Round 1. Note the defects it reveals (CMS sample pages, stubs, wrong headings, outdated content) under open questions in the brief.
+
+## If the design is kept (optimisation)
+
+When the user keeps the current design and asks to optimise it, Rounds 1 to 3 are already answered: skip them. Run Round 0 (payload sizes compressed, DOM node count, eager rendering, external dependencies), then ask one call: the target (rendering and smoothness, network weight, mobile, accessibility and SEO), the performance budget (LCP and TBT figures), and the build-step tolerance. The brief states the measured costs, the plan in order, the commit scopes, and a before/after measurement as the first and last steps. Then follow "Before showing anything" for the changed parts.
 
 ## Rounds 1 to 4: the questions
 
