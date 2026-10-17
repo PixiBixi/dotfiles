@@ -72,10 +72,12 @@ Open questions / placeholders:
 - **Multi-page sites:** explore directions on the home page only. Once one direction is chosen, design every template in the inventory with real content from its sample URL, never one page per URL.
 - **Facts:** every number and name comes from a source read in this session (count files, read the CV, query the API). Unknown facts become labelled placeholders such as `[CITY]`, never invented.
 - **Production path:** if prod CSP forbids CDNs, plan self-hosting the libraries from the first prototype.
+- **Light and dark, always, with a visible toggle:** every prototype ships both themes and a toggle button in the header, the choice kept in `localStorage` and applied by an inline script in `<head>` (no flash). Default to the theme the brief chose, never to `prefers-color-scheme` alone: a dark OS silently turned a "light" brief dark and the user judged the wrong version.
 
 ## Before showing anything
 
-- Readability: body text at least 17px, contrast AA, code names legible in the display font.
+- Readability: body text at least 17px, contrast AA in both themes, code names legible in the display font.
+- Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width.
 - Not AI-looking: no generic three-card grids, glassmorphism, gradient text, purple-blue washes, emoji icons, marquees, empty voids in cards.
 - Checked at 375, 768, 1440 and 2560px (no horizontal scroll, readable line length on wide screens, touch targets at least 44px, no hover-only interaction), with reduced motion, and in a real browser for motion (headless screenshots freeze animations: say so instead of claiming it works).
 
