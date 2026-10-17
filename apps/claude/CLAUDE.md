@@ -69,6 +69,7 @@ Production issue or suspected incident → use the `incident-response` skill. De
 - Shell: `fd` over `find`, `rg` over `grep`, `lsd` over `ls`. Files are read with the Read tool (`offset`/`limit`), not `cat`/`bat`. `eza` is not installed
 - **Edit/Write need a prior Read tool call** on the file: a `cat` or `sed -n` through Bash does not count and the edit fails with "File has not been read yet"
 - `glab` is always pre-installed, use it without checking first
+- Okta Verify listens on `127.0.0.1:8769`. Before starting a local server, check the port is free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`): a taken port answers 400, which reads like an app bug
 - Shell scripts must be defensive and explicit
 - **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Use `command rg` / `command fd` when a specific flag matters (the Grep/Glob tools are not always offered).
 - **The Bash tool runs zsh on macOS**, traps that keep failing:
@@ -83,6 +84,8 @@ Production issue or suspected incident → use the `incident-response` skill. De
 ## Memory
 
 Auto memory is native: Claude captures corrections and preferences on its own. Steer what's worth keeping: stable conventions, key paths, architectural decisions, workflow preferences, fixes for recurring problems. Not: session state, unverified info, or anything already written here.
+
+A skill that should have triggered and did not gets its `description` fixed in the skill source, then committed: a memory only patches one project and leaves the trigger broken everywhere else.
 
 ## CLAUDE.md & settings versioning
 

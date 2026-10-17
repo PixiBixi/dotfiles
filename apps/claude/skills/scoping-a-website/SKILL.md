@@ -19,6 +19,11 @@ For an existing live site, read `/robots.txt` and `/sitemap.xml` (and nested sit
 
 When the user keeps the current design and asks to optimise it, Rounds 1 to 3 are already answered: skip them. Run Round 0 (payload sizes compressed, DOM node count, eager rendering, external dependencies), then ask one call: the target (rendering and smoothness, network weight, mobile, accessibility and SEO), the performance budget (LCP and TBT figures), and the build-step tolerance. The brief states the measured costs, the plan in order, the commit scopes, and a before/after measurement as the first and last steps. Then follow "Before showing anything" for the changed parts.
 
+Measuring:
+- Lighthouse 13.x or later: 12.2 returns errors on the LCP-element and layout-shift audits with current Chrome, which hides what the LCP actually is.
+- A local server (`python3 -m http.server`, `serve`) sends Lighthouse uncompressed files, so the local LCP is inflated. Validate the budget on the deployed site.
+- Any large fetch started at boot, even in `requestIdleCallback`, counts in Lighthouse's simulated mobile LCP. Start non-critical payloads on first interaction.
+
 ## Rounds 1 to 4: the questions
 
 Ask with the multiple-choice question tool, at most 4 questions per call, one round per call, in the user's language. Every option is concrete (a style named with an example, a number, a real site), with a recommended default marked first. Skip a question only when Round 0 or the user already answered it.
@@ -87,7 +92,7 @@ Open questions / placeholders:
 ## Before showing anything
 
 - Readability: body text at least 17px, contrast AA in both themes, code names legible in the display font.
-- Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width.
+- Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width. Headless follows the OS theme: pass `--blink-settings=preferredColorScheme=1` for light, `--force-dark-mode --blink-settings=preferredColorScheme=0` for dark. A capture of a page that scrolled (deep link) comes out blank: check the scroll landing with a same-origin iframe that reads `scrollY` and the target's `getBoundingClientRect().top`, dumped with `--dump-dom`.
 - Not AI-looking: no generic three-card grids, glassmorphism, gradient text, purple-blue washes, emoji icons, marquees, empty voids in cards.
 - Grid and flex children get `min-width: 0`: a nowrap chip row or badge otherwise widens its column past 375px.
 - Checked at 375, 768, 1440 and 2560px (no horizontal scroll, readable line length on wide screens, touch targets at least 44px, no hover-only interaction), with reduced motion, and in a real browser for motion (headless screenshots freeze animations: say so instead of claiming it works).
