@@ -9,8 +9,8 @@
         },
         {
             "id": 2,
-            "prompt": "On veut dropper kube_pod_tolerations au scrape, est-ce que quelqu'un le lit encore dans Grafana ?",
-            "expected_output": "Runs scripts/grafana_metric_usage.py -m kube_pod_tolerations -v, reads exit code (2 = incomplete, not unused), checks each hit's datasource before calling it a consumer",
+            "prompt": "On veut dropper kube_node_info au scrape, est-ce que quelqu'un le lit encore dans Grafana ?",
+            "expected_output": "Runs scripts/grafana_metric_usage.py -m kube_node_info -v, reads exit code (2 = incomplete, not unused), checks each hit's datasource before calling it a consumer",
             "files": []
         },
         {
