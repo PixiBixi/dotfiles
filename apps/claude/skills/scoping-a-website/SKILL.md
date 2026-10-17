@@ -1,6 +1,6 @@
 ---
 name: scoping-a-website
-description: Use when the user asks to create, redesign, rebuild or restyle a website, landing page, portfolio, showcase site, SPA or web front end, asks for a design proposal for a site given as a URL ("propose-moi un design" plus a link), asks whether something should be a SPA, or says they are tired of their site's design ("refais mon site", "j'en ai marre du design", "fais-moi des maquettes", "surprends-moi"), or asks to optimise, speed up, lighten or fix the mobile version of an existing site whose design they keep ("vois si on peut optimiser", "le site rame", "c'est lent sur mobile", "Lighthouse"), before any mockup, prototype, measurement or code.
+description: Scopes a website before any design or code - reads the existing site, interviews the user in short rounds (purpose, identity, taste, constraints), writes a one-page brief with an architecture verdict (static, SSG, islands or SPA), gets it approved, then prototypes three live directions; for a site whose design is kept, measures it and plans a performance pass. Use when the user asks to create, redesign, rebuild or restyle a website, landing page, portfolio, showcase site or web front end, asks for a design proposal for a site URL ("propose-moi un design" plus a link), asks whether something should be a SPA, is tired of their site's design ("refais mon site", "j'en ai marre du design", "fais-moi des maquettes", "surprends-moi"), or wants an existing site faster or better on mobile ("le site rame", "c'est lent sur mobile", "Lighthouse"). Not for a one-off HTML page or report to share, a single CSS bug, or backend latency.
 ---
 
 # Scoping a website
@@ -9,20 +9,13 @@ description: Use when the user asks to create, redesign, rebuild or restyle a we
 
 Every pixel made before the brief exists is a guess, and each wrong guess costs a full design round. Ask the questions that change the output, write a one-page brief, get it validated, then explore. "Surprends-moi" is about the output, never a reason to skip the inputs.
 
+**Design kept, only performance or mobile to fix?** Run Round 0, then follow `references/optimisation.md` instead of Rounds 1 to 4.
+
 ## Round 0: read before asking
 
-Silently gather what the repo, the context and any URL the user gave already answer (fetch the page, screenshot it at 375 and 1440px when a browser is available, note its content, palette, fonts and stack): existing site and its stack, build step, hosting and deploy, CSP and external-dependency policy, analytics, i18n, past design feedback in memory or project docs. Never ask a question the repo answers; state the answer in the brief instead.
+Silently gather what the repo, the context and any URL the user gave already answer (fetch the page, screenshot it with `scripts/screenshot.sh` when a browser is available, note its content, palette, fonts and stack): existing site and its stack, build step, hosting and deploy, CSP and external-dependency policy, analytics, i18n, past design feedback in memory or project docs. Never ask a question the repo answers; state the answer in the brief instead.
 
-For an existing live site, read `/robots.txt` and `/sitemap.xml` (and nested sitemap indexes; without one, crawl the nav and footer links). Group the URLs into page templates (home, category listing, detail, about, contact, legal) with their counts and one sample URL each. This inventory answers "number of pages" in Round 1. Note the defects it reveals (CMS sample pages, stubs, wrong headings, outdated content) under open questions in the brief.
-
-## If the design is kept (optimisation)
-
-When the user keeps the current design and asks to optimise it, Rounds 1 to 3 are already answered: skip them. Run Round 0 (payload sizes compressed, DOM node count, eager rendering, external dependencies), then ask one call: the target (rendering and smoothness, network weight, mobile, accessibility and SEO), the performance budget (LCP and TBT figures), and the build-step tolerance. The brief states the measured costs, the plan in order, the commit scopes, and a before/after measurement as the first and last steps. Then follow "Before showing anything" for the changed parts.
-
-Measuring:
-- Lighthouse 13.x or later: 12.2 returns errors on the LCP-element and layout-shift audits with current Chrome, which hides what the LCP actually is.
-- A local server (`python3 -m http.server`, `serve`) sends Lighthouse uncompressed files, so the local LCP is inflated. Validate the budget on the deployed site.
-- Any large fetch started at boot, even in `requestIdleCallback`, counts in Lighthouse's simulated mobile LCP. Start non-critical payloads on first interaction.
+For an existing live site, run `scripts/sitemap-inventory.py <url>`: it reads `/robots.txt` and the sitemaps (or the home page links without one) and groups the URLs into page templates with their counts and one sample URL each. This inventory answers "number of pages" in Round 1. Open the samples and note the defects they reveal (CMS sample pages, stubs, wrong headings, outdated content) under open questions in the brief.
 
 ## Rounds 1 to 4: the questions
 
@@ -35,9 +28,11 @@ Ask with the multiple-choice question tool, at most 4 questions per call, one ro
 | 3. Taste | Colour appetite (vivid, muted, dark, light, keep current palette); motion level (none, subtle, rich, playful and interactive); scroll model (classic, page by page, pinned story, horizontal); layout width (full-bleed edge to edge, centred column about 2/3 wide with a max width, or full-bleed backgrounds with centred content); sites they love and hate (ask for URLs); hard no's (sound, dark pages, gradients, emoji, specific fonts) | Kills the rounds spent discovering dislikes one at a time |
 | 4. Constraints | Hosting and CSP (are CDNs allowed in prod), performance budget (LCP target, JS weight), SEO weight, accessibility target, build-step tolerance, browser support; responsive is never optional, so ask only what the mobile version may drop or simplify (heavy motion, physics, horizontal scroll) | Library choice, self-hosting, SPA or not |
 
-Round 3 takes two calls: first colour, motion, scroll model, layout width; then sites they love and hate (asking for URLs) and hard no's, each its own question, never a footnote to another one.
+Rounds stay separate because each one's answers shape the next one's options: the identity hooks of Round 2 decide which palettes and motion levels are worth offering in Round 3.
 
-Conditional: if the user says "surprends-moi", "carte blanche" or is in a hurry, ask ONE call of exactly these 4 questions, then proceed: identity hooks, tone, colour appetite plus motion level, hard no's. Outside this conditional, never merge two rounds into one call.
+Round 3 takes two calls: first colour, motion, scroll model, layout width; then sites they love and hate (asking for URLs) and hard no's, each its own question. Both need free-text answers, and as a footnote to a multiple-choice question they get skipped, which is how dislikes end up discovered one mockup at a time.
+
+If the user says "surprends-moi", "carte blanche" or is in a hurry, ask a single call with the four answers whose absence costs the most rework, then proceed: identity hooks, tone, colour appetite plus motion level, hard no's.
 
 ## Architecture verdict
 
@@ -82,28 +77,16 @@ Open questions / placeholders:
 - **Facts:** every number and name comes from a source read in this session (count files, read the CV, query the API). Unknown facts become labelled placeholders such as `[CITY]`, never invented.
 - **Copy:** body text is taken from the source pages. Any line Claude wrote (tagline, intro, caption) is flagged as such when the mockup is shown.
 - **Images from the first prototype:** download the existing site's own photos, logo and portraits, resize them, and give every template at least one. A text-only mockup reads as cold however good the type is.
-- **Warmth for a local or community site** (village, association, small shop): the header carries the real logo or emblem, the name in the display font rather than uppercase, a short greeting, and a human contact (phone plus today's opening hours). A bare uppercase name over a plain link list reads as impersonal.
+- **Show the people behind a site that serves people nearby** (village, association, small shop, practice): the real logo or emblem, the name set in the display font, a short greeting, a human contact (phone plus today's opening hours) in the header. Visitors come to reach someone; a bare uppercase name over a link list reads as an administration.
 - **Comparing directions on a multi-page site:** when the user keeps two directions to compare across the templates, one markup, switched by an attribute on `<html>` (`data-dir`), so content stays identical and only the design differs.
 - **Mockup controls stay out of the design:** the direction switch and the theme toggle used for review live in a small floating dock, so the header being judged is the real one.
-- **Real organisation:** the mockups stay local files, never published.
+- **Real organisation:** the mockups stay local files, never published. A page carrying a real organisation's name, logo and content at a public URL passes for their site.
 - **Production path:** if prod CSP forbids CDNs, plan self-hosting the libraries from the first prototype.
 - **Light and dark, always, with a visible toggle:** every prototype ships both themes and a toggle button (in the review dock, see above), the choice kept in `localStorage` and applied by an inline script in `<head>` (no flash). Default to the theme the brief chose, never to `prefers-color-scheme` alone: a dark OS silently turned a "light" brief dark and the user judged the wrong version.
 
 ## Before showing anything
 
-- Readability: body text at least 17px, contrast AA in both themes, code names legible in the display font.
-- Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width. Headless follows the OS theme: pass `--blink-settings=preferredColorScheme=1` for light, `--force-dark-mode --blink-settings=preferredColorScheme=0` for dark. A capture of a page that scrolled (deep link) comes out blank: check the scroll landing with a same-origin iframe that reads `scrollY` and the target's `getBoundingClientRect().top`, dumped with `--dump-dom`.
-- Not AI-looking: no generic three-card grids, glassmorphism, gradient text, purple-blue washes, emoji icons, marquees, empty voids in cards.
-- Grid and flex children get `min-width: 0`: a nowrap chip row or badge otherwise widens its column past 375px.
-- Checked at 375, 768, 1440 and 2560px (no horizontal scroll, readable line length on wide screens, touch targets at least 44px, no hover-only interaction), with reduced motion, and in a real browser for motion (headless screenshots freeze animations: say so instead of claiming it works).
-- On a showcase or portfolio site, the hero fills the first screen (`min-height: 100svh`, content centred); a service site keeps its quick actions above the fold instead. With a full-screen hero, the next section never peeks in at load, where its scroll-triggered reveal has not fired yet and it shows as a half-hidden fragment.
-- Performance, on every prototype:
-  - Libraries load with `defer`, and the main script runs on `DOMContentLoaded`: a plain inline script runs before deferred libraries and silently falls back to no-motion.
-  - The one or two font weights above the fold are preloaded (`<link rel="preload" as="font" crossorigin>`), self-hosted, `font-display: swap`.
-  - Images have `width`, `height` and `loading="lazy"`, webp cropped to their display ratio and sized for 2x display, EXIF stripped.
-  - No permanent `will-change`: each one pins a GPU layer, even when nothing moves.
-  - Infinite loops (CSS keyframes, `setInterval`, `repeat: -1` tweens) pause offscreen and in hidden tabs: an IntersectionObserver per section toggles a class that sets `animation-play-state: paused`, and JS loops check it or pause their tween.
-  - No CSS `transition` on `transform` for an element GSAP tweens: it lags every frame. Hover offsets go on the individual `translate`, `rotate` and `scale` properties, which compose with GSAP.
+Read `references/prototype-checklist.md` and apply it to every prototype: readability, the four widths in both themes via `scripts/screenshot.sh`, motion checked in a real browser, and the performance rules (deferred libraries, preloaded fonts, lazy images, paused offscreen loops).
 
 ## Common mistakes
 
@@ -111,7 +94,7 @@ Open questions / placeholders:
 |---|---|
 | Asking only "which visual style?" | Identity and hard no's matter more than style labels |
 | Static mockups for a user who wants motion | Ask the motion level first, prototype live |
-| Dropping questions because the user is in a hurry | Use the single-call conditional above |
+| Dropping questions because the user is in a hurry | Use the single-call variant above |
 | Defaulting to a SPA because the user said React | Apply the verdict table, explain, let them choose |
 | Inventing numbers to fill a design | Placeholders, and verify counts at the source |
 | Ten shallow directions | Three deep ones, each personal |
