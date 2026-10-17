@@ -10,20 +10,21 @@ RAW="${OUT_DIR}/articles.json"
 COMPACT="${OUT_DIR}/compact.tsv"
 
 mkdir -p "${OUT_DIR}"
-curl -fsS --max-time 60 "${BASE_URL}/api/articles?days=${DAYS}&limit=0" -o "${RAW}"
+# Shaped server-side: anonymous calls only get unread articles, deduped on title
+# (best score kept), sorted by score, summary already plain text.
+FIELDS="score,feed_title,published,title,url,summary"
+curl -fsS --compressed --max-time 60 \
+    "${BASE_URL}/api/articles?days=${DAYS}&limit=0&sort=score&dedupe=title&fields=${FIELDS}&summary_chars=300" \
+    -o "${RAW}"
 
 if ! jq -e '.articles | type == "array"' "${RAW}" > /dev/null; then
     echo "unexpected payload in ${RAW}" >&2
     exit 1
 fi
 
-# score, feed, date, title, url, first 300 chars of the plain-text summary
-jq -r '.articles
-  | map(select(._read == false))
-  | unique_by(.title)
-  | sort_by(-.score)[]
-  | [ (.score | floor), .feed_title, (.published | todate[0:10]), .title, .url,
-      ((.summary // "") | gsub("<[^>]+>"; "") | gsub("\\s+"; " ") | .[0:300]) ]
+# score, feed, date, title, url, summary
+jq -r '.articles[]
+  | [ (.score | floor), .feed_title, (.published | todate[0:10]), .title, .url, (.summary // "") ]
   | @tsv' "${RAW}" > "${COMPACT}"
 
 count=$(wc -l < "${COMPACT}")

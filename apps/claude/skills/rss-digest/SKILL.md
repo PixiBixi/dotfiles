@@ -17,7 +17,7 @@ OUT="<session scratchpad>/rss"
 
 `compact.tsv` columns: score, feed, date, title, url, summary (300 chars). Sorted by site score, unread only, deduplicated on title. Never Read it whole when it exceeds ~300 lines: filter with `rg`/`awk` on the feed or title first.
 
-API (if the script needs changing): `GET /api/articles?days=N&limit=0[&show_read=true]` returns `{total, articles[]}` with `id, title, url, feed_title, published (epoch), score, matched_topics, matched_keywords, top_topic, summary (HTML), bookmarked, _read`. Write endpoints (`/api/mark-read`, `/api/bookmark`, `/api/config/scoring`, `/api/rescore`, `/api/snooze`) are never called without an explicit ask.
+API (if the script needs changing): `GET /api/articles?days=N&limit=0` returns `{total, articles[]}` with `id, title, url, feed_title, published (epoch), score, matched_topics, matched_keywords, top_topic, summary, bookmarked`. Shape it server-side rather than with jq: `fields=a,b` (projection), `summary_chars=N` (plain text), `dedupe=title`, `min_score`, `feeds=a,b` / `exclude_feeds=a,b` (exact `feed_title`), e.g. `feeds=Cert%20SSI` to pull every advisory regardless of score. Write endpoints (`/api/mark-read`, `/api/bookmark`, `/api/config/scoring`, `/api/rescore`, `/api/snooze`) are never called without an explicit ask.
 
 ## The site score is not the ranking
 
