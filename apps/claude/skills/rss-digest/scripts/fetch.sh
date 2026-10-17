@@ -9,8 +9,15 @@ BASE_URL="${RSS_DIGEST_URL:-https://summary.jdelgado.fr}"
 RAW="$OUT_DIR/articles.json"
 COMPACT="$OUT_DIR/compact.tsv"
 
+# Read-only API token: env first, then the macOS Keychain (service rss-digest).
+TOKEN="${RSS_DIGEST_TOKEN:-$(security find-generic-password -s rss-digest -w 2> /dev/null || true)}"
+auth=()
+if [[ -n "$TOKEN" ]]; then
+    auth=(-H "Authorization: Bearer $TOKEN")
+fi
+
 mkdir -p "$OUT_DIR"
-curl -fsS --max-time 60 "$BASE_URL/api/articles?days=$DAYS&limit=0" -o "$RAW"
+curl -fsS --max-time 60 "${auth[@]}" "$BASE_URL/api/articles?days=$DAYS&limit=0" -o "$RAW"
 
 if ! jq -e '.articles | type == "array"' "$RAW" > /dev/null; then
     echo "unexpected payload (auth redirect?): $(head -c 200 "$RAW")" >&2
