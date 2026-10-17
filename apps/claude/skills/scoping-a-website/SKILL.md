@@ -13,7 +13,7 @@ Every pixel made before the brief exists is a guess, and each wrong guess costs 
 
 Silently gather what the repo, the context and any URL the user gave already answer (fetch the page, screenshot it at 375 and 1440px when a browser is available, note its content, palette, fonts and stack): existing site and its stack, build step, hosting and deploy, CSP and external-dependency policy, analytics, i18n, past design feedback in memory or project docs. Never ask a question the repo answers; state the answer in the brief instead.
 
-For an existing live site, read `/robots.txt` and `/sitemap.xml` (and nested sitemap indexes; without one, crawl the nav and footer links). Group the URLs into page templates (home, category listing, detail, about, contact, legal) with their counts and one sample URL each. This inventory answers "number of pages" in Round 1.
+For an existing live site, read `/robots.txt` and `/sitemap.xml` (and nested sitemap indexes; without one, crawl the nav and footer links). Group the URLs into page templates (home, category listing, detail, about, contact, legal) with their counts and one sample URL each. This inventory answers "number of pages" in Round 1. Note the defects it reveals (CMS sample pages, stubs, wrong headings, outdated content) under open questions in the brief.
 
 ## Rounds 1 to 4: the questions
 
@@ -71,20 +71,27 @@ Open questions / placeholders:
 - **Directions:** default 3, pushed fully, each built on at least one identity hook from Round 2. Offer more only if asked. Converge on one, then iterate on feedback.
 - **Multi-page sites:** explore directions on the home page only. Once one direction is chosen, design every template in the inventory with real content from its sample URL, never one page per URL.
 - **Facts:** every number and name comes from a source read in this session (count files, read the CV, query the API). Unknown facts become labelled placeholders such as `[CITY]`, never invented.
+- **Copy:** body text is taken from the source pages. Any line Claude wrote (tagline, intro, caption) is flagged as such when the mockup is shown.
+- **Images from the first prototype:** download the existing site's own photos, logo and portraits, resize them, and give every template at least one. A text-only mockup reads as cold however good the type is.
+- **Warmth for a local or community site** (village, association, small shop): the header carries the real logo or emblem, the name in the display font rather than uppercase, a short greeting, and a human contact (phone plus today's opening hours). A bare uppercase name over a plain link list reads as impersonal.
+- **Comparing directions on a multi-page site:** when the user keeps two directions to compare across the templates, one markup, switched by an attribute on `<html>` (`data-dir`), so content stays identical and only the design differs.
+- **Mockup controls stay out of the design:** the direction switch and the theme toggle used for review live in a small floating dock, so the header being judged is the real one.
+- **Real organisation:** the mockups stay local files, never published.
 - **Production path:** if prod CSP forbids CDNs, plan self-hosting the libraries from the first prototype.
-- **Light and dark, always, with a visible toggle:** every prototype ships both themes and a toggle button in the header, the choice kept in `localStorage` and applied by an inline script in `<head>` (no flash). Default to the theme the brief chose, never to `prefers-color-scheme` alone: a dark OS silently turned a "light" brief dark and the user judged the wrong version.
+- **Light and dark, always, with a visible toggle:** every prototype ships both themes and a toggle button (in the review dock, see above), the choice kept in `localStorage` and applied by an inline script in `<head>` (no flash). Default to the theme the brief chose, never to `prefers-color-scheme` alone: a dark OS silently turned a "light" brief dark and the user judged the wrong version.
 
 ## Before showing anything
 
 - Readability: body text at least 17px, contrast AA in both themes, code names legible in the display font.
 - Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width.
 - Not AI-looking: no generic three-card grids, glassmorphism, gradient text, purple-blue washes, emoji icons, marquees, empty voids in cards.
+- Grid and flex children get `min-width: 0`: a nowrap chip row or badge otherwise widens its column past 375px.
 - Checked at 375, 768, 1440 and 2560px (no horizontal scroll, readable line length on wide screens, touch targets at least 44px, no hover-only interaction), with reduced motion, and in a real browser for motion (headless screenshots freeze animations: say so instead of claiming it works).
-- The hero fills the first screen (`min-height: 100svh`, content centred): the next section never peeks in at load, where its scroll-triggered reveal has not fired yet and it shows as a half-hidden fragment.
+- On a showcase or portfolio site, the hero fills the first screen (`min-height: 100svh`, content centred); a service site keeps its quick actions above the fold instead. With a full-screen hero, the next section never peeks in at load, where its scroll-triggered reveal has not fired yet and it shows as a half-hidden fragment.
 - Performance, on every prototype:
   - Libraries load with `defer`, and the main script runs on `DOMContentLoaded`: a plain inline script runs before deferred libraries and silently falls back to no-motion.
   - The one or two font weights above the fold are preloaded (`<link rel="preload" as="font" crossorigin>`), self-hosted, `font-display: swap`.
-  - Images have `width`, `height` and `loading="lazy"`, square-cropped webp sized for 2x display, EXIF stripped.
+  - Images have `width`, `height` and `loading="lazy"`, webp cropped to their display ratio and sized for 2x display, EXIF stripped.
   - No permanent `will-change`: each one pins a GPU layer, even when nothing moves.
   - Infinite loops (CSS keyframes, `setInterval`, `repeat: -1` tweens) pause offscreen and in hidden tabs: an IntersectionObserver per section toggles a class that sets `animation-play-state: paused`, and JS loops check it or pause their tween.
   - No CSS `transition` on `transform` for an element GSAP tweens: it lags every frame. Hover offsets go on the individual `translate`, `rotate` and `scale` properties, which compose with GSAP.
