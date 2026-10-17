@@ -239,6 +239,7 @@
   "autoUpdatesChannel": "latest",
   "tui": "default",
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "autoMode": {
@@ -265,5 +266,5 @@
       "**Org-specific CLIs** (overrides the default None configured): glab, jira (jira-cli), confluence (confluence-cli), gcx (Grafana Cloud CLI), tickler (local reminders)."
     ]
   },
-  "skipWorkflowUsageWarning": true
+  "switchModelsOnFlag": true
 }
