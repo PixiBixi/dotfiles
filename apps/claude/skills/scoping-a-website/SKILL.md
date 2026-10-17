@@ -80,6 +80,13 @@ Open questions / placeholders:
 - Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width.
 - Not AI-looking: no generic three-card grids, glassmorphism, gradient text, purple-blue washes, emoji icons, marquees, empty voids in cards.
 - Checked at 375, 768, 1440 and 2560px (no horizontal scroll, readable line length on wide screens, touch targets at least 44px, no hover-only interaction), with reduced motion, and in a real browser for motion (headless screenshots freeze animations: say so instead of claiming it works).
+- Performance, on every prototype:
+  - Libraries load with `defer`, and the main script runs on `DOMContentLoaded`: a plain inline script runs before deferred libraries and silently falls back to no-motion.
+  - The one or two font weights above the fold are preloaded (`<link rel="preload" as="font" crossorigin>`), self-hosted, `font-display: swap`.
+  - Images have `width`, `height` and `loading="lazy"`, square-cropped webp sized for 2x display, EXIF stripped.
+  - No permanent `will-change`: each one pins a GPU layer, even when nothing moves.
+  - Infinite loops (CSS keyframes, `setInterval`, `repeat: -1` tweens) pause offscreen and in hidden tabs: an IntersectionObserver per section toggles a class that sets `animation-play-state: paused`, and JS loops check it or pause their tween.
+  - No CSS `transition` on `transform` for an element GSAP tweens: it lags every frame. Hover offsets go on the individual `translate`, `rotate` and `scale` properties, which compose with GSAP.
 
 ## Common mistakes
 
