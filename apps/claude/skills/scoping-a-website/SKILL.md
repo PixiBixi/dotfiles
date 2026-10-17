@@ -80,6 +80,7 @@ Open questions / placeholders:
 - Screenshots taken in both themes, and the theme of each capture named when showing it. Headless Chrome cannot go below about 500px wide: capture 375px inside an iframe of that width.
 - Not AI-looking: no generic three-card grids, glassmorphism, gradient text, purple-blue washes, emoji icons, marquees, empty voids in cards.
 - Checked at 375, 768, 1440 and 2560px (no horizontal scroll, readable line length on wide screens, touch targets at least 44px, no hover-only interaction), with reduced motion, and in a real browser for motion (headless screenshots freeze animations: say so instead of claiming it works).
+- The hero fills the first screen (`min-height: 100svh`, content centred): the next section never peeks in at load, where its scroll-triggered reveal has not fired yet and it shows as a half-hidden fragment.
 - Performance, on every prototype:
   - Libraries load with `defer`, and the main script runs on `DOMContentLoaded`: a plain inline script runs before deferred libraries and silently falls back to no-motion.
   - The one or two font weights above the fold are preloaded (`<link rel="preload" as="font" crossorigin>`), self-hosted, `font-display: swap`.
