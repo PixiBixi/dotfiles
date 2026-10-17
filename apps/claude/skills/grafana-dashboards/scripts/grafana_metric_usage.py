@@ -483,7 +483,9 @@ class Cache:
 
     def put(self, uid: str, payload: dict[str, Any]) -> None:
         """Store a payload for a uid and record its fetch time."""
-        tmp = self._blob(uid).with_suffix(".tmp")
+        # Per-writer tmp name: two scans sharing the cache raced on one .tmp and crashed the rename.
+        blob = self._blob(uid)
+        tmp = blob.with_name(f"{blob.name}.{os.getpid()}.{threading.get_ident()}.tmp")
         with gzip.open(tmp, "wt", encoding="utf-8") as handle:
             json.dump(payload, handle)
         tmp.replace(self._blob(uid))
@@ -514,7 +516,7 @@ class Cache:
     def flush(self) -> None:
         """Persist the manifest to disk."""
         with self._lock:
-            tmp = self._manifest_path.with_suffix(".tmp")
+            tmp = self._manifest_path.with_name(f"{self._manifest_path.name}.{os.getpid()}.tmp")
             tmp.write_text(json.dumps(self._manifest))
             tmp.replace(self._manifest_path)
 
