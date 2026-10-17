@@ -30,7 +30,7 @@ Same name, same query, same label everywhere, so `?var-cluster=X` can be carried
 ## What each kind contains
 
 **0 Start here**: answers "is anything broken right now, and where do I look". No investigation panel.
-- A health strip of 4-6 `stat` panels, one per failure mode that pages someone, each forced to a green healthy state (§ Healthy / empty-state panels). Each description ends with `Detail in Ops / <x>.`
+- A health strip of 4-6 `stat` panels, one per failure mode that pages someone, each forced to a green healthy state (§ Healthy / empty-state panels in panels.md). Each description ends with `Detail in Ops / <x>.`
 - A `text` panel "Which dashboard answers your question": one line per dashboard of the folder, question then link.
 - A `text` panel "What is not measured": the blind spots, so nobody reads silence as health.
 - One headline SLO stat linking to `1 SLA`. Range `now-6h`, refresh `5m`.
@@ -38,12 +38,12 @@ Same name, same query, same label everywhere, so `?var-cluster=X` can be carried
 **1 SLA**: the promises the component makes, one per user-visible path (write gets in, read answers, read answers in time, data survives).
 - Objectives, SLO window and latency threshold are **`custom` variables**, so a target can be argued with without editing a panel. A latency threshold must be one of the histogram's bucket boundaries, so offer only those.
 - Rows in this order: top-line SLIs (stat), `Error budget` (gauge, remaining fraction), `Burn rate` (1h and 6h windows, break-even line computed from the SLO variable), `What is spending the budget` (errors by source), `Completeness` (a sender that goes silent is data loss at 100% success, and no availability SLI sees it).
-- Ratios over the window are ratios of sums (§ Aggregation traps). Range `now-7d`.
+- Ratios over the window are ratios of sums (§ Aggregation traps in promql.md). Range `now-7d`.
 
 **Ops / \<sub-component\>**: the on-call view, one per sub-component with its own failure modes.
 - Health strip first, then a fleet `table` (one row per instance or stack, so the broken one is found in one glance), then one row per path (write, read, storage), then `Resources` last.
 - `cluster` / `namespace` selectors drive every panel below the table. Range `now-6h`, refresh `1m`.
-- Latency panels plot up to p999 (§ Reading distributions and tails). Resources read the federated ratio rules as MAX per stack and point at `Sizing` for request versus usage.
+- Latency panels plot up to p999 (§ Reading distributions and tails in promql.md). Resources read the federated ratio rules as MAX per stack and point at `Sizing` for request versus usage.
 
 **Sizing / \<resource\>**: answers "is it over- or under-provisioned", read over 7d-14d rather than the default range.
 - Tables of what each pod reached over the range next to what it is provisioned with. CPU at p999 **and** peak (bursty idle pods hide the burst below p999), RAM at the peak only (a memory limit exceeded for one second is an OOMKill).
