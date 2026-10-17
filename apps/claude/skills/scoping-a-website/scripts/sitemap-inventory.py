@@ -17,13 +17,20 @@ from urllib.parse import urljoin, urlparse
 UA = "Mozilla/5.0 (sitemap-inventory)"
 NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 MAX_SITEMAPS = 50
+MAX_BYTES = 10 * 1024 * 1024
+
+
+def same_site(url, base):
+    """Sitemap URLs come from the remote site: only follow http(s) on the base host."""
+    u, b = urlparse(url), urlparse(base)
+    return u.scheme in ("http", "https") and u.netloc == b.netloc
 
 
 def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
-            return resp.read().decode("utf-8", errors="replace")
+            return resp.read(MAX_BYTES).decode("utf-8", errors="replace")
     except Exception as exc:  # network errors only change the fallback path
         print(f"# skip {url}: {exc}", file=sys.stderr)
         return None
@@ -35,11 +42,11 @@ def sitemap_urls(base):
     return found or [urljoin(base, "/sitemap.xml")]
 
 
-def read_sitemaps(roots):
+def read_sitemaps(roots, base):
     pages, queue, seen = [], list(roots), set()
     while queue and len(seen) < MAX_SITEMAPS:
         url = queue.pop(0)
-        if url in seen:
+        if url in seen or not same_site(url, base):
             continue
         seen.add(url)
         body = fetch(url)
@@ -94,7 +101,7 @@ def main():
         sys.exit("usage: sitemap-inventory.py https://example.org")
     base = sys.argv[1].rstrip("/") + "/"
 
-    pages = read_sitemaps(sitemap_urls(base))
+    pages = read_sitemaps(sitemap_urls(base), base)
     source = "sitemap"
     if not pages:
         pages, source = crawl_home(base), "home page links (no sitemap)"
