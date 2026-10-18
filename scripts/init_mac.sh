@@ -455,10 +455,16 @@ setup_claude() {
         done
     fi
 
-    # Deploy skills
-    if [[ -d "${REPO_DIR}/apps/claude/skills" ]]; then
+    # Deploy skills from the claude-skills clone, a sibling of this repo. Symlinked rather
+    # than installed as a plugin to keep short names (/mr-open) and live edits.
+    local skills_repo
+    skills_repo="$(dirname "${REPO_DIR}")/claude-skills"
+    if [[ ! -d "${skills_repo}/.git" ]]; then
+        git clone git@github.com:PixiBixi/claude-skills.git "${skills_repo}"
+    fi
+    if [[ -d "${skills_repo}/skills" ]]; then
         mkdir -p "${HOME}/.claude/skills"
-        for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
+        for skill_dir in "${skills_repo}/skills"/*/; do
             [[ -f "${skill_dir}SKILL.md" ]] || continue
             skill_name="$(basename "$skill_dir")"
             ln -sfn "$skill_dir" "${HOME}/.claude/skills/${skill_name}"
