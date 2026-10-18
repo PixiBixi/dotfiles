@@ -69,7 +69,6 @@ repos:
     hooks:
       - id: markdownlint
         args: [--fix, --config, config/.markdownlint.json]
-        exclude: '^apps/claude/skills/'
 
   # Git commit message validation
   - repo: https://github.com/compilerla/conventional-pre-commit
