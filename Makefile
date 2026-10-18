@@ -1,7 +1,6 @@
 ROOT_DIR   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PKGS_DIR   := $(ROOT_DIR)packages/
-SKILLS_DIR := $(ROOT_DIR)apps/claude/skills/
-SCRIPT     := $(SKILLS_DIR).update-skills.py
+SKILLS_REPO := $(abspath $(ROOT_DIR)../claude-skills)
 
 .DEFAULT_GOAL := help
 
@@ -34,8 +33,8 @@ update-gems: ## Dump installed gems → packages/gems.txt (skips stdlib default:
 	@gem list --local 2>/dev/null | python3 -c "import re,sys; [print('{} --version {}'.format(m.group(1),v)) for line in sys.stdin for m in [re.match(r'^(\S+) \((.+)\)',line.strip())] if m for v in [m.group(2).split(',')[0].strip()] if not v.startswith('default:')]" | sort > "$(PKGS_DIR)gems.txt"
 	@echo "Done."
 
-update-skills: ## Fetch latest SKILL.md from upstream sources (one commit per updated skill)
-	@python3 $(SCRIPT) --commit
+update-skills: ## Fetch latest SKILL.md from upstream sources in the claude-skills clone (one commit per updated skill)
+	@$(MAKE) -C $(SKILLS_REPO) update-skills
 
 update-claude-skills: ## Update skillfish-managed skills → re-bundle packages/skillfish.json
 	@npx -y skillfish@latest update --yes
@@ -51,8 +50,8 @@ update-claude-plugins: ## Refresh plugin marketplaces, then update each marketpl
 		while read -r id; do claude plugin update "$$id" || echo "WARN: $$id failed to update" >&2; done
 	@echo "Done. Restart Claude Code to load the new versions."
 
-check: ## Show skills diffs without modifying files (dry-run)
-	@python3 $(SCRIPT) --check
+check: ## Show skills diffs in the claude-skills clone without modifying files (dry-run)
+	@$(MAKE) -C $(SKILLS_REPO) check
 
 drift: ## Check drift between the repo and the files deployed in ~
 	@"$(ROOT_DIR)scripts/check-drift.sh"
