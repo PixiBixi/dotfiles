@@ -101,13 +101,13 @@ check_file() {
 }
 
 # Directory variant of check_file: skills deploy as symlinked directories.
+# check_dir <repo_path> <label> <deployed_path>, repo_path may live outside this repo.
 check_dir() {
-    local repo_rel="$1"
-    local deployed="$2"
+    local repo_path="$1"
+    local deployed="$3"
 
-    local repo_path="${REPO_DIR}/${repo_rel}"
     local label
-    label="$(printf '%-45s' "${repo_rel}")"
+    label="$(printf '%-45s' "$2")"
 
     if [[ ! -d "${repo_path}" ]]; then
         printf "  ${DIM}~ SKIP       ${NC}  %s  ${DIM}[not in repo]${NC}\n" "${label}"
@@ -207,11 +207,18 @@ for conf in "${REPO_DIR}/apps/claude/config/"*.json; do
     check_file "apps/claude/config/${name}" "${HOME}/.claude/${name}" symlink
 done
 
-for skill_dir in "${REPO_DIR}/apps/claude/skills"/*/; do
-    [[ -f "${skill_dir}SKILL.md" ]] || continue
-    name="$(basename "${skill_dir}")"
-    check_dir "apps/claude/skills/${name}" "${HOME}/.claude/skills/${name}"
-done
+# Skills live in the claude-skills repo, cloned next to this one by setup_claude().
+skills_repo="$(dirname "${REPO_DIR}")/claude-skills"
+if [[ -d "${skills_repo}/skills" ]]; then
+    for skill_dir in "${skills_repo}/skills"/*/; do
+        [[ -f "${skill_dir}SKILL.md" ]] || continue
+        name="$(basename "${skill_dir}")"
+        check_dir "${skill_dir%/}" "claude-skills/skills/${name}" "${HOME}/.claude/skills/${name}"
+    done
+else
+    printf "  ${RED}✗ NOT CLONED${NC}  %-45s  [run scripts/init_mac.sh --only claude]\n" "claude-skills"
+    ((err++)) || true
+fi
 
 # ── packages/krew-indexes.txt → krew ───────────────────────────────────────
 # A missing index is silent until brew bundle hits a `krew "<index>/<plugin>"`
