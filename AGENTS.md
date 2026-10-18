@@ -11,10 +11,10 @@ make update-brew         # dump installed Homebrew packages → packages/Brewfil
 make update-krew-indexes # custom krew indexes → packages/krew-indexes.txt
 make update-npm          # global npm packages → packages/npm.txt
 make update-gems         # installed gems → packages/gems.txt
-make update-skills       # fetch latest SKILL.md from upstream sources
+make update-skills       # fetch latest SKILL.md from upstream, delegated to the claude-skills clone
 make update-claude-skills # skillfish update + re-bundle packages/skillfish.json
 make update-claude-plugins # refresh marketplaces + update every marketplace-backed plugin
-make check               # dry-run: show skill diffs without writing
+make check               # dry-run of update-skills in the claude-skills clone
 make drift               # check drift between config/ and deployed $HOME files
 make help                # list targets
 
@@ -47,7 +47,7 @@ macOS dotfiles repo organized into four purpose-driven directories:
 - `config/`: dotfiles deployed to `$HOME` (zsh, git, nvim, ssh, kube, tmux, vim, wezterm). Mirrors the target `$HOME` path structure. `config/.local/bin/` holds user commands deployed onto `$PATH` (`tg-run`), as opposed to `scripts/`, which are repo-maintenance scripts run from the clone.
 - `packages/` holds the package lists: `Brewfile`, `krew-indexes.txt`, `npm.txt`, `gems.txt`, `skillfish.json`. **krew plugins live inside the `Brewfile`** as `krew "..."` entries (no separate `krew.txt`). Custom krew *indexes* do need their own file: `brew bundle` only shells out to `kubectl krew install <name>`, it never adds an index, so any `krew "<index>/<plugin>"` entry (`netshoot/`, `pixibixi/`) would fail on a fresh machine. `krew-indexes.txt` lists them as `<name> <git url>` and the `krew-indexes` step in `init_mac.sh` registers them **before** `brew-packages` runs. Refresh it with `make update-krew-indexes`.
 - `apps/` holds the non-dotfile app configs:
-  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `skills/` (managed SKILL.md files + `.update-skills.py`), `hooks/` (`session-allow.sh`, `wiki-sync.sh`, `wordlist-guard.sh`, `cold-resume-guard.sh`), `config/` (per-hook JSON config, symlinked flat into `~/.claude/`)
+  - `claude/`: `CLAUDE.md` + `settings.json` (versioned source for `~/.claude/`), `hooks/` (`session-allow.sh`, `wiki-sync.sh`, `wordlist-guard.sh`, `cold-resume-guard.sh`), `config/` (per-hook JSON config, symlinked flat into `~/.claude/`)
   - `raycast/`, `vscode/`
 - `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`
 
@@ -63,9 +63,10 @@ Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.
 
 Symlinked files are live after an edit. The `copy_files` list in `init_mac.sh` needs `init_mac.sh --only dotfiles` (or a `cp`) to resync the deployed copy.
 
-`check-drift.sh` also covers `~/.claude`: `CLAUDE.md`, `settings.json`, every `apps/claude/hooks/*.sh`, every `apps/claude/config/*.json` and every `apps/claude/skills/*/`. All three are enumerated from the same globs `setup_claude()` deploys, so adding one needs no edit here. Two extra verdicts apply there:
+`check-drift.sh` also covers `~/.claude`: `CLAUDE.md`, `settings.json`, every `apps/claude/hooks/*.sh`, every `apps/claude/config/*.json` and every skill of the `claude-skills` clone. All three are enumerated from the same globs `setup_claude()` deploys, so adding one needs no edit here. Extra verdicts apply there:
 
 - `ORPHAN`: a file in `~/.claude/hooks/` with no repo counterpart. It may still be wired into `settings.json` while nothing versions it.
+- `NOT CLONED` is an **error**: the `claude-skills` clone is missing next to this repo, so no skill is checked. Fix with `scripts/init_mac.sh --only claude`.
 - a skill deployed as a **real directory** instead of a symlink means an external installer owns it, see `Externally-managed skills` below.
 
 It also checks the krew indexes from `packages/krew-indexes.txt` against `kubectl-krew index list`. This is the safety net for running `brew bundle install` directly instead of `init_mac.sh`, which bypasses the `krew-indexes` step:
@@ -106,15 +107,15 @@ Every hook exits 0 on a missing or malformed config and falls back to its built-
 
 - `bannedChars`: `U+2014` / `U+2013` (the em dash rule) and `U+2022` (the bullet rule). Entries are `U+XXXX` or a literal character.
 - `bannedWords`: the non-inclusive terms named in `CLAUDE.md`. Prefix an entry with `re:` for a raw regex, otherwise it matches the word with an optional trailing `s`.
-- `allowPaths`: the upstream-managed skills only (`apps/claude/skills/confluence/`, `apps/claude/skills/jira-cli/`), plus vendored and generated trees. Locally-authored skills stay guarded, unlike with markdownlint which excludes `apps/claude/skills/` wholesale. An entry containing `/` is a substring or glob match on the full path, otherwise it globs the basename.
+- `allowPaths`: vendored and generated trees. The upstream-managed skills are allowed by the per-repo `.claude/wordlist-guard.json` of `claude-skills`. An entry containing `/` is a substring or glob match on the full path, otherwise it globs the basename.
 
 Adding a word is a one-line edit to that JSON, no script change. Widen `bannedWords` only for rules that are actually written down in `CLAUDE.md`: a hook enforcing a rule that exists nowhere else is how false positives get normalised.
 
-## apps/claude/skills
+## Skills
 
-`apps/claude/skills/` holds SKILL.md files that mirror upstream skills. `.update-skills.py` (run via `make update-skills` / `make check`) fetches the latest SKILL.md from each upstream URL and re-injects the local `source:` frontmatter field. Use `make check` for a dry-run diff before committing updates.
+Locally-authored and upstream-mirrored skills live in [PixiBixi/claude-skills](https://github.com/PixiBixi/claude-skills), not here. `setup_claude()` clones it next to this repo if missing, then symlinks **every** directory of its `skills/` into `~/.claude/skills/`, so a new skill needs no change to `init_mac.sh`. Symlinks rather than a plugin install keep the short names (`/mr-open`, not `/pixibixi:mr-open`) and live edits. Never install the `pixibixi` plugin on top: each skill would load twice.
 
-Locally-authored skills live here too (e.g. `incident-response/`): a SKILL.md with no `source:` field is skipped by the updater, so it is never clobbered. `setup_claude()` symlinks **every** directory in `apps/claude/skills/` into `~/.claude/skills/`, so a new skill needs no change to `init_mac.sh`.
+Edit, commit and push skills in that clone. `make update-skills` and `make check` here only delegate to its Makefile.
 
 ### Externally-managed skills
 
@@ -131,9 +132,7 @@ Migrating a plugin to skillfish: only when it ships nothing but skills (no hook,
 
 That is why `npx skills add <repo> -g` (the `vercel-labs/skills` CLI) must not be used here: it installs to `~/.agents/skills/` and symlinks into `~/.claude/skills/`, a store nothing in this repo versions or checks, so the skill silently vanishes on the next machine. `skillfish add` takes the same GitHub arguments. Verified equivalent: for `archify` both channels deploy an identical 166-file payload.
 
-Rule of thumb: `~/.claude/skills/<name>` being a **symlink** means the repo owns it; a **real directory** means an external installer owns it. `skillfish list` shows exactly the second group, but only for real directories - it does not follow symlinks, so a skill linked in from elsewhere is invisible to both `list` and `bundle`.
-
-`make update-skills` passes `--commit`, so each updated skill is committed on its own (`chore(claude): sync <name> skill from upstream`), one commit per scope, no manual staging. Run the script without `--commit` to update files without committing; `--check` never commits.
+Rule of thumb: `~/.claude/skills/<name>` being a **symlink** means the `claude-skills` clone owns it; a **real directory** means an external installer owns it. `skillfish list` shows exactly the second group, but only for real directories - it does not follow symlinks, so a skill linked in from elsewhere is invisible to both `list` and `bundle`.
 
 ## CI
 
@@ -153,7 +152,7 @@ Hooks enforced on every commit:
 - **gitleaks**: secret scanning (hardcoded credentials, tokens, keys)
 - **shellcheck**: shell script linting, severity `warning`. Excludes zsh files matching `(^|/)\.zsh`.
 - **shfmt**: shell formatting, 4-space indent, `-ci -bn -sr`.
-- **markdownlint**: `--fix`, config `config/.markdownlint.json`, pinned to `markdownlint-cli` v0.43.0. Requires H1 as first line, single H1 per file, and language on all fenced code blocks (use `text` for file trees). Excludes `apps/claude/skills/` (upstream-managed). Note: the pinned version predates the `MD060` table-column-style rule, so misaligned table pipes are not currently flagged even though `config/.markdownlint.json` sets `MD055` (pipe style).
+- **markdownlint**: `--fix`, config `config/.markdownlint.json`, pinned to `markdownlint-cli` v0.43.0. Requires H1 as first line, single H1 per file, and language on all fenced code blocks (use `text` for file trees). Note: the pinned version predates the `MD060` table-column-style rule, so misaligned table pipes are not currently flagged even though `config/.markdownlint.json` sets `MD055` (pipe style).
 - **yamllint**: config in `.yamllint.yaml`
 - **prettier**: JSON formatting, 4-space indent. Excludes `apps/claude/settings.json` and `packages/skillfish.json` (both machine-generated).
 - **conventional-pre-commit**: enforces Conventional Commits on commit messages (`feat:`, `fix:`, `chore:`, `docs:`, `perf:`, `refactor:`)

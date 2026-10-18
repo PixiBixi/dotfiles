@@ -133,7 +133,7 @@ dotfiles/
 │   ├── gems.txt
 │   └── skillfish.json            # Manifeste des skills Claude externes
 ├── apps/
-│   ├── claude/                   # CLAUDE.md, settings.json, bin/, hooks/, config/, skills/
+│   ├── claude/                   # CLAUDE.md, settings.json, bin/, hooks/, config/
 │   ├── raycast/Raycast.rayconfig
 │   └── vscode/                   # settings.json, extensions.txt
 ├── scripts/
@@ -250,7 +250,7 @@ La disposition (onglets, splits, dossiers, ID de session Claude) est sauvegardé
 | Binaire | installeur natif | step `claude-code` |
 | `CLAUDE.md`, `settings.json`, `keybindings.json` | `apps/claude/` | symlinks dans `~/.claude/` (`setup_claude()`) |
 | Hooks et leur config | `apps/claude/hooks/`, `apps/claude/config/` | symlinks dans `~/.claude/` |
-| Skills locales et upstream | `apps/claude/skills/` | symlinks dans `~/.claude/skills/` |
+| Skills locales et upstream | [PixiBixi/claude-skills](https://github.com/PixiBixi/claude-skills), cloné à côté de ce repo | symlinks dans `~/.claude/skills/` |
 | Skills externes | `packages/skillfish.json`, `tickler` | `install_claude_skills()` |
 | Plugins | `enabledPlugins` de `settings.json` | step `claude-plugins` |
 | RTK | `rtk init --global` | hook PreToolUse + `~/.claude/RTK.md` |
@@ -299,10 +299,10 @@ Le premier run demande l'autorisation d'automatiser Slack (Réglages, Confidenti
 | `make update-brew` | Dump Homebrew vers `packages/Brewfile` |
 | `make update-krew-indexes` | Dump des index krew custom vers `packages/krew-indexes.txt` |
 | `make update-npm` / `update-gems` | Dump npm globaux / gems |
-| `make update-skills` | Derniers SKILL.md upstream, un commit par skill |
+| `make update-skills` | Derniers SKILL.md upstream dans le clone `claude-skills`, un commit par skill |
 | `make update-claude-skills` | Met à jour skillfish et re-bundle `packages/skillfish.json` |
 | `make update-claude-plugins` | Rafraîchit marketplaces et plugins (redémarrage requis) |
-| `make check` | Dry-run des diffs de skills |
+| `make check` | Dry-run des diffs de skills dans le clone `claude-skills` |
 | `make drift` | Dérive entre le repo et `$HOME` (`scripts/check-drift.sh`) |
 
 `make drift` compare `config/` et `apps/claude/` avec `$HOME`, et vérifie les index krew et les plugins Claude déclarés.
