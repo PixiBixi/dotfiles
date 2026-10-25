@@ -92,6 +92,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "$HOME/.claude/hooks/bash-shape-guard.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "rtk hook claude"
           }
         ]
@@ -177,6 +187,11 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/cold-resume-guard.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/skill-nudge.sh",
             "timeout": 10
           },
           {

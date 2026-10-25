@@ -10,8 +10,9 @@
 #
 # Config, first readable file wins:
 #   1. $CLAUDE_WORDLIST_CONFIG
-#   2. ./.claude/wordlist-guard.json   (per repo, relative to the hook's cwd)
-#   3. ~/.claude/wordlist-guard.json
+#   2. .claude/wordlist-guard.json in the edited file's directory or any parent
+#   3. ./.claude/wordlist-guard.json   (relative to the hook's cwd)
+#   4. ~/.claude/wordlist-guard.json
 #
 # No config: bannedChars defaults to U+2014 / U+2013 and the word list is empty, so the
 # hook is useful out of the box and silent about words. Dash codepoints are referenced by
@@ -24,8 +25,20 @@ command -v python3 > /dev/null 2>&1 || exit 0
 f=$(jq -r '.tool_response.filePath // .tool_input.file_path // ""' 2> /dev/null) || exit 0
 [ -n "$f" ] && [ -f "$f" ] || exit 0
 
+# The repo config is searched upward from the edited file, not from $PWD: a session
+# launched from a subdirectory (the wiki's docs/) would otherwise miss it.
+repo_cfg=""
+d=$(dirname "$f")
+while [ "$d" != "/" ] && [ -n "$d" ]; do
+    if [ -r "$d/.claude/wordlist-guard.json" ]; then
+        repo_cfg="$d/.claude/wordlist-guard.json"
+        break
+    fi
+    d=$(dirname "$d")
+done
+
 cfg=""
-for c in "${CLAUDE_WORDLIST_CONFIG:-}" "$PWD/.claude/wordlist-guard.json" "$HOME/.claude/wordlist-guard.json"; do
+for c in "${CLAUDE_WORDLIST_CONFIG:-}" "$repo_cfg" "$PWD/.claude/wordlist-guard.json" "$HOME/.claude/wordlist-guard.json"; do
     if [ -n "$c" ] && [ -r "$c" ]; then
         cfg="$c"
         break
@@ -150,8 +163,8 @@ for label, nums in word_hits.items():
     lines = shown(nums)
     summary.append('%d "%s" line(s) (%s)' % (len(nums), label, lines))
     detail.append(
-        'uses the banned word "%s" on line(s) %s. Rewrite it with the inclusive or '
-        "concrete term instead." % (label, lines)
+        'uses the banned word or construction "%s" on line(s) %s. Rewrite the sentence '
+        "without it (inclusive or concrete term, plain sentence)." % (label, lines)
     )
 
 print(json.dumps({
