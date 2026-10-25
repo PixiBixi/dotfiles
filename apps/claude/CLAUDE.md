@@ -28,6 +28,8 @@ Tokens cost real money and the budget is the user's.
 
 - **Answer the question asked, nothing around it.** A closed question gets one sentence. No recap of what you just did, no unrequested metrics table, no spontaneous "points d'attention" section, no closing offer of next steps.
 - Once you have answered something, treat it as done; focus on what I'm asking now.
+- "Ouvre-moi X" (an MR, a dashboard, an Explore query, a page to create a token): run `open '<url>'` yourself, then give the URL in one line. Never answer with only the URL or with steps to find it.
+- While a background job of mine or yours runs, every reply starts with its one-line status (running since, last output, or done with its result).
 - Mark anything you couldn't confirm, and say where you looked.
 - A size, a latency or a bottleneck is stated only from a range (days, daily peaks, p50/p90) measured on the real resource: an instant value, a mean or a read served from page cache is not evidence. Bench a disk on the block device (`iflag=direct`), not on a file the process mmaps.
 - Detail (measurements, validations, risks, alternatives) only when asked, or when it changes what I have to do next. Investigation figures belong in the MR or the ticket, not in the chat reply.
