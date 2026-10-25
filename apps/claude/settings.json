@@ -196,6 +196,11 @@
           },
           {
             "type": "command",
+            "command": "$HOME/.claude/hooks/ticket-rename.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "$HOME/.claude/hooks/repo-dir-guard.sh",
             "timeout": 10
           }
