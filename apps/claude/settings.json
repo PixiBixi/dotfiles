@@ -15,7 +15,6 @@
       "Bash(curl -s -H \"Authorization: Bearer*\" https://monitoring.googleapis.com/*)",
       "Bash(gcloud auth print-access-token*)",
       "Bash(gcloud logging read:*)",
-      "Bash(gcx --context * metrics query *)",
       "Bash(gcx metrics query *)",
       "Bash(git --no-pager blame:*)",
       "Bash(git --no-pager diff:*)",
