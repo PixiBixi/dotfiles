@@ -1,10 +1,6 @@
 {
   "version": 1,
   "skills": [
-    "sigridjineth/hello-ansible-skills/skills/ansible-convert",
-    "sigridjineth/hello-ansible-skills/skills/ansible-debug",
-    "sigridjineth/hello-ansible-skills/skills/ansible-interactive",
-    "sigridjineth/hello-ansible-skills/skills/ansible-playbook",
     "tt-a1i/archify/archify",
     "grafana/gcx/claude-plugin/skills/create-dashboard",
     "grafana/gcx/claude-plugin/skills/debug-with-grafana",
@@ -18,7 +14,6 @@
     "jamie-bitflight/claude_skills/plugins/python3-development/skills/python3-development",
     "netresearch/retro-skill/skills/retro",
     "cloudflare/security-audit-skill/skills/security-audit",
-    "grafana/gcx/claude-plugin/skills/setup-gcx",
-    "akin-ozer/cc-devops-skills/devops-skills-plugin/skills/terragrunt-generator"
+    "grafana/gcx/claude-plugin/skills/setup-gcx"
   ]
 }
