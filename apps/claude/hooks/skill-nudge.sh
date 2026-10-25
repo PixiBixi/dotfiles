@@ -11,7 +11,8 @@ prompt=$(jq -r '.prompt // ""' 2> /dev/null) || exit 0
 [ -n "$prompt" ] || exit 0
 
 RULES=$(printf '%s\t%s\n' \
-    'gitlab\.com/[^ ]+/-/(jobs|pipelines)/[0-9]+' 'gitlab-job-triage')
+    'gitlab\.com/[^ ]+/-/(jobs|pipelines)/[0-9]+' 'gitlab-job-triage' \
+    'slack\.com/archives/[A-Z0-9]+/p[0-9]+' 'slack-thread-triage')
 
 skills=()
 while IFS=$'\t' read -r re skill; do
