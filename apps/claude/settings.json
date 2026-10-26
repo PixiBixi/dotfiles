@@ -106,7 +106,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rtk hook claude"
+            "command": "rtk hook claude",
+            "timeout": 10
           }
         ]
       },
@@ -115,6 +116,17 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(gcx *)",
+            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
+          },
+          {
+            "type": "command",
+            "if": "Bash(jira *)",
+            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
+          },
+          {
+            "type": "command",
+            "if": "Bash(confluence *)",
             "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
           }
         ]
