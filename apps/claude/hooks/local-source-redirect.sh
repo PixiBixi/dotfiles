@@ -43,7 +43,8 @@ normalize() {
     u="${u%/}"
     u="${u#*://}"
     u="${u#*@}"
-    echo "${u/://}" | tr '[:upper:]' '[:lower:]'
+    u="${u/://}"
+    norm="${u,,}"
 }
 
 want="$(echo "$project" | tr '[:upper:]' '[:lower:]')"
@@ -65,7 +66,8 @@ fi
 # One rg over every .git/config: a git call per repo costs ~2s on 80 clones.
 [[ -z "$clone" ]] && while IFS= read -r line; do
     remote="${line#*url = }"
-    if [[ "$(normalize "$remote")" == "$want" ]]; then
+    normalize "$remote"
+    if [[ "$norm" == "$want" ]]; then
         clone="${line%%/.git/config:*}"
         break
     fi

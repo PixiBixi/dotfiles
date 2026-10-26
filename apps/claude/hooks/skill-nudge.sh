@@ -5,22 +5,17 @@
 # naming the skill makes the load deterministic. One "<regex>\t<skill>" per line in RULES.
 set -uo pipefail
 
+input=$(cat) || exit 0
+# Bash-only fast path: no rule host in the payload means nothing to do, no process spawned.
+[[ "$input" == *gitlab.com* || "$input" == *slack.com* ]] || exit 0
 command -v jq > /dev/null 2>&1 || exit 0
 
-prompt=$(jq -r '.prompt // ""' 2> /dev/null) || exit 0
+prompt=$(jq -r '.prompt // ""' <<< "$input" 2> /dev/null) || exit 0
 [ -n "$prompt" ] || exit 0
 
-RULES=$(printf '%s\t%s\n' \
-    'gitlab\.com/[^ ]+/-/(jobs|pipelines)/[0-9]+' 'gitlab-job-triage' \
-    'slack\.com/archives/[A-Z0-9]+/p[0-9]+' 'slack-thread-triage')
-
 skills=()
-while IFS=$'\t' read -r re skill; do
-    [ -n "$re" ] || continue
-    if printf '%s' "$prompt" | rg -q -e "$re"; then
-        skills+=("$skill")
-    fi
-done <<< "$RULES"
+[[ "$prompt" =~ gitlab\.com/[^[:space:]]+/-/(jobs|pipelines)/[0-9]+ ]] && skills+=(gitlab-job-triage)
+[[ "$prompt" =~ slack\.com/archives/[A-Z0-9]+/p[0-9]+ ]] && skills+=(slack-thread-triage)
 
 [ ${#skills[@]} -gt 0 ] || exit 0
 

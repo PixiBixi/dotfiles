@@ -9,9 +9,10 @@ GITLAB_ROOT="${GITLAB_ROOT:-$HOME/Documents/work/git/smartadserver}"
 STATE_DIR="${TMPDIR:-/tmp}/claude-repo-dir-guard"
 
 input=$(cat) || exit 0
+# Bash-only fast path: a prompt without a smartadserver URL spawns no process.
+[[ "$input" == *gitlab.com/smartadserver/* ]] || exit 0
+IFS=$'\x1f' read -r cwd session < <(jq -r '[.cwd // "", .session_id // ""] | join("\u001f")' <<< "$input" 2> /dev/null) || exit 0
 prompt=$(jq -r '.prompt // empty' <<< "$input" 2> /dev/null) || exit 0
-cwd=$(jq -r '.cwd // empty' <<< "$input" 2> /dev/null) || exit 0
-session=$(jq -r '.session_id // empty' <<< "$input" 2> /dev/null) || exit 0
 [[ -n "$prompt" && -n "$cwd" ]] || exit 0
 
 paths=$(/usr/bin/grep -oE 'https?://gitlab\.com/smartadserver/[^[:space:]/]+(/[^[:space:]/]+)*/-/' <<< "$prompt" 2> /dev/null \

@@ -6,10 +6,14 @@
 # classifier cannot match either. Heredoc bodies are skipped: they are file content, not shell.
 set -uo pipefail
 
+input=$(cat) || exit 0
+# Bash-only fast path: python only runs when a `()` or a CLI assignment is present at all.
+# Must stay a superset of FUNC and CLI_VAR below.
+[[ "$input" =~ \(\)([[:space:]]|\\[nt])*\{ || "$input" =~ =(\\\"|\')?(kubectl|gcx|glab|jira|gcloud) ]] || exit 0
 command -v jq > /dev/null 2>&1 || exit 0
 command -v python3 > /dev/null 2>&1 || exit 0
 
-cmd=$(jq -r '.tool_input.command // ""' 2> /dev/null) || exit 0
+cmd=$(jq -r '.tool_input.command // ""' <<< "$input" 2> /dev/null) || exit 0
 [ -n "$cmd" ] || exit 0
 
 exec python3 -I - "$cmd" << 'PY'
