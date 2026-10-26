@@ -15,14 +15,11 @@ Don't assume cloud provider, CI/CD system, or orchestration platform unless stat
 
 Tokens cost real money and the budget is the user's.
 
-- Sub-agent model choice (Agent tool) is deliberate: work that follows existing patterns → Sonnet; architecture, complex business logic, debugging, design trade-offs → Opus. The main conversation model is set separately by the user.
-- When a subagent reports back, check its evidence before accepting its conclusion.
-- Before a multi-step task: propose the plan and the model split, wait for approval, then execute what was approved, no silent upgrade mid-task.
-- Once a plan is approved, keep going when a step doesn't need my input; put status notes in the same message as the next action.
-- For current model IDs and pricing, read the `claude-api` skill, never answer from memory.
-- What Claude Code loads or does (CLAUDE.md/AGENTS.md, hooks, settings, permissions) is never answered from memory: check `~/.claude/cache/changelog.md` or ask the `claude-code-guide` agent.
-- Polling (CI, a Slack canvas, a deploy) never loops in the main session: every poll re-reads the whole context. Use a blocking watcher (`gh pr checks --watch`, `gh run watch`, `glab ci status --live`, Monitor), or a Haiku/Sonnet subagent that reports only the change.
-- **Context is the bill**: every tool result is re-read on every later turn (cache reads are over half of the spend). Locate with `rg -n` first, then Read with `offset`/`limit`; never `cat`/`sed` a whole file or re-read one already in context; cap command output (`| head`, `--tail`, `-o jsonpath`). A sweep that would dump many files goes to a Sonnet subagent that returns the conclusion.
+- Subagent model: pattern-following work → Sonnet; architecture, debugging, design trade-offs → Opus. Check a subagent's evidence before accepting its conclusion.
+- Multi-step task: propose the plan and the model split, wait for approval, then execute it without a silent upgrade, and keep going on steps that don't need my input (status notes in the same message as the next action).
+- Never from memory: model IDs and pricing (`claude-api` skill), what Claude Code loads or does (`~/.claude/cache/changelog.md` or the `claude-code-guide` agent).
+- Polling (CI, a canvas, a deploy) never loops in the main session: use a blocking watcher (`gh run watch`, `glab ci status --live`, Monitor) or a Haiku/Sonnet subagent that reports only the change.
+- **Context is the bill**: every tool result is re-read on every later turn. Locate with `rg -n`, then Read with `offset`/`limit`; never `cat` a whole file or re-read one in context; cap output (`| head`, `-o jsonpath`). A many-file sweep goes to a Sonnet subagent.
 
 ## Output Expectations
 
@@ -52,8 +49,8 @@ Tokens cost real money and the budget is the user's.
 - **README**: update it before committing whenever a feature, flag, or behavior changes. Keep it a usage reference: what the thing does, how to install it, the tables of commands/flags/options. The rationale (why a verdict is spelled that way, which labels are read, what was rejected) goes in the wiki, the ticket or the MR, never in prose paragraphs under a table. If a section explains rather than documents, cut it and link out
 - **Commits**: Conventional Commits, **one commit per scope** (`fix(tflint):`, `feat(module):`, `chore(live):`), never bundle unrelated scopes
 - **Branch, push, MR/PR flow** (branch from fetched `origin/<target>`, rebase before push, description update, URL to clipboard): the `mr-open` skill
-- **Signed commits, always**: `commit.gpgsign` and `tag.gpgsign` are true globally, with an SSH key (`~/.ssh/signing_gitlab`, registered on GitHub and GitLab despite its name). Every commit must come out `G` in `git log --format="%h %G?"`. A repo carrying a local `commit.gpgsign=false`, or commits already made unsigned, gets repaired with `git rebase --exec "git commit --amend --no-edit -S --quiet" <base>`, never with `git reset --hard`
-- **Author identity is per repo**: there is deliberately no global `user.email`. Set it on the repo before the first commit: `PixiBixi@users.noreply.github.com` for anything public, the Equativ address for internal GitLab. Never put the work email on a public commit
+- **Signed commits, always**: every commit comes out `G` in `git log --format="%h %G?"`; repair unsigned ones as `mr-open` says, never with `git reset --hard`
+- **Author identity is per repo** (no global `user.email`): `PixiBixi@users.noreply.github.com` for anything public, the Equativ address for internal GitLab. Never the work email on a public commit
 - **Before merging**: rebase on the target branch. After rolling out a change that should move performance or cost, offer the follow-up reminder in one line (`tickler` skill)
 
 ## Validation & Safety
@@ -74,16 +71,16 @@ Production issue or suspected incident → use the `incident-response` skill. De
 - `glab` is always pre-installed, use it without checking first
 - Okta Verify listens on `127.0.0.1:8769`. Before starting a local server, check the port is free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`): a taken port answers 400, which reads like an app bug
 - Shell scripts must be defensive and explicit
-- **RTK rewrites every Bash command** (PreToolUse hook) and can change semantics: `rg --glob …` may be routed to BSD `grep` and fail on the flag, and `rtk find` rejects compound predicates (`-not`, `-exec`). Use `command rg` / `command fd` when a specific flag matters (the Grep/Glob tools are not always offered).
+- **RTK rewrites every Bash command** (PreToolUse hook, token-optimization proxy) and can change semantics: `rg --glob …` may be routed to BSD `grep`, `rtk find` rejects `-not`/`-exec`. Use `command rg` / `command fd` when a flag matters. A truncated output names the full log path (`[full output: …]`).
 - **The Bash tool runs zsh on macOS**, traps that keep failing:
   - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`, `'...?limit=1000'`) or `setopt nullglob` before a loop.
   - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: `$K get pods` fails with `command not found`, `k(){...}` is a parse error (`k`, `g` are aliases), and permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
   - A word starting with `=` is expanded: `echo =====` fails with `===== not found`. Quote it (`echo '====='`) or use `---`.
   - Mixed userland: `date` and `stat` are GNU coreutils (Homebrew `gnubin` first in `PATH`): `date -d '24 hours ago'`, never the BSD `date -v`/`-j`. `sed` stays BSD (`sed -i ''`), no `grep -P` (use `rg`).
-- `kubectl port-forward` in the background answers `connection refused` until it binds: wait with `until nc -z 127.0.0.1 <port>; do sleep 0.5; done` before the first request, and kill it at the end.
-  - `echo "$JSON" | jq` interprets the `\n` inside JSON strings and jq reads nothing: an update built on that empty read wiped 4 MR descriptions on 2026-09-30. Write API output to a file (`glab api ... > f.json`), send bodies with `-F description=@file`, and assert a read is non-empty before any write built on it.
+  - `echo "$JSON" | jq` interprets the `\n` inside JSON strings and jq reads nothing (an update built on that empty read wiped 4 MR descriptions). Write API output to a file, send bodies with `-F description=@file`, and assert a read is non-empty before any write built on it.
+- `kubectl port-forward` in the background answers `connection refused` until it binds: `until nc -z 127.0.0.1 <port>; do sleep 0.5; done` first, kill it at the end.
 - When a tool's output or help names a skill (`# skill: create-dashboard`), load it before the next call.
-- **Public source code is read from local clones in `~/Documents/work/src`** (and `src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout (the user's branches live there). Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>` (`<org>-<repo>` on a name clash). The `local-source-redirect.sh` hook enforces this on WebFetch for github.com and gitlab.com. Private groups cloned elsewhere are mapped in `~/.config/claude/source-roots` (not versioned here): follow the path the hook gives.
+- **Public source code is read from local clones in `~/Documents/work/src`** (`src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout. Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>`. The `local-source-redirect.sh` hook enforces it on WebFetch and gives the path for private groups.
 
 ## Memory
 
@@ -94,9 +91,3 @@ A skill that should have triggered and did not gets its `description` fixed in t
 ## CLAUDE.md & settings versioning
 
 `~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/keybindings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. Edit/Write refuse a symlink, so always pass the `~/Documents/perso/git/dotfiles/apps/claude/...` path. After editing any of them, commit in the dotfiles repo with `chore(claude): <description>` and push.
-
-## RTK (Rust Token Killer)
-
-RTK is a token-optimization proxy that rewrites shell commands via a Claude Code hook to cut token usage. Its meta commands are documented below.
-
-@RTK.md
