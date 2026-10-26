@@ -236,7 +236,7 @@
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "openwiki@openwiki-cc": true,
-    "security-guidance@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": false,
     "claude-security@claude-plugins-official": true,
     "gaia-review@equativ-plugins": false
   },
