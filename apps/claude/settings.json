@@ -237,7 +237,7 @@
     "swift-lsp@claude-plugins-official": true,
     "openwiki@openwiki-cc": true,
     "security-guidance@claude-plugins-official": false,
-    "claude-security@claude-plugins-official": true,
+    "claude-security@claude-plugins-official": false,
     "gaia-review@equativ-plugins": false
   },
   "extraKnownMarketplaces": {
@@ -302,5 +302,22 @@
       "**Org-specific CLIs** (overrides the default None configured): glab, jira (jira-cli), confluence (confluence-cli), gcx (Grafana Cloud CLI), tickler (local reminders)."
     ]
   },
-  "switchModelsOnFlag": true
+  "switchModelsOnFlag": true,
+  "skillOverrides": {
+    "rtb-signal-analysis": "off",
+    "pptx": "off",
+    "xlsx": "off",
+    "google-workspace": "off",
+    "docx": "off",
+    "pdf": "off",
+    "ask-salesforce": "off",
+    "n8n-create": "off",
+    "n8n-explain": "off",
+    "n8n-review": "off",
+    "n8n-security-audit": "off",
+    "import-memory": "off",
+    "anthropic-skills:n8n-explain": "off",
+    "anthropic-skills:n8n-review": "off",
+    "anthropic-skills:n8n-security-audit": "off"
+  }
 }
