@@ -232,7 +232,7 @@
   },
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "openwiki@openwiki-cc": true,
@@ -318,6 +318,9 @@
     "import-memory": "off",
     "anthropic-skills:n8n-explain": "off",
     "anthropic-skills:n8n-review": "off",
-    "anthropic-skills:n8n-security-audit": "off"
+    "anthropic-skills:n8n-security-audit": "off",
+    "wiki-seo-audit": "off",
+    "artifact-sharing-check": "off",
+    "morning": "off"
   }
 }

@@ -35,7 +35,7 @@ Tokens cost real money and the budget is the user's.
 - Detail (measurements, validations, risks, alternatives) only when asked, or when it changes what I have to do next. Investigation figures belong in the MR or the ticket, not in the chat reply.
 - A created MR is a link plus one line.
 - **Commands for me to run are a multi-line `bash` block I can paste as-is**: one command per line, `\` continuations for long flags, variables for repeated paths or keys, real values filled in (no `<placeholder>`), a comment with the expected outcome. Never a one-line `! a && b && c` chain.
-- **Any text for me to paste (Slack message, MR comment, ticket body) is a fenced code block**, one block per message, never a `>` blockquote: the terminal's `▎` gutter gets copied along.
+- **Any text for me to paste (MR comment, ticket body) is a fenced code block**, one block per message, never a `>` blockquote: the terminal's `▎` gutter gets copied along. A Slack message goes to the clipboard instead (scratchpad file, then `pbcopy`): the code block's gutter pads it with leading spaces.
 - **Always use absolute paths**: `/path/to/file.txt`, never `./file.txt`
 - Reference files with path and line number
 - Explain the "why" behind architectural decisions; raise a cost, reliability or security impact when it changes the decision
