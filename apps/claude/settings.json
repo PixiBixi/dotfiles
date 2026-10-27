@@ -305,6 +305,7 @@
   "switchModelsOnFlag": true,
   "skillOverrides": {
     "rtb-signal-analysis": "off",
+    "dataviz": "off",
     "pptx": "off",
     "xlsx": "off",
     "google-workspace": "off",
