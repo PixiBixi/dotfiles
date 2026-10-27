@@ -306,6 +306,9 @@
   "skillOverrides": {
     "rtb-signal-analysis": "off",
     "dataviz": "off",
+    "anthropic-skills:docs": "off",
+    "claude-api": "name-only",
+    "update-config": "name-only",
     "pptx": "off",
     "xlsx": "off",
     "google-workspace": "off",
