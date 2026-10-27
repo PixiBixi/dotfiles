@@ -76,6 +76,7 @@ Production issue or suspected incident → use the `incident-response` skill. De
   - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`, `'...?limit=1000'`) or `setopt nullglob` before a loop.
   - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: `$K get pods` fails with `command not found`, `k(){...}` is a parse error (`k`, `g` are aliases), and permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
   - A word starting with `=` is expanded: `echo =====` fails with `===== not found`. Quote it (`echo '====='`) or use `---`.
+  - An unquoted `$var` is never split into words: `set -- $s` or `for x in $s` sees one word. Split with `read -r a b c <<< "$s"`.
   - Mixed userland: `date` and `stat` are GNU coreutils (Homebrew `gnubin` first in `PATH`): `date -d '24 hours ago'`, never the BSD `date -v`/`-j`. `sed` stays BSD (`sed -i ''`), no `grep -P` (use `rg`).
   - `echo "$JSON" | jq` interprets the `\n` inside JSON strings and jq reads nothing (an update built on that empty read wiped 4 MR descriptions). Write API output to a file, send bodies with `-F description=@file`, and assert a read is non-empty before any write built on it.
 - `kubectl port-forward` in the background answers `connection refused` until it binds: `until nc -z 127.0.0.1 <port>; do sleep 0.5; done` first, kill it at the end.
