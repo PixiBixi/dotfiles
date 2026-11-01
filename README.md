@@ -98,7 +98,7 @@ pre-commit install
 
 | Domaine | Outils |
 |---|---|
-| **Shell** | zsh + oh-my-zsh, `zsh-autosuggestions`, `zsh-syntax-highlighting` |
+| **Shell** | zsh + oh-my-zsh, `zsh-autosuggestions`, `zsh-syntax-highlighting`. Environnement (`PATH`, exports) dans `~/.config/shell/env.sh`, partagé avec bash, le shell de l'outil Bash de Claude Code |
 | **Terminal** | [WezTerm](#wezterm) nightly, config [Ghostty](config/.config/ghostty/config) portée |
 | **CLI** | `rg`, `fd`, `bat`, `lsd`, `fzf`, `jq`, `yq`, `neovim` |
 | **Kubernetes** | `kubectl` + krew, `kubectx`/`kubens`, `kubeswitch`, plugins krew dans le `Brewfile` |
@@ -114,7 +114,8 @@ La liste complète est dans [`packages/Brewfile`](packages/Brewfile).
 ```text
 dotfiles/
 ├── config/                       # Dotfiles, miroir de $HOME
-│   ├── .zshrc, .zsh_alias, .zsh_functions, .zsh_mac, .zsh_linux
+│   ├── .zshrc, .zsh_alias, .zsh_functions, .zsh_mac, .zsh_linux, .bashrc
+│   ├── .config/shell/env.sh      # Environnement commun zsh + bash
 │   ├── .gitconfig, .gitconfig_perso, .gitconfig_work
 │   ├── .tmux.conf, .wezterm.lua, .markdownlint.json
 │   ├── .ssh/config

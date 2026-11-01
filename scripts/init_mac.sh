@@ -292,6 +292,8 @@ setup_dotfiles() {
     # Non-machine-specific: symlink so live and repo stay in sync
     local symlink_files=(
         "config/.zshrc"
+        "config/.bashrc"
+        "config/.config/shell/env.sh"
         "config/.zsh_alias"
         "config/.zsh_functions"
         "config/.zsh_mac"

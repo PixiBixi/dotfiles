@@ -5,13 +5,10 @@ typeset -U path fpath
 fpath=(${fpath:#(/opt/homebrew/share/zsh/site-functions|$HOME/.oh-my-zsh/*)})
 fpath+=/Users/jeremy/.orbstack/shell/completions/zsh
 
-# Static copy of `brew shellenv`: the eval forks Ruby-backed brew, ~90 ms per shell.
-export HOMEBREW_PREFIX="/opt/homebrew"
-export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
-export HOMEBREW_REPOSITORY="/opt/homebrew"
+# Environment (PATH, exports, work secrets) is shared with bash, the shell of
+# Claude Code: edit ~/.config/shell/env.sh, not this file.
+source ~/.config/shell/env.sh
 fpath[1,0]="/opt/homebrew/share/zsh/site-functions"
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin${PATH+:$PATH}"
-export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
 
 DISABLE_AUTO_UPDATE="true"
 DISABLE_MAGIC_FUNCTIONS="true"
@@ -20,10 +17,6 @@ ZSH_DISABLE_COMPFIX="true"
 
 # NOTE: compinit runs once, in the oh-my-zsh loader below. A second compinit
 # doubles the compdump cost.
-
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
-export EDITOR=nvim
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -170,16 +163,6 @@ RPROMPT='$(kube_ps1)'
 # Defer fzf loading
 zsh-defer -c '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
 
-# Ansible better output
-export ANSIBLE_CHECK_MODE_MARKERS=True
-export ANSIBLE_SHOW_TASK_PATH_ON_FAILURE=True
-export ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
-
-ulimit -n 9999
-
-# Gcloud - lazy load completions for faster startup
-source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc"
-
 # Lazy load gcloud completion (loads only when first used)
 gcloud() {
     unfunction gcloud
@@ -200,38 +183,6 @@ delta() {
     eval "$(command delta --generate-completion=zsh)"
     delta "$@"
 }
-
-PATH_DIRS=(
-    "/Users/jeremy/.local/bin"
-    ${HOMEBREW_PREFIX}/opt/coreutils/libexec/gnubin
-    ${HOMEBREW_PREFIX}/bin
-    ${HOMEBREW_PREFIX}/sbin
-    ${HOME}/.krew/bin
-    ${HOME}/.nvm/versions/node/v18.0.0/bin
-    ${HOMEBREW_PREFIX}/opt/openssl@1.1/bin
-    ${HOME}/go/bin
-    ${HOMEBREW_PREFIX}/opt/postgresql@15/bin
-    ${HOMEBREW_PREFIX}/opt/gnu-getopt/bin
-	${HOME}/.local/bin
-)
-export PATH=${"${PATH_DIRS[*]}"// /:}:${PATH}
-
-# Terragrunt provider cache server. Replaces TF_PLUGIN_CACHE_DIR: the native
-# plugin cache is not concurrency-safe, so a parallel `run --all` has several
-# processes writing the same provider binary at once. That leaves the kernel
-# with a stale cdhash for the inode and macOS SIGKILLs the plugin on exec
-# ("Failed to read any lines from plugin's stdout"). The cache server
-# serializes installs instead, and reuses the existing cache
-# directory, whose layout is identical to plugin_cache_dir.
-export TG_PROVIDER_CACHE=1
-export TG_PROVIDER_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
-# cairocffi (plugin social de mkdocs) ne trouve pas libcairo : le Python de uv
-# ne cherche pas dans Homebrew. Les 3 chemins par défaut sont recopiés exprès,
-# dyld REMPLACE sa liste au lieu de l'étendre dès que la variable est définie.
-export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:$HOME/lib:/usr/local/lib:/usr/lib"
-
-# Claude Code Templates - Global Agents
-export PATH="/Users/jeremy/.claude-code-templates/bin:$PATH"
 
 alias claude-mem='bun "/Users/jeremy/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs"'
 # Tickler CLI completion: reminder ids with their title.

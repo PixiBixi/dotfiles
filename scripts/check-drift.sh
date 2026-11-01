@@ -146,6 +146,8 @@ echo
 printf "${BOLD}config/ → \$HOME${NC}\n"
 
 check_file "config/.zshrc" "${HOME}/.zshrc" symlink
+check_file "config/.bashrc" "${HOME}/.bashrc" symlink
+check_file "config/.config/shell/env.sh" "${HOME}/.config/shell/env.sh" symlink
 check_file "config/.zsh_alias" "${HOME}/.zsh_alias" symlink
 check_file "config/.zsh_functions" "${HOME}/.zsh_functions" symlink
 check_file "config/.zsh_mac" "${HOME}/.zsh_mac" symlink
