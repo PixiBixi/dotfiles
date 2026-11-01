@@ -72,13 +72,10 @@ Production issue or suspected incident → use the `incident-response` skill. De
 - Okta Verify listens on `127.0.0.1:8769`. Before starting a local server, check the port is free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`): a taken port answers 400, which reads like an app bug
 - Shell scripts must be defensive and explicit
 - **RTK rewrites every Bash command** (PreToolUse hook, token-optimization proxy) and can change semantics: `rg --glob …` may be routed to BSD `grep`, `rtk find` rejects `-not`/`-exec`. Use `command rg` / `command fd` when a flag matters. A truncated output names the full log path (`[full output: …]`).
-- **The Bash tool runs zsh on macOS**, traps that keep failing:
-  - An unmatched glob aborts the whole command: quote it (`--include='*.yml'`, `'...?limit=1000'`) or `setopt nullglob` before a loop.
-  - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: `$K get pods` fails with `command not found`, `k(){...}` is a parse error (`k`, `g` are aliases), and permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
-  - A word starting with `=` is expanded: `echo =====` fails with `===== not found`. Quote it (`echo '====='`) or use `---`.
-  - An unquoted `$var` is never split into words: `set -- $s` or `for x in $s` sees one word. Split with `read -r a b c <<< "$s"`.
+- **The Bash tool runs Homebrew bash 5** (`CLAUDE_CODE_SHELL`), with the environment of `~/.config/shell/env.sh`; zsh is only the user's interactive shell, so its aliases and functions do not exist here:
+  - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
   - Mixed userland: `date` and `stat` are GNU coreutils (Homebrew `gnubin` first in `PATH`): `date -d '24 hours ago'`, never the BSD `date -v`/`-j`. `sed` stays BSD (`sed -i ''`), no `grep -P` (use `rg`).
-  - `echo "$JSON" | jq` interprets the `\n` inside JSON strings and jq reads nothing (an update built on that empty read wiped 4 MR descriptions). Write API output to a file, send bodies with `-F description=@file`, and assert a read is non-empty before any write built on it.
+  - API output goes to a file, never through `echo "$JSON" | jq` (an empty read once wiped 4 MR descriptions). Send bodies with `-F description=@file`, and assert a read is non-empty before any write built on it.
 - `kubectl port-forward` in the background answers `connection refused` until it binds: `until nc -z 127.0.0.1 <port>; do sleep 0.5; done` first, kill it at the end.
 - When a tool's output or help names a skill (`# skill: create-dashboard`), load it before the next call.
 - **Public source code is read from local clones in `~/Documents/work/src`** (`src/helm/` for charts), never fetched over the web or cloned to `/tmp`. Found: `git fetch`, then `git show origin/<branch>:<path>`, never pull or checkout. Missing: `git clone --filter=blob:none <url> ~/Documents/work/src/<repo>`. The `local-source-redirect.sh` hook enforces it on WebFetch and gives the path for private groups.
