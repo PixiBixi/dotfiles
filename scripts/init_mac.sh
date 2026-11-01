@@ -303,6 +303,7 @@ setup_dotfiles() {
         "config/.tmux.conf"
         "config/.config/git/allowed_signers"
         "config/.config/git/ignore"
+        "config/.config/mpv/mpv.conf"
         "config/.local/bin/tg-run"
         "config/.local/bin/helm-charts-update"
         "config/.local/bin/wezterm-pane-picker"

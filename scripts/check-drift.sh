@@ -160,6 +160,7 @@ check_file "config/.ssh/config" "${HOME}/.ssh/config" machine
 check_file "config/.kube/switch-config.yaml" "${HOME}/.kube/switch-config.yaml" machine
 check_file "config/.config/git/allowed_signers" "${HOME}/.config/git/allowed_signers" symlink
 check_file "config/.config/git/ignore" "${HOME}/.config/git/ignore" symlink
+check_file "config/.config/mpv/mpv.conf" "${HOME}/.config/mpv/mpv.conf" symlink
 check_file "config/.local/bin/tg-run" "${HOME}/.local/bin/tg-run" symlink
 check_file "config/.local/bin/wezterm-pane-picker" "${HOME}/.local/bin/wezterm-pane-picker" symlink
 check_file "config/.local/bin/wezterm-restore" "${HOME}/.local/bin/wezterm-restore" symlink

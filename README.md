@@ -123,6 +123,7 @@ dotfiles/
 │   │   ├── flameshot/            # flameshot.ini (copie)
 │   │   ├── ghostty/
 │   │   ├── git/                  # allowed_signers, ignore
+│   │   ├── mpv/                  # mpv.conf (HDR sur écran XDR)
 │   │   └── nvim/
 │   ├── .local/bin/               # Commandes déployées sur le $PATH
 │   └── Library/LaunchAgents/     # Agents launchd, rendus depuis __HOME__
