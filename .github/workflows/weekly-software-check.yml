@@ -54,8 +54,20 @@ jobs:
               continue
             fi
 
-            if ! brew info "$formula" &>/dev/null; then
-              echo "::warning::Invalid formula: $formula"
+            # A transient brew failure once dropped a live formula (yarn):
+            # retry, and remove only when the API confirms a 404.
+            ok=false
+            for _ in 1 2 3; do
+              if err=$(brew info "$formula" 2>&1 >/dev/null); then ok=true; break; fi
+              sleep 5
+            done
+            if [[ "$ok" == false ]]; then
+              code=$(curl -sS -o /dev/null -w '%{http_code}' "https://formulae.brew.sh/api/formula/${formula}.json" || true)
+              if [[ "$code" != "404" ]]; then
+                echo "::warning::brew info failed for $formula but API answered $code, keeping it: $err"
+                continue
+              fi
+              echo "::warning::Invalid formula: $formula ($err)"
               removed+=("$formula")
               # Use # as sed delimiter to avoid clashes with / in formula names
               escaped=$(printf '%s\n' "$formula" | sed 's/[[\.*^$()+?{|#]/\\&/g')
