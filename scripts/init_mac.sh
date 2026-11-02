@@ -49,6 +49,7 @@ STEPS=(
     "dotfiles:setup_dotfiles"
     "krew-indexes:setup_krew_indexes"
     "brew-packages:install_brew_packages"
+    "krew-completions:setup_krew_completions"
     "fzf:setup_fzf"
     "git-template:setup_git_template"
     "gcloud:setup_gcloud_auth"
@@ -656,6 +657,25 @@ install_brew_packages() {
     log_success "Homebrew packages installed"
 }
 
+# Link the kubectl_complete-<plugin> executables kubectl (>= 1.26) runs to
+# complete krew plugins: krew only links each plugin's main binary.
+setup_krew_completions() {
+    log_info "Setting up krew plugin completions..."
+
+    local iexec="${KREW_ROOT:-${HOME}/.krew}/bin/kubectl-iexec"
+    if [[ ! -x "${iexec}" ]]; then
+        log_warning "kubectl-iexec not installed, skipping"
+        return 0
+    fi
+
+    # --install-completion is idempotent and needs kubectl-iexec >= 2.7.0.
+    if PATH="$(dirname "${iexec}"):${PATH}" "${iexec}" --install-completion; then
+        log_success "kubectl iexec completion linked"
+    else
+        log_warning "kubectl-iexec too old for --install-completion: run 'kubectl krew upgrade iexec'"
+    fi
+}
+
 # Setup fzf
 setup_fzf() {
     log_info "Setting up fzf..."
@@ -797,6 +817,7 @@ main() {
     run_step "dotfiles" setup_dotfiles
     run_step "krew-indexes" setup_krew_indexes
     run_step "brew-packages" install_brew_packages
+    run_step "krew-completions" setup_krew_completions
     run_step "fzf" setup_fzf
     run_step "git-template" setup_git_template
     run_step "gcloud" setup_gcloud_auth
