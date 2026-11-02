@@ -318,6 +318,16 @@ config.keys = {
     { key = 'w', mods = 'LEADER', action = wezterm.action.CloseCurrentPane { confirm = true } },
     { key = 'o', mods = 'LEADER', action = wezterm.action_callback(split_ops) },
     { key = 'O', mods = 'LEADER|SHIFT', action = wezterm.action.SpawnCommandInNewTab { args = ops_cmd } },
+    -- Broadcast one line (plus Enter) to every pane of the current tab
+    { key = 'b', mods = 'LEADER', action = wezterm.action.PromptInputLine {
+        description = 'Broadcast to all panes in tab',
+        action = wezterm.action_callback(function(window, _, line)
+            if not line or line == '' then return end
+            for _, p in ipairs(window:active_tab():panes()) do
+                p:send_text(line .. '\n')
+            end
+        end),
+    } },
 
     -- Word navigation (backward/forward)
     { key = 'LeftArrow',  mods = 'OPT', action = wezterm.action.SendString("\x1bb") },
