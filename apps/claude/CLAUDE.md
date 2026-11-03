@@ -71,6 +71,7 @@ Production issue or suspected incident → use the `incident-response` skill. De
 - `glab` is always pre-installed, use it without checking first
 - Okta Verify listens on `127.0.0.1:8769`. Before starting a local server, check the port is free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`): a taken port answers 400, which reads like an app bug
 - Shell scripts must be defensive and explicit
+- **In Bash commands you run yourself, write every path literally** (the full scratchpad path each time), never through a shell variable (`D=...; $D/file`): the permission checker cannot resolve a variable path and prompts ("A variable in this command can't be checked before it runs"). "Variables for repeated paths" only applies to commands handed to me.
 - **RTK rewrites every Bash command** (PreToolUse hook, token-optimization proxy) and can change semantics: `rg --glob …` may be routed to BSD `grep`, `rtk find` rejects `-not`/`-exec`. Use `command rg` / `command fd` when a flag matters. A truncated output names the full log path (`[full output: …]`).
 - **The Bash tool runs Homebrew bash 5** (`CLAUDE_CODE_SHELL`), with the environment of `~/.config/shell/env.sh`; zsh is only the user's interactive shell, so its aliases and functions do not exist here:
   - Never store `kubectl`, `gcx` or `glab` in a variable or a wrapper function: permission allow rules only match the literal command. Write `kubectl --context X -n Y get pods` in full each time; for flags build an array (`files+=(-f "$v")`, then `"${files[@]}"`).
