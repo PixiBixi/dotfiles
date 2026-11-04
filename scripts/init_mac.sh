@@ -695,11 +695,11 @@ setup_fzf() {
 setup_git_template() {
     log_info "Setting up git template directory..."
 
-    if command -v pre-commit &> /dev/null; then
-        pre-commit init-templatedir "${HOME}/.git-template"
-        log_success "pre-commit hook installed in ~/.git-template"
+    if command -v prek &> /dev/null; then
+        prek util init-template-dir "${HOME}/.git-template"
+        log_success "prek pre-commit hook installed in ~/.git-template"
     else
-        log_warning "pre-commit not found, skipping git template"
+        log_warning "prek not found, skipping git template"
     fi
 }
 
