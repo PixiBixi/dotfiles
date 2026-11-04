@@ -7,6 +7,9 @@ set -uo pipefail
 BG_RGB="${CLAUDE_STATUSLINE_BG_RGB:-26;27;37}"
 CTX_WARN=40
 CTX_CRIT=65
+# Absolute context, in k tokens: each turn re-reads it, and above 150k a cold resume costs about $2.
+CTXK_WARN=100
+CTXK_CRIT=150
 LIMIT_WARN=70
 LIMIT_CRIT=90
 
@@ -25,7 +28,7 @@ fail_open() {
 command -v jq > /dev/null 2>&1 || fail_open
 
 # One jq pass. Fields are joined with US (0x1f) so empty values survive the read.
-IFS=$'\x1f' read -r session dir transcript model effort ctx h5 h5_reset wk wk_reset cost < <(
+IFS=$'\x1f' read -r session dir transcript model effort ctx ctxk h5 h5_reset wk wk_reset cost < <(
     jq -r '
         def num: if type == "number" then floor | tostring else "" end;
         def epoch: if type == "number" then floor | tostring
@@ -39,6 +42,8 @@ IFS=$'\x1f' read -r session dir transcript model effort ctx h5 h5_reset wk wk_re
             (.model.display_name // ""),
             (.effort.level // ""),
             (.context_window.used_percentage | num),
+            (.context_window.current_usage
+                | if type == "object" then ((.input_tokens // 0) + (.cache_read_input_tokens // 0) + (.cache_creation_input_tokens // 0)) / 1000 | num else "" end),
             (.rate_limits.five_hour.used_percentage | num),
             (.rate_limits.five_hour.resets_at | epoch),
             (.rate_limits.seven_day.used_percentage | num),
@@ -184,10 +189,16 @@ if [[ -n "$ctx" ]]; then
     else
         pie="●"
     fi
+    shown="${ctx}%"
+    if [[ -n "$ctxk" ]]; then
+        # Token count, not the window share, drives the colour: on a 1M window 150k is only 15%.
+        level "$ctxk" "$CTXK_WARN" "$CTXK_CRIT"
+        shown="${ctxk}k"
+    fi
     case "$LEVEL" in
-        rest) capsule "$SURFACE" "${FG_INK2}${pie} ctx ${ctx}%" ;;
-        warn) capsule "$SURFACE" "${FG_INK2}${pie} ctx ${BOLD}${FG_AMBER}${ctx}%" ;;
-        crit) capsule "$CRIT" "${BOLD}${FG_CRIT_INK}${pie} ctx ${ctx}%" ;;
+        rest) capsule "$SURFACE" "${FG_INK2}${pie} ctx ${shown}" ;;
+        warn) capsule "$SURFACE" "${FG_INK2}${pie} ctx ${BOLD}${FG_AMBER}${shown}" ;;
+        crit) capsule "$CRIT" "${BOLD}${FG_CRIT_INK}${pie} ctx ${shown}" ;;
     esac
 fi
 
