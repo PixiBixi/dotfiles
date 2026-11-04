@@ -183,7 +183,7 @@ brew "pigz"
 brew "pipenv"
 brew "pipx"
 brew "poetry"
-brew "pre-commit"
+brew "prek"
 brew "procs"
 brew "prometheus"
 brew "pssh", link: false

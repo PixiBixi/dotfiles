@@ -40,7 +40,7 @@
       "Bash(kubectl logs *)",
       "Bash(ls:*)",
       "Bash(npx prettier:*)",
-      "Bash(pre-commit run:*)",
+      "Bash(prek run:*)",
       "Bash(pwd:*)",
       "Bash(rg:*)",
       "Bash(rm -f openwiki/_plan.md)",

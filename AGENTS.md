@@ -33,11 +33,11 @@ tg-run [<command>] [<unit dir>...]
 # Close Chrome tabs of merged/closed GitLab MRs, passed CI jobs/pipelines and done Jira tickets (-n: dry run)
 close-done-tabs [-n]
 
-# Pre-commit
-pre-commit install                 # after cloning
-pre-commit run --all-files         # run all hooks
-pre-commit run shellcheck          # run one hook
-pre-commit autoupdate              # bump hook versions
+# prek
+prek install -t pre-commit -t commit-msg   # after cloning
+prek run --all-files         # run all hooks
+prek run shellcheck          # run one hook
+prek update                  # bump hook versions
 ```
 
 ## Repository Structure
@@ -51,7 +51,7 @@ macOS dotfiles repo organized into four purpose-driven directories:
   - `raycast/`, `vscode/`
 - `scripts/`: `init_mac.sh` (main setup), `check-drift.sh`, `brew-usage-audit.sh`
 
-Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.yamllint.yaml`, `.prettierignore`. Note: `.markdownlint.json` lives in `config/` (deployed to `$HOME`) and is referenced via `--config config/.markdownlint.json` in the pre-commit hook.
+Repo-level tooling files stay at root: `Makefile`, `.pre-commit-config.yaml`, `.yamllint.yaml`, `.prettierignore`. Note: `.markdownlint.json` lives in `config/` (deployed to `$HOME`) and is referenced via `--config config/.markdownlint.json` in the prek hook.
 
 ## Deployment model
 
@@ -136,7 +136,7 @@ Rule of thumb: `~/.claude/skills/<name>` being a **symlink** means the `claude-s
 
 ## CI
 
-`.github/workflows/pre-commit.yml` runs `pre-commit run --all-files` on every push to `master` and on every PR, so the local hooks are enforced even when a commit skipped them. Hook environments are cached on the hash of `.pre-commit-config.yaml`.
+`.github/workflows/pre-commit.yml` runs `prek run --all-files` (via `j178/prek-action`) on every push to `master` and on every PR, so the local hooks are enforced even when a commit skipped them. Hook environments are cached by the action in `~/.cache/prek`.
 
 `.github/workflows/weekly-software-check.yml` runs every Monday (`0 8 * * 1` UTC) to validate that `packages/Brewfile` entries still exist. Two jobs:
 
