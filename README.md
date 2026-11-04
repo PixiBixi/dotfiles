@@ -83,11 +83,11 @@ gcloud auth application-default login   # ADC pour que kubeswitch découvre les 
 </details>
 
 <details>
-<summary><b>3. Shell et pre-commit</b></summary>
+<summary><b>3. Shell et prek</b></summary>
 
 ```bash
 source ~/.zshrc
-pre-commit install
+prek install -t pre-commit -t commit-msg
 ```
 
 </details>
@@ -328,14 +328,14 @@ brew uses --installed <package>   # requis par un autre ? à vérifier avant uni
 
 ### Qualité
 
-Hooks pre-commit : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`, `prettier`, `conventional-pre-commit`.
+Hooks prek : `gitleaks`, `shellcheck`, `shfmt`, `markdownlint`, `yamllint`, `prettier`, `conventional-pre-commit`.
 
 ```bash
-pre-commit run --all-files
-pre-commit autoupdate
+prek run --all-files
+prek update
 ```
 
-À chaque push sur `master` et sur chaque PR, [`pre-commit`](.github/workflows/pre-commit.yml) rejoue les mêmes hooks sur tout le repo.
+À chaque push sur `master` et sur chaque PR, [`pre-commit`](.github/workflows/pre-commit.yml) rejoue les mêmes hooks sur tout le repo avec `j178/prek-action` (environnements de hooks mis en cache dans `~/.cache/prek`).
 
 Chaque lundi, [`weekly-software-check`](.github/workflows/weekly-software-check.yml) vérifie que les formulas et casks du `Brewfile` existent toujours et ouvre une PR pour retirer les entrées mortes.
 
