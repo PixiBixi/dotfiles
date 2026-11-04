@@ -32,3 +32,5 @@ jobs:
         uses: j178/prek-action@44924fe9ef4a6f88253c4b6b1bf11c689d3ce53d # v3.1.0
         with:
           prek-version: '0.5.10'
+          # The action skips verification for versions missing from its manifest: bump with prek-version.
+          sha256: '5c832a9ccd0855b7c054320d8921d90165a37459d3ac175923bdf121ff1aa9b1'
