@@ -28,6 +28,11 @@
             "matchManagers": ["github-actions"],
             "groupName": "github-actions",
             "semanticCommitType": "chore"
+        },
+        {
+            "description": "prek-version takes a bare version while prek tags carry a v prefix: pinDigests looked up tag 0.5.10 and warned. A prek bump also needs the sha256 input updated by hand",
+            "matchDepNames": ["prek"],
+            "pinDigests": false
         }
     ]
 }
