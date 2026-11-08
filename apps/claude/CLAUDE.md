@@ -91,4 +91,4 @@ A skill that should have triggered and did not gets its `description` fixed in t
 
 ## CLAUDE.md & settings versioning
 
-`~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/keybindings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. Edit/Write refuse a symlink, so always pass the `~/Documents/perso/git/dotfiles/apps/claude/...` path. After editing any of them, commit in the dotfiles repo with `chore(claude): <description>` and push.
+`~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/keybindings.json` are symlinks to `~/Documents/perso/git/dotfiles/apps/claude/`: edits are live, no copy needed. Edit/Write refuse a symlink, so always pass the `~/Documents/perso/git/dotfiles/apps/claude/...` path. After editing any of them, commit in the dotfiles repo with `chore(claude): <description>` and push. `settings.json` often carries uncommitted live edits (/config, skillOverrides): run `git diff` first and commit only your change, or ask. Edit it with `jq`, never `sed`.
