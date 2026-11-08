@@ -4,7 +4,11 @@
     "CLAUDE_CODE_SHELL": "/opt/homebrew/bin/bash",
     "SG_AGENTIC_MODEL": "claude-sonnet-5-5"
   },
-  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "permissions": {
     "allow": [
       "Bash(/Users/jeremy/Documents/perso/git/dotfiles/apps/claude/bin/claude-rename.sh:*)",
@@ -90,6 +94,32 @@
   "fallbackModel": [
     "claude-sonnet-5"
   ],
+  "skillOverrides": {
+    "rtb-signal-analysis": "off",
+    "dataviz": "off",
+    "anthropic-skills:docs": "off",
+    "claude-api": "name-only",
+    "update-config": "name-only",
+    "archify": "name-only",
+    "python3-development": "name-only",
+    "pptx": "off",
+    "xlsx": "off",
+    "google-workspace": "off",
+    "docx": "off",
+    "pdf": "off",
+    "ask-salesforce": "off",
+    "n8n-create": "off",
+    "n8n-explain": "off",
+    "n8n-review": "off",
+    "n8n-security-audit": "off",
+    "import-memory": "off",
+    "anthropic-skills:n8n-explain": "off",
+    "anthropic-skills:n8n-review": "off",
+    "anthropic-skills:n8n-security-audit": "off",
+    "wiki-seo-audit": "off",
+    "artifact-sharing-check": "off",
+    "morning": "off"
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -117,18 +147,18 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(gcx *)",
-            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
+            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'",
+            "if": "Bash(gcx *)"
           },
           {
             "type": "command",
-            "if": "Bash(jira *)",
-            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
+            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'",
+            "if": "Bash(jira *)"
           },
           {
             "type": "command",
-            "if": "Bash(confluence *)",
-            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'"
+            "command": "jq -c '(.tool_input.command // \"\" | ltrimstr(\" \") | split(\" \")[0] // \"\") as $c | {gcx:\"gcx\", jira:\"equativ-jira / jira-cli\", confluence:\"confluence\"}[$c] // empty | {hookSpecificOutput:{hookEventName:\"PreToolUse\", additionalContext:\"Load the \\(.) skill before driving this CLI if it is not loaded yet; do not probe with --help.\"}}'",
+            "if": "Bash(confluence *)"
           }
         ]
       },
@@ -277,6 +307,7 @@
   "tui": "default",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
+  "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "autoMode": {
@@ -303,31 +334,7 @@
       "**Org-specific CLIs** (overrides the default None configured): glab, jira (jira-cli), confluence (confluence-cli), gcx (Grafana Cloud CLI), tickler (local reminders)."
     ]
   },
-  "switchModelsOnFlag": true,
-  "skillOverrides": {
-    "rtb-signal-analysis": "off",
-    "dataviz": "off",
-    "anthropic-skills:docs": "off",
-    "claude-api": "name-only",
-    "update-config": "name-only",
-    "archify": "name-only",
-    "python3-development": "name-only",
-    "pptx": "off",
-    "xlsx": "off",
-    "google-workspace": "off",
-    "docx": "off",
-    "pdf": "off",
-    "ask-salesforce": "off",
-    "n8n-create": "off",
-    "n8n-explain": "off",
-    "n8n-review": "off",
-    "n8n-security-audit": "off",
-    "import-memory": "off",
-    "anthropic-skills:n8n-explain": "off",
-    "anthropic-skills:n8n-review": "off",
-    "anthropic-skills:n8n-security-audit": "off",
-    "wiki-seo-audit": "off",
-    "artifact-sharing-check": "off",
-    "morning": "off"
+  "remote": {
+    "defaultEnvironmentId": "env_0186BNnxDoRP28wTEsccHkSU"
   }
 }
