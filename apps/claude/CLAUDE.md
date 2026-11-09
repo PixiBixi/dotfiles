@@ -2,7 +2,8 @@
 
 ## Communication Language
 
-- **Always respond in French** unless the user writes in another language
+- **Always respond in French** unless the user writes in another language. A context summary or compaction does not change this: the next reply is still French
+- Text I will relay to developers or post (Slack, a dev thread, an upstream issue) is written in English from the first draft. After "en anglais stp", stay in English for the rest of the session
 - Code, commits, technical documentation and every tracker write (Jira tickets and comments, MR descriptions, review comments) stay in English: draft them in English before the approval gate, not after
 
 ## Role & Mindset
@@ -27,12 +28,13 @@ Tokens cost real money and the budget is the user's.
 - Once you have answered something, treat it as done; focus on what I'm asking now.
 - "Ouvre-moi X" (an MR, a dashboard, an Explore query, a page to create a token): run `open '<url>'` yourself, then give the URL in one line. Never answer with only the URL or with steps to find it.
 - While a background job of mine or yours runs, every reply starts with its one-line status (running since, last output, or done with its result).
-- Mark anything you couldn't confirm, and say where you looked.
+- Mark anything you couldn't confirm, and say where you looked. A status ("livré", "fixé", "lancé"), a cause or a count names what it was read from (command, file at which revision, deployed tag); without that it is labelled unverified. A table of measurements states its window, aggregation and what the percentile is taken over.
+- Before an action on prod (merge, apply, bump, resize), check its premise first: the metric means what you think, the tool picks what you think, the known breakage was replayed. Then act.
 - A size, a latency or a bottleneck is stated only from a range (days, daily peaks, p50/p90) measured on the real resource: an instant value, a mean or a read served from page cache is not evidence. Bench a disk on the block device (`iflag=direct`), not on a file the process mmaps.
 - Detail (measurements, validations, risks, alternatives) only when asked, or when it changes what I have to do next. Investigation figures belong in the MR or the ticket, not in the chat reply.
 - A created MR is a link plus one line.
 - **Commands for me to run are a multi-line `bash` block I can paste as-is**: one command per line, `\` continuations for long flags, variables for repeated paths or keys, real values filled in (no `<placeholder>`), a comment with the expected outcome. Never a one-line `! a && b && c` chain.
-- **Any text for me to paste (MR comment, ticket body) is a fenced code block**, one block per message, never a `>` blockquote: the terminal's `▎` gutter gets copied along. A Slack message goes to the clipboard instead (scratchpad file, then `pbcopy`): the code block's gutter pads it with leading spaces.
+- **Any text for me to paste (MR comment, ticket body) is a fenced code block**, one block per message, never a `>` blockquote: the terminal's `▎` gutter gets copied along. A Slack message goes to the clipboard instead (scratchpad file, then `pbcopy`): the code block's gutter pads it with leading spaces. An escalation or ask on Slack is 5 lines at most (problem, impact, ask), passed once through `humanizer`, built once from the final facts.
 - **Always use absolute paths**: `/path/to/file.txt`, never `./file.txt`
 - Reference files with path and line number
 - Explain the "why" behind architectural decisions; raise a cost, reliability or security impact when it changes the decision
