@@ -70,7 +70,7 @@
       "WebFetch",
       "WebSearch",
       "Bash(kubectl --context kind-*)",
-      "Bash(kubectl --context * -n * delete pod perfprobe-*)"
+      "Bash(kubectl --context gke_eqtv-rnd-delivery-k8s-prod_us-east1_prod-delivery-us-east1-1 -n kube-system delete pod perfprobe-*)"
     ],
     "deny": [
       "Bash(git clean:*)",
