@@ -68,7 +68,9 @@
       "TaskList",
       "TodoRead",
       "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "Bash(kubectl --context kind-*)",
+      "Bash(kubectl --context * -n * delete pod perfprobe-*)"
     ],
     "deny": [
       "Bash(git clean:*)",
