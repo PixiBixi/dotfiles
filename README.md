@@ -136,6 +136,7 @@ dotfiles/
 │   └── skillfish.json            # Manifeste des skills Claude externes
 ├── apps/
 │   ├── claude/                   # CLAUDE.md, settings.json, bin/, hooks/, config/
+│   ├── mpv/                      # Lanceur mpv.app et associations vidéo
 │   ├── raycast/Raycast.rayconfig
 │   └── vscode/                   # settings.json, extensions.txt
 ├── scripts/
@@ -241,6 +242,21 @@ La disposition (onglets, splits, dossiers, ID de session Claude) est sauvegardé
 
 ```bash
 ./scripts/init_mac.sh --only dotfiles screenshot-hotkeys   # Réglages Système fermés
+```
+
+### mpv
+
+La formule Homebrew `mpv` n'installe que le binaire, sans `.app`. L'étape `mpv-app` construit `/Applications/mpv.app`, un lanceur AppleScript autour de ce binaire, et en fait le lecteur par défaut des fichiers vidéo.
+
+| Fichier | Rôle |
+|---|---|
+| `apps/mpv/launcher.applescript` | Source du lanceur |
+| `apps/mpv/set-default-handler.swift` | Associe les extensions à l'app |
+
+Extensions associées : `mp4`, `m4v`, `mov`, `mkv`, `webm`, `avi`, `wmv`, `flv`, `f4v`, `mpg`, `mpeg`, `m2ts`, `mts`, `3gp`, `3g2`, `ogv`, `vob`, `divx`, `asf`, `rm`, `rmvb`, `mxf`, `dv` (liste dans `setup_mpv_app`). `ts` est exclu, c'est aussi l'extension TypeScript.
+
+```bash
+./scripts/init_mac.sh --only mpv-app   # (re)construire le lanceur et réassocier
 ```
 
 ---

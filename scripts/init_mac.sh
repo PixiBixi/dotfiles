@@ -65,6 +65,7 @@ STEPS=(
     "rtk:setup_rtk"
     "launchagents:setup_launchagents"
     "screenshot-hotkeys:setup_screenshot_hotkeys"
+    "mpv-app:setup_mpv_app"
 )
 
 ONLY_STEPS=()
@@ -399,6 +400,61 @@ setup_screenshot_hotkeys() {
         '{enabled = 0; value = {parameters = (39, 21, 1179648); type = standard;};}'
     /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     log_success "Native area screenshot hotkeys disabled (close System Settings first if open)"
+}
+
+# The Homebrew mpv formula ships no .app and LaunchServices only binds file
+# types to a bundle: build a launcher applet around the CLI, then make it the
+# default video player.
+setup_mpv_app() {
+    log_info "Setting up the mpv.app launcher..."
+
+    local app="/Applications/mpv.app"
+    local src_dir="${REPO_DIR}/apps/mpv"
+    local bundle_id="fr.jdelgado.mpv-launcher"
+    local plist="${app}/Contents/Info.plist"
+    local lsregister="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+    # No "ts": the extension is also TypeScript.
+    local -a exts=(mp4 m4v mov mkv webm avi wmv flv f4v mpg mpeg m2ts mts 3gp 3g2 ogv vob divx asf rm rmvb mxf dv)
+
+    local mpv_bin
+    if ! mpv_bin="$(command -v mpv)"; then
+        log_warning "mpv not found, skipping the launcher"
+        return 0
+    fi
+    if ! command -v jq &> /dev/null || ! command -v swift &> /dev/null; then
+        log_warning "jq or swift not found, skipping the mpv launcher"
+        return 0
+    fi
+
+    # Never overwrite a real mpv.app (cask, upstream build): only our own applet.
+    if [[ -e "${app}" ]]; then
+        if [[ "$(plutil -extract CFBundleIdentifier raw "${plist}" 2> /dev/null)" != "${bundle_id}" ]]; then
+            log_warning "${app} exists and is not this launcher, leaving it alone"
+            return 0
+        fi
+        rm -rf "${app}"
+    fi
+
+    local doc_types
+    doc_types="$(jq -cn '[{CFBundleTypeName: "Video", CFBundleTypeRole: "Viewer", LSHandlerRank: "Default",
+        LSItemContentTypes: ["public.movie"], CFBundleTypeExtensions: $ARGS.positional}]' --args "${exts[@]}")"
+
+    if ! sed "s|__MPV_BIN__|${mpv_bin}|" "${src_dir}/launcher.applescript" | osacompile -o "${app}"; then
+        log_error "Failed to build ${app}"
+        return 0
+    fi
+    plutil -replace CFBundleIdentifier -string "${bundle_id}" "${plist}"
+    plutil -replace CFBundleName -string mpv "${plist}"
+    plutil -replace CFBundleDocumentTypes -json "${doc_types}" "${plist}"
+    # Editing Info.plist breaks the applet's signature: re-sign ad hoc or it will not launch.
+    codesign --force --deep -s - "${app}" &> /dev/null
+    "${lsregister}" -f "${app}"
+
+    if swift "${src_dir}/set-default-handler.swift" "${app}" "${exts[@]}"; then
+        log_success "mpv.app built, default player for: ${exts[*]}"
+    else
+        log_warning "mpv.app built, but some extensions kept their previous player (see above)"
+    fi
 }
 
 # Install Claude Code from the native installer: the Homebrew cask lags the
