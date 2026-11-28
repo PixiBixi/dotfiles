@@ -255,6 +255,8 @@ La formule Homebrew `mpv` n'installe que le binaire, sans `.app`. L'étape `mpv-
 
 Extensions associées : `mp4`, `m4v`, `mov`, `mkv`, `webm`, `avi`, `wmv`, `flv`, `f4v`, `mpg`, `mpeg`, `m2ts`, `mts`, `3gp`, `3g2`, `ogv`, `vob`, `divx`, `asf`, `rm`, `rmvb`, `mxf`, `dv` (liste dans `setup_mpv_app`). `ts` est exclu, c'est aussi l'extension TypeScript.
 
+macOS demande une confirmation par extension à la première exécution. Les relances ne réassocient que les extensions qui ne pointent pas déjà sur mpv.
+
 ```bash
 ./scripts/init_mac.sh --only mpv-app   # (re)construire le lanceur et réassocier
 ```

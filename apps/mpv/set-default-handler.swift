@@ -34,14 +34,11 @@ func assign(_ todo: [(String, UTType)]) {
     }
 }
 
-// Second pass: a type can fail right after lsregister, while the bundle is still being indexed.
-assign(types)
-var failed = types.filter { handler($0.1) != app }
-if !failed.isEmpty {
-    Thread.sleep(forTimeInterval: 1)
-    assign(failed)
-    failed = types.filter { handler($0.1) != app }
-}
+// macOS asks for a confirmation per type: only touch the ones not already bound to the app,
+// so a re-run prompts for nothing. No retry either, it would prompt again after a refusal.
+let todo = types.filter { handler($0.1) != app }
+assign(todo)
+let failed = todo.filter { handler($0.1) != app }
 
 for (ext, type) in failed {
     print("\(ext) (\(type.identifier)): still opened by \(handler(type)?.lastPathComponent ?? "nothing")")
